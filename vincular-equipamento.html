@@ -194,18 +194,11 @@
                     console.log('Iniciando busca por:', query);
                     
                     try {
-                        var url = '/api/clients.php?search=' + encodeURIComponent(query) + '&limit=10';
+                        // Usa endpoint de busca sem autenticação
+                        var url = '/api/search-clients.php?search=' + encodeURIComponent(query) + '&limit=10';
                         console.log('URL da requisição:', url);
                         
-                        var headers = {
-                            'Content-Type': 'application/json'
-                        };
-                        if (token) {
-                            headers['Authorization'] = 'Bearer ' + token;
-                        }
-                        console.log('Headers:', headers);
-                        
-                        var response = await fetch(url, { headers: headers });
+                        var response = await fetch(url);
                         console.log('Status da resposta:', response.status);
                         
                         var responseText = await response.text();
@@ -339,8 +332,8 @@
                 btnVincular.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Vinculando...';
                 
                 try {
-                    var response = await fetch('/api/clients.php', {
-                        method: 'PUT',
+                    var response = await fetch('/api/vincular.php', {
+                        method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': 'Bearer ' + (token || '')

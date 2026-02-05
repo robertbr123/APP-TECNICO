@@ -283,11 +283,11 @@
                 btn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Salvando...';
                 
                 try {
-                    // Envia para API
+                    // Envia para API de cadastro
                     var token = localStorage.getItem('auth_token');
                     console.log('Token:', token ? 'Presente' : 'Ausente');
                     
-                    var response = await fetch('/api/clients.php', {
+                    var response = await fetch('/api/cadastro.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
