@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Detalhes do Cliente - Ondeline</title>
+<!-- PWA Meta Tags -->
+<meta name="theme-color" content="#135bec"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Ondeline Tech"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192x192.png"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#135bec",
+                "background-light": "#f6f6f8",
+                "background-dark": "#101622",
+              },
+              fontFamily: {
+                "display": ["Inter", "sans-serif"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-x-hidden">
+<div class="flex items-center bg-white dark:bg-background-dark px-4 py-3 sticky top-0 z-20 border-b border-gray-100 dark:border-gray-800">
+<button class="text-primary flex size-10 items-center justify-start">
+<span class="material-symbols-outlined">arrow_back_ios</span>
+</button>
+<h1 class="text-[#111318] dark:text-white text-lg font-bold flex-1 text-center pr-10">Detalhes do Cliente</h1>
+</div>
+<div class="bg-white dark:bg-background-dark px-4 py-6 border-b border-gray-100 dark:border-gray-800">
+<div class="flex items-center gap-4">
+<div class="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">person</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-0.5">
+<h2 class="text-[#111318] dark:text-white text-xl font-bold">João Silva</h2>
+<span class="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Ativo</span>
+</div>
+<p class="text-[#616f89] dark:text-gray-400 text-sm">CPF: 123.456.789-00</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-4 p-4">
+<section class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary text-xl">router</span>
+<h3 class="text-[#111318] dark:text-white text-base font-bold">Informações do Serviço</h3>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<div>
+<p class="text-[#616f89] dark:text-gray-400 text-xs font-medium uppercase mb-1">Plano</p>
+<p class="text-[#111318] dark:text-white font-semibold">Fiber Ultra 500Mbps</p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<p class="text-[#616f89] dark:text-gray-400 text-xs font-medium uppercase mb-1">Usuário PPPoE</p>
+<p class="text-[#111318] dark:text-white font-mono text-sm">joao.silva@ondeline</p>
+</div>
+<div>
+<p class="text-[#616f89] dark:text-gray-400 text-xs font-medium uppercase mb-1">Senha</p>
+<div class="flex items-center gap-2">
+<p class="text-[#111318] dark:text-white font-mono text-sm">••••••••</p>
+<span class="material-symbols-outlined text-sm text-[#616f89]">visibility</span>
+</div>
+</div>
+</div>
+<div>
+<p class="text-[#616f89] dark:text-gray-400 text-xs font-medium uppercase mb-1">Vencimento</p>
+<p class="text-[#111318] dark:text-white font-semibold">Todo dia 10</p>
+</div>
+</div>
+</section>
+<section class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary text-xl">location_on</span>
+<h3 class="text-[#111318] dark:text-white text-base font-bold">Endereço</h3>
+</div>
+<p class="text-[#111318] dark:text-white text-sm mb-4 leading-relaxed">
+                    Rua das Flores, 123, Bloco B - Ap 42<br/>
+                    Jardim América, São Paulo - SP<br/>
+                    CEP: 01419-001
+                </p>
+<div class="w-full h-32 rounded-xl bg-gray-200 dark:bg-gray-800 bg-cover bg-center overflow-hidden" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDwUvEnmiM868hyViV-qqut5Ygj9Qj4ACMnv2A1XZXiYhDHeLvnQqL6Fo0U1-bMIil_DSiE3e7IKGRRwsgOJ0oTo2f6HC8xTSH63qwZcI0kd3ih_c4-k3Mi6yFXRamkwF17XZWGMfCCithA9KhX5WDbfmgW6dRgfEJGZ8tRRLpMvsIxwCbWaRBr5-2AxVMKfkMAKMumWR2aImR-YlkhVj5F-6bopjMIDIBi3FUMotJJNPC0O9nttZ8r6WId1Nnxx77ve220Of4BMSA');">
+<div class="w-full h-full bg-black/10 flex items-center justify-center">
+<div class="bg-white p-2 rounded-full shadow-lg">
+<span class="material-symbols-outlined text-red-500">location_on</span>
+</div>
+</div>
+</div>
+</section>
+<section class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">photo_library</span>
+<h3 class="text-[#111318] dark:text-white text-base font-bold">Fotos da Instalação</h3>
+</div>
+<span id="photo-count" class="text-gray-400 text-xs">Carregando...</span>
+</div>
+<div id="photos-container" class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+<div class="min-w-[100px] h-24 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+<div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+</div>
+</div>
+</section>
+<section class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary text-xl">sticky_note_2</span>
+<h3 class="text-[#111318] dark:text-white text-base font-bold">Observações</h3>
+</div>
+<p class="text-[#616f89] dark:text-gray-400 text-sm italic">
+                    "Cliente solicitou a instalação do roteador na sala de estar. Sinal verificado em todos os quartos. Níveis de potência da ONT dentro dos parâmetros."
+                </p>
+</section>
+</div>
+<div class="p-4 flex flex-col gap-3 mb-10">
+<button class="w-full h-14 bg-primary text-white rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined">edit</span>
+                Editar Cliente
+            </button>
+<button class="w-full h-14 bg-white dark:bg-gray-900 text-[#111318] dark:text-white border border-gray-200 dark:border-gray-800 rounded-2xl font-bold text-base flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">calendar_today</span>
+                Agendar Manutenção
+            </button>
+</div>
+</div>
+
+<!-- Scripts do App -->
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body></html>

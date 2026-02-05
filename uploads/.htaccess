@@ -1,0 +1,21 @@
+# Pasta de uploads de fotos
+# Ondeline Tech - App do Técnico
+
+# Permite acesso apenas a imagens
+<FilesMatch "\.(?i:jpg|jpeg|png|gif|webp|heic)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Bloqueia execução de PHP
+<FilesMatch "\.(?i:php|phtml|php3|php4|php5|phps)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Desabilita listagem de diretório
+Options -Indexes
+
+# Desabilita execução de scripts
+AddHandler cgi-script .php .pl .py .jsp .asp .htm .shtml .sh .cgi
+Options -ExecCGI

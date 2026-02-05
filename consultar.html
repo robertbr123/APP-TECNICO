@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Consultar Clientes - Ondeline</title>
+<!-- PWA Meta Tags -->
+<meta name="theme-color" content="#135bec"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Ondeline Tech"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192x192.png"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#135bec",
+                "background-light": "#f6f6f8",
+                "background-dark": "#101622",
+              },
+              fontFamily: {
+                "display": ["Inter", "sans-serif"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden">
+<div class="flex items-center bg-white dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10 border-b border-gray-100 dark:border-gray-800">
+<div class="text-primary flex size-12 shrink-0 items-center justify-start cursor-pointer">
+<span class="material-symbols-outlined">arrow_back_ios</span>
+</div>
+<h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">Consultar Clientes</h2>
+</div>
+<div class="px-4 py-4 bg-white dark:bg-background-dark">
+<label class="flex flex-col min-w-40 h-12 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-xl h-full shadow-sm">
+<div class="text-[#616f89] flex border-none bg-[#f0f2f4] dark:bg-gray-800 items-center justify-center pl-4 rounded-l-xl border-r-0">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-xl text-[#111318] dark:text-white focus:outline-0 focus:ring-0 border-none bg-[#f0f2f4] dark:bg-gray-800 focus:border-none h-full placeholder:text-[#616f89] px-4 pl-2 text-base font-normal leading-normal" placeholder="Buscar por nome ou CPF" value=""/>
+</div>
+</label>
+</div>
+<div class="flex gap-3 p-4 overflow-x-auto no-scrollbar bg-white dark:bg-background-dark border-b border-gray-100 dark:border-gray-800">
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary px-5">
+<p class="text-white text-sm font-semibold leading-normal">Todos</p>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-[#f0f2f4] dark:bg-gray-800 px-5">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Ativos</p>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-[#f0f2f4] dark:bg-gray-800 px-5">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Inativos</p>
+</button>
+</div>
+<div class="px-4 pt-6 pb-2">
+<h3 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Resultados da Busca</h3>
+<p class="text-sm text-[#616f89] dark:text-gray-400">3 clientes encontrados</p>
+</div>
+<div class="flex flex-col gap-3 p-4">
+<div class="flex items-stretch justify-between gap-4 rounded-xl bg-white dark:bg-gray-900 p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex flex-[2_2_0px] flex-col justify-between">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+<p class="text-green-600 dark:text-green-400 text-xs font-bold uppercase tracking-wider leading-normal">Ativo</p>
+</div>
+<p class="text-[#111318] dark:text-white text-base font-bold leading-tight">João da Silva Santos</p>
+<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">CPF: 123.456.789-00</p>
+<p class="text-[#616f89] dark:text-gray-400 text-xs font-normal leading-normal mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                        Rua das Flores, 123 - São Paulo, SP
+                    </p>
+</div>
+<button class="mt-4 flex min-w-[140px] max-w-fit cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-primary text-white gap-1 text-sm font-semibold leading-normal">
+<span class="truncate">Ver Detalhes</span>
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+<div class="w-24 h-24 bg-center bg-no-repeat bg-cover rounded-xl flex-shrink-0" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB-hDwkXargltsOnwgtufOnrbDvsFCFfNu3EDjaTtUzpHlFuHAuPS93tWK-ycWv2zVMBWTNUpIlnviXt6GUFZWnLOahyJk8KfJPIKtt2S9KiI5ye1fWiSO946Z4aRHsPjBkPMKeu10A5TxlAwqdcUNn-2j652AbEHBvzVlZwEA8xx3gX53qXzLY-9rp-LW2xioi4TMrPRenycxPlD5TcAWaVbaNLZMT4Q6SpgM_lHc0Q4Wb0wGnodq63muJ8o7q3aEB-hkCcDrLGdE");'></div>
+</div>
+<div class="flex items-stretch justify-between gap-4 rounded-xl bg-white dark:bg-gray-900 p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex flex-[2_2_0px] flex-col justify-between">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="inline-block w-2 h-2 rounded-full bg-red-500"></span>
+<p class="text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider leading-normal">Inativo</p>
+</div>
+<p class="text-[#111318] dark:text-white text-base font-bold leading-tight">Maria Oliveira Souza</p>
+<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">CPF: 987.654.321-11</p>
+<p class="text-[#616f89] dark:text-gray-400 text-xs font-normal leading-normal mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                        Av. Central, 456 - Curitiba, PR
+                    </p>
+</div>
+<button class="mt-4 flex min-w-[140px] max-w-fit cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 gap-1 text-sm font-semibold leading-normal">
+<span class="truncate">Ver Detalhes</span>
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+<div class="w-24 h-24 bg-center bg-no-repeat bg-cover rounded-xl flex-shrink-0" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB836BZllmqo3QMsA-EE-Hdj-MQrTWXoW1P_pPi1SUx30FENsANNTv7eLsHjFpNtutWvXwx8iVb_ZTzgVbVZZ_eN7RMN0_uCmuLy5PPu1PGaii0Jx7wasVeGwbmnu_O5CJkUDzS1LrpoSnylexppweBeprDitHeAgTOz_CWLNIDpMinNaZM6N_cupZXsM8Oo6JbTHrr64vBalGNmQBV2CWwrENrs8WYBiamSI1WGONtLpC2iybwvRGlxxeqItQPfKh5kpbSMuOQ3Vo");'></div>
+</div>
+<div class="flex items-stretch justify-between gap-4 rounded-xl bg-white dark:bg-gray-900 p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex flex-[2_2_0px] flex-col justify-between">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+<p class="text-green-600 dark:text-green-400 text-xs font-bold uppercase tracking-wider leading-normal">Ativo</p>
+</div>
+<p class="text-[#111318] dark:text-white text-base font-bold leading-tight">Ricardo Pereira Santos</p>
+<p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">CPF: 456.123.789-55</p>
+<p class="text-[#616f89] dark:text-gray-400 text-xs font-normal leading-normal mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                        Alameda Norte, 78 - Salvador, BA
+                    </p>
+</div>
+<button class="mt-4 flex min-w-[140px] max-w-fit cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-primary text-white gap-1 text-sm font-semibold leading-normal">
+<span class="truncate">Ver Detalhes</span>
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+<div class="w-24 h-24 bg-center bg-no-repeat bg-cover rounded-xl flex-shrink-0" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDwUvEnmiM868hyViV-qqut5Ygj9Qj4ACMnv2A1XZXiYhDHeLvnQqL6Fo0U1-bMIil_DSiE3e7IKGRRwsgOJ0oTo2f6HC8xTSH63qwZcI0kd3ih_c4-k3Mi6yFXRamkwF17XZWGMfCCithA9KhX5WDbfmgW6dRgfEJGZ8tRRLpMvsIxwCbWaRBr5-2AxVMKfkMAKMumWR2aImR-YlkhVj5F-6bopjMIDIBi3FUMotJJNPC0O9nttZ8r6WId1Nnxx77ve220Of4BMSA");'></div>
+</div>
+</div>
+<div class="fixed bottom-8 right-6">
+<button class="flex size-16 items-center justify-center rounded-full bg-primary text-white shadow-2xl active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[32px]">person_add</span>
+</button>
+</div>
+<div class="h-28"></div>
+</div>
+
+<!-- Scripts do App -->
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body></html>
