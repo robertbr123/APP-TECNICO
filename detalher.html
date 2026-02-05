@@ -9,7 +9,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Ondeline Tech"/>
 <link rel="manifest" href="manifest.json"/>
-<link rel="apple-touch-icon" href="icons/icon-192x192.png"/>
+<link rel="icon" type="image/png" href="logo.png"/>
+<link rel="apple-touch-icon" href="logo.png"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -67,10 +68,10 @@
 </div>
 <div class="flex-1">
 <div class="flex items-center gap-2 mb-0.5">
-<h2 class="text-[#111318] dark:text-white text-xl font-bold">João Silva</h2>
-<span class="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Ativo</span>
+<h2 id="client-name" class="text-[#111318] dark:text-white text-xl font-bold">Carregando...</h2>
+<span id="client-status" class="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">...</span>
 </div>
-<p class="text-[#616f89] dark:text-gray-400 text-sm">CPF: 123.456.789-00</p>
+<p id="client-cpf" class="text-[#616f89] dark:text-gray-400 text-sm">CPF: ...</p>
 </div>
 </div>
 </div>
@@ -83,24 +84,26 @@
 <div class="grid grid-cols-1 gap-4">
 <div>
 <p class="text-[#616f89] dark:text-gray-400 text-xs font-medium uppercase mb-1">Plano</p>
-<p class="text-[#111318] dark:text-white font-semibold">Fiber Ultra 500Mbps</p>
+<p id="client-plan" class="text-[#111318] dark:text-white font-semibold">Carregando...</p>
 </div>
 <div class="grid grid-cols-2 gap-4">
 <div>
 <p class="text-[#616f89] dark:text-gray-400 text-xs font-medium uppercase mb-1">Usuário PPPoE</p>
-<p class="text-[#111318] dark:text-white font-mono text-sm">joao.silva@ondeline</p>
+<p id="client-pppoe" class="text-[#111318] dark:text-white font-mono text-sm">...</p>
 </div>
 <div>
 <p class="text-[#616f89] dark:text-gray-400 text-xs font-medium uppercase mb-1">Senha</p>
 <div class="flex items-center gap-2">
-<p class="text-[#111318] dark:text-white font-mono text-sm">••••••••</p>
+<p id="client-password" class="text-[#111318] dark:text-white font-mono text-sm" data-password="">••••••••</p>
+<button id="btn-toggle-password" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
 <span class="material-symbols-outlined text-sm text-[#616f89]">visibility</span>
+</button>
 </div>
 </div>
 </div>
 <div>
 <p class="text-[#616f89] dark:text-gray-400 text-xs font-medium uppercase mb-1">Vencimento</p>
-<p class="text-[#111318] dark:text-white font-semibold">Todo dia 10</p>
+<p id="client-due" class="text-[#111318] dark:text-white font-semibold">...</p>
 </div>
 </div>
 </section>
@@ -109,10 +112,8 @@
 <span class="material-symbols-outlined text-primary text-xl">location_on</span>
 <h3 class="text-[#111318] dark:text-white text-base font-bold">Endereço</h3>
 </div>
-<p class="text-[#111318] dark:text-white text-sm mb-4 leading-relaxed">
-                    Rua das Flores, 123, Bloco B - Ap 42<br/>
-                    Jardim América, São Paulo - SP<br/>
-                    CEP: 01419-001
+<p id="client-address" class="text-[#111318] dark:text-white text-sm mb-4 leading-relaxed">
+                    Carregando endereço...
                 </p>
 <div class="w-full h-32 rounded-xl bg-gray-200 dark:bg-gray-800 bg-cover bg-center overflow-hidden" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDwUvEnmiM868hyViV-qqut5Ygj9Qj4ACMnv2A1XZXiYhDHeLvnQqL6Fo0U1-bMIil_DSiE3e7IKGRRwsgOJ0oTo2f6HC8xTSH63qwZcI0kd3ih_c4-k3Mi6yFXRamkwF17XZWGMfCCithA9KhX5WDbfmgW6dRgfEJGZ8tRRLpMvsIxwCbWaRBr5-2AxVMKfkMAKMumWR2aImR-YlkhVj5F-6bopjMIDIBi3FUMotJJNPC0O9nttZ8r6WId1Nnxx77ve220Of4BMSA');">
 <div class="w-full h-full bg-black/10 flex items-center justify-center">
@@ -141,8 +142,8 @@
 <span class="material-symbols-outlined text-primary text-xl">sticky_note_2</span>
 <h3 class="text-[#111318] dark:text-white text-base font-bold">Observações</h3>
 </div>
-<p class="text-[#616f89] dark:text-gray-400 text-sm italic">
-                    "Cliente solicitou a instalação do roteador na sala de estar. Sinal verificado em todos os quartos. Níveis de potência da ONT dentro dos parâmetros."
+<p id="client-observation" class="text-[#616f89] dark:text-gray-400 text-sm italic">
+                    Carregando...
                 </p>
 </section>
 </div>
@@ -162,6 +163,9 @@
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
 <script>
+    var clientPassword = ''; // Armazena a senha real
+    var passwordVisible = false;
+    
     document.addEventListener('DOMContentLoaded', async function() {
         // Pega o CPF da URL
         var params = new URLSearchParams(window.location.search);
@@ -175,12 +179,36 @@
             return;
         }
         
+        // Configura toggle de senha
+        var btnToggle = document.getElementById('btn-toggle-password');
+        if (btnToggle) {
+            btnToggle.onclick = function() {
+                togglePassword();
+            };
+        }
+        
         // Carrega as fotos
         await loadPhotos(cpf);
         
         // Carrega dados do cliente
         await loadClientData(cpf);
     });
+    
+    function togglePassword() {
+        var passwordEl = document.getElementById('client-password');
+        var btnToggle = document.getElementById('btn-toggle-password');
+        var icon = btnToggle.querySelector('.material-symbols-outlined');
+        
+        passwordVisible = !passwordVisible;
+        
+        if (passwordVisible) {
+            passwordEl.textContent = clientPassword || 'Não informada';
+            icon.textContent = 'visibility_off';
+        } else {
+            passwordEl.textContent = '••••••••';
+            icon.textContent = 'visibility';
+        }
+    }
     
     async function loadPhotos(cpf) {
         var container = document.getElementById('photos-container');
@@ -237,45 +265,74 @@
             if (result.success && result.data && result.data.length > 0) {
                 var client = result.data[0];
                 
-                // Atualiza os elementos da página
-                // Nome e status
-                var nameEl = document.querySelector('h2.text-xl');
+                // Nome
+                var nameEl = document.getElementById('client-name');
                 if (nameEl) nameEl.textContent = client.name || 'Sem nome';
                 
-                // CPF
-                var cpfEl = document.querySelector('.text-sm:contains("CPF")');
-                var cpfTexts = document.querySelectorAll('p.text-sm');
-                cpfTexts.forEach(function(el) {
-                    if (el.textContent.includes('CPF:')) {
-                        el.textContent = 'CPF: ' + formatCPF(client.cpf);
+                // Status
+                var statusEl = document.getElementById('client-status');
+                if (statusEl) {
+                    if (client.status === 'ativo') {
+                        statusEl.textContent = 'Ativo';
+                        statusEl.className = 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase';
+                    } else {
+                        statusEl.textContent = 'Inadimplente';
+                        statusEl.className = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase';
                     }
-                });
+                }
+                
+                // CPF
+                var cpfEl = document.getElementById('client-cpf');
+                if (cpfEl) cpfEl.textContent = 'CPF: ' + formatCPF(client.cpf);
                 
                 // Plano
-                var planEls = document.querySelectorAll('p.font-semibold');
-                if (planEls[0]) planEls[0].textContent = client.planId ? 'Plano ID: ' + client.planId : 'Não informado';
+                var planEl = document.getElementById('client-plan');
+                if (planEl) {
+                    var planNames = {
+                        6: 'Plano Básico - R$ 130',
+                        7: 'Plano 100 - R$ 100',
+                        8: 'Plano Avançado - R$ 180',
+                        9: 'Plano Intermediário - R$ 150'
+                    };
+                    planEl.textContent = planNames[client.planId] || ('Plano ID: ' + client.planId);
+                }
                 
                 // PPPoE
-                var pppoeEl = document.querySelector('p.font-mono');
+                var pppoeEl = document.getElementById('client-pppoe');
                 if (pppoeEl) pppoeEl.textContent = client.pppoe || 'Não informado';
                 
+                // Senha (armazena para toggle)
+                clientPassword = client.password || '';
+                var passwordEl = document.getElementById('client-password');
+                if (passwordEl) {
+                    passwordEl.textContent = '••••••••';
+                }
+                
+                // Vencimento
+                var dueEl = document.getElementById('client-due');
+                if (dueEl) dueEl.textContent = 'Todo dia ' + (client.dueDay || '10');
+                
                 // Endereço
-                var addressSection = document.querySelector('section:nth-of-type(2) p.text-sm');
-                if (addressSection) {
-                    var endereco = (client.address || '') + ', ' + (client.number || 'S/N');
+                var addressEl = document.getElementById('client-address');
+                if (addressEl) {
+                    var endereco = (client.address || 'Endereço não informado');
+                    if (client.number) endereco += ', ' + client.number;
                     if (client.complement) endereco += ' - ' + client.complement;
-                    endereco += '<br>' + (client.city || '');
-                    addressSection.innerHTML = endereco;
+                    if (client.city) endereco += '<br>' + client.city;
+                    addressEl.innerHTML = endereco;
                 }
                 
                 // Observações
-                var obsEl = document.querySelector('section:nth-of-type(4) p.italic');
+                var obsEl = document.getElementById('client-observation');
                 if (obsEl) {
-                    obsEl.textContent = client.observation || 'Nenhuma observação registrada.';
+                    obsEl.textContent = client.observation ? '"' + client.observation + '"' : 'Nenhuma observação registrada.';
                 }
+            } else {
+                alert('Cliente não encontrado');
             }
         } catch (error) {
             console.error('Erro ao carregar cliente:', error);
+            alert('Erro ao carregar dados do cliente');
         }
     }
     
