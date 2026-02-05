@@ -141,4 +141,245 @@
 <!-- Scripts do App -->
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
+<script>
+    // Script de backup para vincular equipamento
+    var selectedClient = null;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('=== Vincular Equipamento Iniciado ===');
+        
+        var searchInput = document.getElementById('field-search');
+        var searchResults = document.getElementById('search-results');
+        var serialInput = document.getElementById('field-serial');
+        var btnVincular = document.getElementById('btn-vincular');
+        var selectedClientDiv = document.getElementById('selected-client');
+        var btnClearSelection = document.getElementById('btn-clear-selection');
+        
+        console.log('Elementos encontrados:', {
+            searchInput: !!searchInput,
+            searchResults: !!searchResults,
+            serialInput: !!serialInput,
+            btnVincular: !!btnVincular
+        });
+        
+        var searchTimeout;
+        
+        // Verifica token
+        var token = localStorage.getItem('auth_token');
+        console.log('Token presente:', !!token);
+        if (!token) {
+            console.warn('AVISO: Token não encontrado! Usuário pode não estar logado.');
+        }
+        
+        // Busca de clientes
+        if (searchInput) {
+            console.log('Adicionando listener de busca...');
+            
+            searchInput.addEventListener('input', function(e) {
+                clearTimeout(searchTimeout);
+                var query = e.target.value.trim();
+                console.log('Input detectado:', query);
+                
+                if (query.length < 2) {
+                    searchResults.classList.add('hidden');
+                    searchResults.innerHTML = '';
+                    return;
+                }
+                
+                // Mostra loading
+                searchResults.innerHTML = '<div class="p-4 text-center text-gray-500"><span class="material-symbols-outlined animate-spin">sync</span> Buscando...</div>';
+                searchResults.classList.remove('hidden');
+                
+                searchTimeout = setTimeout(async function() {
+                    console.log('Iniciando busca por:', query);
+                    
+                    try {
+                        var url = '/api/clients.php?search=' + encodeURIComponent(query) + '&limit=10';
+                        console.log('URL da requisição:', url);
+                        
+                        var headers = {
+                            'Content-Type': 'application/json'
+                        };
+                        if (token) {
+                            headers['Authorization'] = 'Bearer ' + token;
+                        }
+                        console.log('Headers:', headers);
+                        
+                        var response = await fetch(url, { headers: headers });
+                        console.log('Status da resposta:', response.status);
+                        
+                        var responseText = await response.text();
+                        console.log('Resposta raw:', responseText);
+                        
+                        var result;
+                        try {
+                            result = JSON.parse(responseText);
+                        } catch (parseError) {
+                            console.error('Erro ao parsear JSON:', parseError);
+                            searchResults.innerHTML = '<div class="p-4 text-center text-red-500">Erro: Resposta inválida do servidor</div>';
+                            return;
+                        }
+                        
+                        console.log('Resultado parseado:', result);
+                        
+                        if (result.success && result.data && result.data.length > 0) {
+                            console.log('Encontrados', result.data.length, 'clientes');
+                            
+                            searchResults.innerHTML = result.data.map(function(client) {
+                                var cpfFormatado = formatCPF(client.cpf || '');
+                                var endereco = (client.address || '') + ', ' + (client.number || '') + ' - ' + (client.city || '');
+                                
+                                return '<div class="client-item p-3 rounded-lg bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 mb-2" ' +
+                                    'data-cpf="' + (client.cpf || '') + '" ' +
+                                    'data-name="' + (client.name || '').replace(/"/g, '&quot;') + '" ' +
+                                    'data-address="' + endereco.replace(/"/g, '&quot;') + '" ' +
+                                    'data-serial="' + (client.serial || '') + '">' +
+                                    '<div class="size-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">' +
+                                        '<span class="material-symbols-outlined text-blue-600 dark:text-blue-400">person</span>' +
+                                    '</div>' +
+                                    '<div class="flex-1 min-w-0">' +
+                                        '<p class="font-medium text-gray-900 dark:text-white truncate">' + (client.name || 'Sem nome') + '</p>' +
+                                        '<p class="text-xs text-gray-500 dark:text-gray-400">' + cpfFormatado + '</p>' +
+                                    '</div>' +
+                                    (client.serial ? '<span class="material-symbols-outlined text-orange-500" title="Já possui equipamento">router</span>' : '') +
+                                '</div>';
+                            }).join('');
+                            
+                            // Adiciona eventos de clique
+                            searchResults.querySelectorAll('.client-item').forEach(function(el) {
+                                el.onclick = function() {
+                                    selectClient({
+                                        cpf: el.dataset.cpf,
+                                        name: el.dataset.name,
+                                        address: el.dataset.address,
+                                        serial: el.dataset.serial
+                                    });
+                                };
+                            });
+                        } else if (result.success && (!result.data || result.data.length === 0)) {
+                            console.log('Nenhum cliente encontrado');
+                            searchResults.innerHTML = '<div class="p-4 text-center text-gray-500"><span class="material-symbols-outlined text-2xl mb-2">search_off</span><br>Nenhum cliente encontrado</div>';
+                        } else {
+                            console.error('Erro na resposta:', result.message);
+                            searchResults.innerHTML = '<div class="p-4 text-center text-red-500">Erro: ' + (result.message || 'Erro desconhecido') + '</div>';
+                        }
+                    } catch (error) {
+                        console.error('Erro na busca:', error);
+                        searchResults.innerHTML = '<div class="p-4 text-center text-red-500">Erro de conexão: ' + error.message + '</div>';
+                    }
+                }, 400);
+            });
+        } else {
+            console.error('ERRO: Campo de busca não encontrado!');
+        }
+        
+        // Selecionar cliente
+        function selectClient(client) {
+            console.log('Cliente selecionado:', client);
+            selectedClient = client;
+            
+            document.getElementById('selected-name').textContent = client.name || 'Sem nome';
+            document.getElementById('selected-cpf').textContent = formatCPF(client.cpf || '');
+            document.getElementById('selected-address').textContent = client.address || 'Endereço não informado';
+            
+            var currentSerialContainer = document.getElementById('current-serial-container');
+            if (client.serial && client.serial.trim()) {
+                document.getElementById('current-serial').textContent = client.serial;
+                currentSerialContainer.classList.remove('hidden');
+            } else {
+                currentSerialContainer.classList.add('hidden');
+            }
+            
+            searchResults.classList.add('hidden');
+            selectedClientDiv.classList.remove('hidden');
+            searchInput.disabled = true;
+            
+            checkButton();
+        }
+        
+        // Limpar seleção
+        if (btnClearSelection) {
+            btnClearSelection.onclick = function() {
+                console.log('Limpando seleção');
+                selectedClient = null;
+                selectedClientDiv.classList.add('hidden');
+                searchInput.value = '';
+                searchInput.disabled = false;
+                searchInput.focus();
+                checkButton();
+            };
+        }
+        
+        // Serial input
+        if (serialInput) {
+            serialInput.addEventListener('input', function(e) {
+                e.target.value = e.target.value.toUpperCase();
+                checkButton();
+            });
+        }
+        
+        // Verificar se pode habilitar botão
+        function checkButton() {
+            var hasSerial = serialInput && serialInput.value.trim().length >= 3;
+            var hasClient = selectedClient !== null;
+            btnVincular.disabled = !(hasSerial && hasClient);
+            console.log('Check button:', { hasSerial: hasSerial, hasClient: hasClient, disabled: btnVincular.disabled });
+        }
+        
+        // Vincular
+        if (btnVincular) {
+            btnVincular.onclick = async function() {
+                if (!selectedClient || !serialInput.value.trim()) {
+                    alert('Preencha todos os campos');
+                    return;
+                }
+                
+                console.log('Vinculando equipamento...');
+                btnVincular.disabled = true;
+                btnVincular.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Vinculando...';
+                
+                try {
+                    var response = await fetch('/api/clients.php', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + (token || '')
+                        },
+                        body: JSON.stringify({
+                            cpf: selectedClient.cpf,
+                            serial: serialInput.value.trim().toUpperCase()
+                        })
+                    });
+                    
+                    var result = await response.json();
+                    console.log('Resultado vincular:', result);
+                    
+                    if (result.success) {
+                        alert('Equipamento vinculado com sucesso!');
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        alert('Erro: ' + (result.message || 'Erro desconhecido'));
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Erro ao vincular: ' + error.message);
+                } finally {
+                    btnVincular.disabled = false;
+                    btnVincular.innerHTML = '<span class="material-symbols-outlined">link</span> Vincular Equipamento';
+                    checkButton();
+                }
+            };
+        }
+        
+        // Formatar CPF
+        function formatCPF(cpf) {
+            if (!cpf) return '';
+            cpf = cpf.toString().replace(/\D/g, '');
+            if (cpf.length !== 11) return cpf;
+            return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+        
+        console.log('=== Inicialização concluída ===');
+    });
+</script>
 </body></html>

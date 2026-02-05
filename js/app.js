@@ -3,11 +3,14 @@
  * Ondeline Tech - App do Técnico
  */
 
+console.log('app.js carregado');
+
 const App = {
     /**
      * Inicialização do App
      */
     init() {
+        console.log('App.init() chamado');
         this.registerServiceWorker();
         this.checkAuth();
         this.setupEventListeners();
@@ -111,6 +114,7 @@ const App = {
      */
     initCurrentPage() {
         const page = window.location.pathname.split('/').pop() || 'index.html';
+        console.log('Página atual:', page);
         
         switch (page) {
             case 'login.html':
@@ -1169,6 +1173,7 @@ const App = {
 
 // Inicializa quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded disparado');
     App.init();
 });
 
