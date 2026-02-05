@@ -104,4 +104,116 @@
 <!-- Scripts do App -->
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var searchInput = document.querySelector('input[placeholder*="Buscar"]');
+        var container = document.getElementById('clients-container');
+        var resultCount = document.querySelector('.text-sm.text-\\[\\#616f89\\]');
+        var searchTimeout;
+        
+        // Botão voltar
+        document.querySelector('.material-symbols-outlined').parentElement.onclick = function() {
+            window.history.back();
+        };
+        
+        // Botão adicionar cliente
+        document.querySelector('button.bg-primary.size-16').onclick = function() {
+            window.location.href = 'novo-cadastro.html';
+        };
+        
+        // Carrega clientes iniciais
+        loadClients('');
+        
+        // Busca
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() {
+                    loadClients(e.target.value.trim());
+                }, 400);
+            });
+        }
+        
+        async function loadClients(query) {
+            container.innerHTML = '<div class="text-center py-10">' +
+                '<div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>' +
+                '<p class="text-gray-500 mt-4">Buscando...</p>' +
+            '</div>';
+            
+            try {
+                var url = '/api/search-clients.php?limit=50';
+                if (query) {
+                    url += '&search=' + encodeURIComponent(query);
+                }
+                
+                var response = await fetch(url);
+                var result = await response.json();
+                
+                console.log('Clientes:', result);
+                
+                if (result.success && result.data && result.data.length > 0) {
+                    if (resultCount) {
+                        resultCount.textContent = result.data.length + ' cliente(s) encontrado(s)';
+                    }
+                    
+                    container.innerHTML = result.data.map(function(client) {
+                        var cpfFormatado = formatCPF(client.cpf);
+                        var statusClass = client.status === 'ativo' 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+                        var statusText = client.status === 'ativo' ? 'Ativo' : 'Inadimplente';
+                        
+                        return '<div class="client-card bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer active:scale-[0.98] transition-transform" data-cpf="' + client.cpf + '">' +
+                            '<div class="flex items-center gap-3">' +
+                                '<div class="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">' +
+                                    '<span class="material-symbols-outlined">person</span>' +
+                                '</div>' +
+                                '<div class="flex-1 min-w-0">' +
+                                    '<div class="flex items-center gap-2">' +
+                                        '<p class="font-semibold text-[#111318] dark:text-white truncate">' + (client.name || 'Sem nome') + '</p>' +
+                                        '<span class="' + statusClass + ' text-[10px] font-bold px-2 py-0.5 rounded-full uppercase shrink-0">' + statusText + '</span>' +
+                                    '</div>' +
+                                    '<p class="text-xs text-[#616f89] dark:text-gray-400">' + cpfFormatado + '</p>' +
+                                    '<p class="text-xs text-[#616f89] dark:text-gray-400 truncate">' + (client.city || '') + '</p>' +
+                                '</div>' +
+                                '<span class="material-symbols-outlined text-gray-400">chevron_right</span>' +
+                            '</div>' +
+                        '</div>';
+                    }).join('');
+                    
+                    // Adiciona eventos de clique
+                    container.querySelectorAll('.client-card').forEach(function(card) {
+                        card.onclick = function() {
+                            window.location.href = 'detalher.html?cpf=' + card.dataset.cpf;
+                        };
+                    });
+                } else {
+                    if (resultCount) {
+                        resultCount.textContent = '0 clientes encontrados';
+                    }
+                    container.innerHTML = '<div class="text-center py-10">' +
+                        '<span class="material-symbols-outlined text-4xl text-gray-300">search_off</span>' +
+                        '<p class="text-gray-500 mt-4">Nenhum cliente encontrado</p>' +
+                    '</div>';
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                if (resultCount) {
+                    resultCount.textContent = 'Erro ao buscar';
+                }
+                container.innerHTML = '<div class="text-center py-10">' +
+                    '<span class="material-symbols-outlined text-4xl text-red-300">error</span>' +
+                    '<p class="text-red-500 mt-4">Erro ao carregar clientes</p>' +
+                '</div>';
+            }
+        }
+        
+        function formatCPF(cpf) {
+            if (!cpf) return '';
+            cpf = cpf.toString().replace(/\D/g, '');
+            if (cpf.length !== 11) return cpf;
+            return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+    });
+</script>
 </body></html>

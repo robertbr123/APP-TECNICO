@@ -232,9 +232,64 @@
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
 <script>
-    // Script de backup para garantir que o cadastro funcione
+    // Armazena as fotos selecionadas
+    var selectedPhotos = {
+        router: null,
+        cabling: null,
+        signal: null,
+        other: null
+    };
+    
     document.addEventListener('DOMContentLoaded', function() {
         console.log('DOM carregado');
+        
+        // Configura os inputs de foto
+        document.querySelectorAll('.photo-upload').forEach(function(container) {
+            var type = container.dataset.type;
+            var input = container.querySelector('input[type="file"]');
+            var preview = container.querySelector('.photo-preview');
+            var icon = container.querySelector('.photo-icon');
+            var addBtn = container.querySelector('.photo-add-btn');
+            var removeBtn = container.querySelector('.photo-remove-btn');
+            
+            if (input) {
+                input.addEventListener('change', function(e) {
+                    var file = e.target.files[0];
+                    if (file) {
+                        console.log('Foto selecionada:', type, file.name);
+                        selectedPhotos[type] = file;
+                        
+                        // Mostra preview
+                        var reader = new FileReader();
+                        reader.onload = function(ev) {
+                            preview.src = ev.target.result;
+                            preview.classList.remove('hidden');
+                            icon.classList.add('hidden');
+                            addBtn.classList.add('hidden');
+                            removeBtn.classList.remove('hidden');
+                            removeBtn.style.display = 'flex';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Removendo foto:', type);
+                    selectedPhotos[type] = null;
+                    input.value = '';
+                    preview.src = '';
+                    preview.classList.add('hidden');
+                    icon.classList.remove('hidden');
+                    addBtn.classList.remove('hidden');
+                    removeBtn.classList.add('hidden');
+                    removeBtn.style.display = 'none';
+                });
+            }
+        });
         
         var btn = document.getElementById('btn-salvar-cadastro');
         console.log('Botão salvar:', btn);
@@ -299,7 +354,55 @@
                     console.log('Resultado:', result);
                     
                     if (result.success) {
-                        alert('Cliente cadastrado com sucesso!');
+                        // Cadastro OK, agora envia as fotos
+                        var cpfLimpo = data.cpf.replace(/\D/g, '');
+                        var fotosEnviadas = 0;
+                        var fotosFalha = 0;
+                        
+                        btn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Enviando fotos...';
+                        
+                        for (var type in selectedPhotos) {
+                            if (selectedPhotos[type]) {
+                                console.log('Enviando foto:', type);
+                                try {
+                                    var formData = new FormData();
+                                    formData.append('photo', selectedPhotos[type]);
+                                    formData.append('cpf', cpfLimpo);
+                                    formData.append('type', type);
+                                    
+                                    var uploadResponse = await fetch('/api/upload-foto.php', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Authorization': 'Bearer ' + (token || '')
+                                        },
+                                        body: formData
+                                    });
+                                    
+                                    var uploadResult = await uploadResponse.json();
+                                    console.log('Upload', type, ':', uploadResult);
+                                    
+                                    if (uploadResult.success) {
+                                        fotosEnviadas++;
+                                    } else {
+                                        fotosFalha++;
+                                        console.error('Falha upload', type, ':', uploadResult.message);
+                                    }
+                                } catch (uploadError) {
+                                    fotosFalha++;
+                                    console.error('Erro upload', type, ':', uploadError);
+                                }
+                            }
+                        }
+                        
+                        var mensagem = 'Cliente cadastrado com sucesso!';
+                        if (fotosEnviadas > 0) {
+                            mensagem += '\n' + fotosEnviadas + ' foto(s) enviada(s).';
+                        }
+                        if (fotosFalha > 0) {
+                            mensagem += '\n' + fotosFalha + ' foto(s) falharam.';
+                        }
+                        
+                        alert(mensagem);
                         window.location.href = 'dashboard.html';
                     } else {
                         alert('Erro: ' + (result.message || 'Erro desconhecido'));
