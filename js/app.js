@@ -319,7 +319,7 @@ const App = {
         }
 
         // Máscara de CPF
-        const cpfInput = document.querySelector('input[placeholder*="000.000"]');
+        const cpfInput = document.getElementById('field-cpf');
         if (cpfInput) {
             cpfInput.addEventListener('input', (e) => {
                 let value = e.target.value.replace(/\D/g, '');
@@ -329,9 +329,35 @@ const App = {
                 e.target.value = value;
             });
         }
+        
+        // Máscara de telefone
+        const phoneInput = document.getElementById('field-phone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length <= 10) {
+                    value = value.replace(/(\d{2})(\d)/, '($1) $2');
+                    value = value.replace(/(\d{4})(\d)/, '$1-$2');
+                } else {
+                    value = value.replace(/(\d{2})(\d)/, '($1) $2');
+                    value = value.replace(/(\d{5})(\d)/, '$1-$2');
+                }
+                e.target.value = value;
+            });
+        }
+        
+        // Máscara de CEP
+        const cepInputMask = document.getElementById('field-cep');
+        if (cepInputMask) {
+            cepInputMask.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                value = value.replace(/(\d{5})(\d)/, '$1-$2');
+                e.target.value = value;
+            });
+        }
 
         // Busca CEP automática
-        const cepInput = document.querySelector('input[placeholder*="00000-000"]');
+        const cepInput = document.getElementById('field-cep') || document.querySelector('input[placeholder*="00000-000"]');
         if (cepInput) {
             cepInput.addEventListener('blur', async (e) => {
                 const cep = e.target.value.replace(/\D/g, '');
@@ -340,8 +366,8 @@ const App = {
                         const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
                         const data = await response.json();
                         if (!data.erro) {
-                            const ruaInput = document.querySelector('input[placeholder="Nome da Rua"]');
-                            const cidadeInput = document.querySelector('input[placeholder="Cidade"]');
+                            const ruaInput = document.getElementById('field-street');
+                            const cidadeInput = document.getElementById('field-city');
                             if (ruaInput) ruaInput.value = data.logradouro;
                             if (cidadeInput) cidadeInput.value = `${data.localidade} - ${data.uf}`;
                         }
@@ -474,8 +500,8 @@ const App = {
             ]);
 
             // Atualiza select de planos
-            const planSelect = document.querySelector('select');
-            if (planSelect && plansResponse.success) {
+            const planSelect = document.getElementById('field-plan');
+            if (planSelect && plansResponse.success && plansResponse.data.length > 0) {
                 planSelect.innerHTML = plansResponse.data.map(plan => 
                     `<option value="${plan.name}">${plan.name}</option>`
                 ).join('');
@@ -489,52 +515,51 @@ const App = {
      * Salva novo cliente
      */
     async handleSaveClient() {
-        const inputs = document.querySelectorAll('input, select, textarea');
-        const data = {};
-
-        // Mapeia os campos
-        const fieldMap = {
-            'Nome Completo': 'name',
-            'CPF': 'cpf',
-            'Data de Nascimento': 'dob',
-            'CEP': 'cep',
-            'Cidade': 'city',
-            'Rua': 'address',
-            'Número': 'number',
-            'Complemento': 'complement',
-            'Plano': 'plan',
-            'Vencimento': 'due_date',
-            'Telefone': 'phone',
-            'Comentários': 'observation'
+        // Coleta dados usando IDs dos campos
+        const getValue = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value.trim() : '';
         };
 
-        inputs.forEach(input => {
-            const label = input.closest('label')?.querySelector('p')?.textContent;
-            if (label) {
-                const fieldName = fieldMap[label.trim()];
-                if (fieldName) {
-                    let value = input.value;
-                    
-                    // Extrai número do vencimento
-                    if (fieldName === 'due_date') {
-                        value = parseInt(value.replace(/\D/g, '')) || 10;
-                    }
-                    
-                    data[fieldName] = value;
-                }
-            }
-        });
+        // Mapeamento para as colunas do banco de dados
+        const data = {
+            name: getValue('field-name'),
+            cpf: getValue('field-cpf'),
+            phone: getValue('field-phone'),
+            birthDate: getValue('field-dob'),
+            cep: getValue('field-cep'),
+            city: getValue('field-city'),
+            address: getValue('field-street'),
+            number: getValue('field-number'),
+            complement: getValue('field-complement'),
+            planId: getValue('field-plan'),
+            pppoe: getValue('field-pppoe-user'),
+            password: getValue('field-pppoe-pass'),
+            dueDay: parseInt(getValue('field-due-date').replace(/\D/g, '')) || 10,
+            observation: getValue('field-observations'),
+            status: 'ativo',
+            active: 1
+        };
+
+        console.log('Dados a serem salvos:', data);
 
         // Validação básica
-        if (!data.name || !data.cpf) {
-            this.showToast('Preencha os campos obrigatórios', 'warning');
+        if (!data.name) {
+            this.showToast('Preencha o nome do cliente', 'warning');
+            return;
+        }
+        if (!data.cpf) {
+            this.showToast('Preencha o CPF do cliente', 'warning');
             return;
         }
 
         this.showLoading(true);
 
         try {
+            console.log('Enviando para API...');
             const response = await API.createClient(data);
+            console.log('Resposta da API:', response);
+            
             if (response.success) {
                 // Faz upload das fotos
                 const cpf = data.cpf.replace(/\D/g, '');
@@ -602,8 +627,11 @@ const App = {
      * Carrega lista de clientes
      */
     async loadClients(search = '') {
-        const container = document.querySelector('.flex.flex-col.gap-3.p-4');
-        if (!container) return;
+        const container = document.getElementById('clients-container') || document.querySelector('.flex.flex-col.gap-3.p-4');
+        if (!container) {
+            console.error('Container de clientes não encontrado');
+            return;
+        }
 
         this.showLoading(true);
 
@@ -641,20 +669,26 @@ const App = {
             return;
         }
 
-        container.innerHTML = clients.map(client => `
+        container.innerHTML = clients.map(client => {
+            const isActive = client.active == 1 || client.status === 'ativo';
+            const statusColor = isActive ? 'green' : 'red';
+            const statusText = isActive ? 'Ativo' : 'Inativo';
+            const addressText = [client.address, client.number, client.city].filter(Boolean).join(', ') || 'Endereço não informado';
+            
+            return `
             <div class="flex items-stretch justify-between gap-4 rounded-xl bg-white dark:bg-gray-900 p-4 shadow-sm border border-gray-100 dark:border-gray-800" 
                  data-cpf="${client.cpf}">
                 <div class="flex flex-[2_2_0px] flex-col justify-between">
                     <div class="flex flex-col gap-1">
                         <div class="flex items-center gap-2 mb-1">
-                            <span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                            <p class="text-green-600 dark:text-green-400 text-xs font-bold uppercase tracking-wider leading-normal">Ativo</p>
+                            <span class="inline-block w-2 h-2 rounded-full bg-${statusColor}-500"></span>
+                            <p class="text-${statusColor}-600 dark:text-${statusColor}-400 text-xs font-bold uppercase tracking-wider leading-normal">${statusText}</p>
                         </div>
                         <p class="text-[#111318] dark:text-white text-base font-bold leading-tight">${client.name}</p>
                         <p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">CPF: ${this.formatCPF(client.cpf)}</p>
                         <p class="text-[#616f89] dark:text-gray-400 text-xs font-normal leading-normal mt-1 flex items-center gap-1">
                             <span class="material-symbols-outlined text-sm">location_on</span>
-                            ${client.address}, ${client.number} - ${client.city}
+                            ${addressText}
                         </p>
                     </div>
                     <button class="mt-4 flex min-w-[140px] max-w-fit cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-primary text-white gap-1 text-sm font-semibold leading-normal btn-details">
@@ -666,13 +700,26 @@ const App = {
                     <span class="material-symbols-outlined text-4xl text-primary">person</span>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
         // Event listeners para os botões
         container.querySelectorAll('.btn-details').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                e.preventDefault();
                 const cpf = e.target.closest('[data-cpf]').dataset.cpf;
                 window.location.href = `detalher.html?cpf=${cpf}`;
+            });
+        });
+
+        // Também adiciona clique no card inteiro
+        container.querySelectorAll('[data-cpf]').forEach(card => {
+            card.style.cursor = 'pointer';
+            card.addEventListener('click', (e) => {
+                if (!e.target.closest('.btn-details')) {
+                    const cpf = card.dataset.cpf;
+                    window.location.href = `detalher.html?cpf=${cpf}`;
+                }
             });
         });
     },

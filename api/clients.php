@@ -96,8 +96,11 @@ function handleGet($db) {
 function handlePost($db, $userData) {
     $data = getRequestBody();
 
-    // Campos obrigatórios
-    $required = ['cpf', 'name', 'dob', 'phone', 'address', 'number', 'city', 'plan', 'due_date'];
+    // Log dos dados recebidos para debug
+    error_log("Dados recebidos: " . json_encode($data));
+
+    // Campos obrigatórios (mínimo necessário)
+    $required = ['cpf', 'name'];
     foreach ($required as $field) {
         if (empty($data[$field])) {
             jsonResponse(['success' => false, 'message' => "Campo obrigatório: $field"], 400);
@@ -114,32 +117,33 @@ function handlePost($db, $userData) {
         jsonResponse(['success' => false, 'message' => 'CPF já cadastrado'], 409);
     }
 
-    // Prepara os dados
+    // Prepara os dados com valores padrão
     $installer = $data['installer'] ?? $userData['username'];
-    $observation = $data['observation'] ?? null;
-    $complement = $data['complement'] ?? null;
-    $registrationDate = date('Y-m-d');
 
-    // Insere o cliente
+    // Insere o cliente com os nomes corretos das colunas do banco
     $stmt = $db->prepare("
-        INSERT INTO clients (cpf, name, dob, phone, address, number, complement, city, plan, due_date, installer, observation, registration_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO clients (cpf, name, phone, birthDate, cep, city, address, number, complement, planId, pppoe, password, dueDay, observation, installer, status, active, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     ");
 
     $stmt->execute([
         $cpf,
         $data['name'],
-        $data['dob'],
-        $data['phone'],
-        $data['address'],
-        $data['number'],
-        $complement,
-        $data['city'],
-        $data['plan'],
-        $data['due_date'],
+        $data['phone'] ?? null,
+        $data['birthDate'] ?? null,
+        $data['cep'] ?? null,
+        $data['city'] ?? null,
+        $data['address'] ?? null,
+        $data['number'] ?? null,
+        $data['complement'] ?? null,
+        $data['planId'] ?? null,
+        $data['pppoe'] ?? null,
+        $data['password'] ?? null,
+        $data['dueDay'] ?? 10,
+        $data['observation'] ?? null,
         $installer,
-        $observation,
-        $registrationDate
+        $data['status'] ?? 'ativo',
+        $data['active'] ?? 1
     ]);
 
     jsonResponse([
@@ -171,7 +175,7 @@ function handlePut($db) {
     // Monta a query de atualização dinamicamente
     $updateFields = [];
     $params = [];
-    $allowedFields = ['name', 'dob', 'phone', 'address', 'number', 'complement', 'city', 'plan', 'due_date', 'installer', 'observation'];
+    $allowedFields = ['name', 'birthDate', 'phone', 'cep', 'address', 'number', 'complement', 'city', 'planId', 'pppoe', 'password', 'dueDay', 'installer', 'observation', 'status', 'active', 'serial', 'phone_number'];
 
     foreach ($allowedFields as $field) {
         if (isset($data[$field])) {

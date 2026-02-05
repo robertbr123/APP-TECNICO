@@ -60,17 +60,23 @@
 <div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
 <label class="flex flex-col min-w-40 flex-1">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Nome Completo</p>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Ex: João da Silva" type="text" value=""/>
+<input id="field-name" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Ex: João da Silva" type="text" value="" required/>
 </label>
 </div>
 <div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
 <label class="flex flex-col min-w-[140px] flex-1">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">CPF</p>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="000.000.000-00" type="text" value=""/>
+<input id="field-cpf" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="000.000.000-00" type="text" value="" required/>
 </label>
 <label class="flex flex-col min-w-[140px] flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Telefone</p>
+<input id="field-phone" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="(00) 00000-0000" type="tel" value="" required/>
+</label>
+</div>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-[140px] flex-1">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Data de Nascimento</p>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" type="date" value=""/>
+<input id="field-dob" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" type="date" value=""/>
 </label>
 </div>
 <div class="h-4"></div>
@@ -80,27 +86,27 @@
 <div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
 <label class="flex flex-col min-w-[120px] w-1/3">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">CEP</p>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="00000-000" type="text" value=""/>
+<input id="field-cep" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="00000-000" type="text" value=""/>
 </label>
 <label class="flex flex-col min-w-[160px] flex-1">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Cidade</p>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Cidade" type="text" value=""/>
+<input id="field-city" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Cidade" type="text" value="" required/>
 </label>
 </div>
 <div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
 <label class="flex flex-col min-w-40 flex-1">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Rua</p>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Nome da Rua" type="text" value=""/>
+<input id="field-street" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Nome da Rua" type="text" value=""/>
 </label>
 </div>
 <div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
 <label class="flex flex-col min-w-[80px] w-1/4">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Número</p>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="123" type="text" value=""/>
+<input id="field-number" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="123" type="text" value=""/>
 </label>
 <label class="flex flex-col min-w-[160px] flex-1">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Complemento</p>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Ap, Bloco, etc." type="text" value=""/>
+<input id="field-complement" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Ap, Bloco, etc." type="text" value=""/>
 </label>
 </div>
 <div class="h-4"></div>
@@ -110,7 +116,7 @@
 <div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
 <label class="flex flex-col min-w-40 flex-1">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Plano</p>
-<select class="form-select flex w-full min-w-0 flex-1 rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 px-4 text-base font-normal leading-normal">
+<select id="field-plan" class="form-select flex w-full min-w-0 flex-1 rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 px-4 text-base font-normal leading-normal">
 <option>Ondeline Fiber 100MB</option>
 <option>Ondeline Fiber 300MB</option>
 <option>Ondeline Fiber 500MB</option>
@@ -121,17 +127,17 @@
 <div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
 <label class="flex flex-col min-w-40 flex-1">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Usuário PPPoE</p>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="usuario@ondeline" type="text" value=""/>
+<input id="field-pppoe-user" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="usuario@ondeline" type="text" value=""/>
 </label>
 </div>
 <div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
 <label class="flex flex-col min-w-[140px] flex-1">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Senha PPPoE</p>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="••••••••" type="password" value=""/>
+<input id="field-pppoe-pass" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="••••••••" type="password" value=""/>
 </label>
 <label class="flex flex-col min-w-[120px] w-1/3">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Vencimento</p>
-<select class="form-select flex w-full min-w-0 flex-1 rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 px-4 text-base font-normal leading-normal">
+<select id="field-due-date" class="form-select flex w-full min-w-0 flex-1 rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 px-4 text-base font-normal leading-normal">
 <option>Dia 05</option>
 <option>Dia 10</option>
 <option>Dia 15</option>
@@ -147,7 +153,7 @@
 <div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
 <label class="flex flex-col min-w-40 flex-1">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Comentários Adicionais</p>
-<textarea class="form-textarea flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary min-h-[100px] placeholder:text-[#94a3b8] p-4 text-base font-normal leading-normal" placeholder="Observações técnicas, detalhes de acesso, etc."></textarea>
+<textarea id="field-observations" class="form-textarea flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary min-h-[100px] placeholder:text-[#94a3b8] p-4 text-base font-normal leading-normal" placeholder="Observações técnicas, detalhes de acesso, etc."></textarea>
 </label>
 </div>
 <div class="h-4"></div>
