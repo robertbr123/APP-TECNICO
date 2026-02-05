@@ -24,6 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
+    // Conexão com banco
+    $db = Database::getInstance()->getConnection();
+    
     // Tenta autenticar (opcional)
     $userId = null;
     $headers = getallheaders();
@@ -67,8 +70,8 @@ try {
         exit;
     }
     
-    // Verifica se o cliente existe
-    $stmt = $pdo->prepare("SELECT id, name, serial FROM clients WHERE REPLACE(REPLACE(REPLACE(cpf, '.', ''), '-', ''), ' ', '') = ?");
+    // Verifica se o cliente existe (cpf é a primary key)
+    $stmt = $db->prepare("SELECT cpf, name, serial FROM clients WHERE cpf = ?");
     $stmt->execute([$cpf]);
     $client = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -79,16 +82,16 @@ try {
     
     $oldSerial = $client['serial'];
     
-    // Atualiza o serial do cliente
-    $stmt = $pdo->prepare("UPDATE clients SET serial = ?, updated_at = NOW() WHERE id = ?");
-    $result = $stmt->execute([$serial, $client['id']]);
+    // Atualiza o serial do cliente (cpf é a primary key)
+    $stmt = $db->prepare("UPDATE clients SET serial = ? WHERE cpf = ?");
+    $result = $stmt->execute([$serial, $cpf]);
     
     if ($result) {
         echo json_encode([
             'success' => true,
             'message' => 'Equipamento vinculado com sucesso',
             'data' => [
-                'client_id' => $client['id'],
+                'client_cpf' => $cpf,
                 'client_name' => $client['name'],
                 'old_serial' => $oldSerial,
                 'new_serial' => $serial,

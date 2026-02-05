@@ -102,26 +102,38 @@ try {
         // Insere o cliente
         $installer = $userData ? $userData['username'] : 'app';
         
+        // Prepara os valores garantindo que campos NOT NULL tenham valor
+        $planId = !empty($data['planId']) ? (int)preg_replace('/\D/', '', $data['planId']) : 6; // 6 = plano padrão
+        $pppoe = !empty($data['pppoe']) ? $data['pppoe'] : $cpf . '@ondeline';
+        $password = !empty($data['password']) ? $data['password'] : '123';
+        $address = !empty($data['address']) ? $data['address'] : (!empty($data['city']) ? $data['city'] : 'Não informado');
+        $dueDay = in_array((int)($data['dueDay'] ?? 10), [10, 20, 30]) ? (int)$data['dueDay'] : 10;
+        
+        // Trata birthDate - se vazio ou inválido, usa NULL
+        $birthDate = null;
+        if (!empty($data['birthDate']) && $data['birthDate'] !== '0000-00-00') {
+            $birthDate = $data['birthDate'];
+        }
+        
         $stmt = $db->prepare("
-            INSERT INTO clients (cpf, name, phone, birthDate, cep, city, address, number, complement, planId, pppoe, password, dueDay, observation, installer, status, active, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            INSERT INTO clients (cpf, name, phone, birthDate, city, address, number, complement, planId, pppoe, password, dueDay, observation, installer, status, active, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ");
         
         $stmt->execute([
             $cpf,
             $data['name'],
-            $data['phone'] ?? null,
-            $data['birthDate'] ?? null,
-            $data['cep'] ?? null,
-            $data['city'] ?? null,
-            $data['address'] ?? null,
-            $data['number'] ?? null,
-            $data['complement'] ?? null,
-            $data['planId'] ?? null,
-            $data['pppoe'] ?? null,
-            $data['password'] ?? null,
-            $data['dueDay'] ?? 10,
-            $data['observation'] ?? null,
+            $data['phone'] ?? '',
+            $birthDate,
+            $data['city'] ?? '',
+            $address,
+            $data['number'] ?? '',
+            $data['complement'] ?? '',
+            $planId,
+            $pppoe,
+            $password,
+            $dueDay,
+            $data['observation'] ?? '',
             $installer,
             $data['status'] ?? 'ativo',
             $data['active'] ?? 1

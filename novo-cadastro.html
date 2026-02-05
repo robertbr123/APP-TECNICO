@@ -138,11 +138,9 @@
 <label class="flex flex-col min-w-[120px] w-1/3">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Vencimento</p>
 <select id="field-due-date" class="form-select flex w-full min-w-0 flex-1 rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 px-4 text-base font-normal leading-normal">
-<option>Dia 05</option>
-<option>Dia 10</option>
-<option>Dia 15</option>
-<option>Dia 20</option>
-<option>Dia 25</option>
+<option value="10">Dia 10</option>
+<option value="20">Dia 20</option>
+<option value="30">Dia 30</option>
 </select>
 </label>
 </div>
@@ -260,7 +258,7 @@
                     planId: document.getElementById('field-plan')?.value || '',
                     pppoe: document.getElementById('field-pppoe-user')?.value?.trim() || '',
                     password: document.getElementById('field-pppoe-pass')?.value || '',
-                    dueDay: parseInt((document.getElementById('field-due-date')?.value || '10').replace(/\D/g, '')) || 10,
+                    dueDay: parseInt(document.getElementById('field-due-date')?.value) || 10,
                     observation: document.getElementById('field-observations')?.value?.trim() || '',
                     status: 'ativo',
                     active: 1
