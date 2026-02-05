@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Vincular Equipamento - Ondeline</title>
+<!-- PWA Meta Tags -->
+<meta name="theme-color" content="#135bec"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Ondeline Tech"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192x192.png"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#135bec",
+                    "background-light": "#f6f6f8",
+                    "background-dark": "#101622",
+                },
+                fontFamily: {
+                    "display": ["Inter"]
+                },
+                borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+            },
+        },
+    }
+</script>
+<style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body {
+        min-height: 100dvh;
+    }
+</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden">
+    <!-- Header -->
+    <div class="flex items-center bg-white dark:bg-background-dark p-4 pb-2 justify-between border-b border-gray-100 dark:border-gray-800 sticky top-0 z-30">
+        <div class="text-[#111318] dark:text-white flex size-12 shrink-0 items-center cursor-pointer" data-icon="ArrowLeft">
+            <span class="material-symbols-outlined">arrow_back_ios</span>
+        </div>
+        <h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Vincular Equipamento</h2>
+        <div class="size-12"></div>
+    </div>
+
+    <div class="flex flex-col gap-4 p-4 pb-32">
+        <!-- Ícone ilustrativo -->
+        <div class="flex flex-col items-center py-8">
+            <div class="size-24 rounded-full bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center mb-4">
+                <span class="material-symbols-outlined text-5xl text-purple-600" style="font-variation-settings: 'FILL' 1">router</span>
+            </div>
+            <h3 class="text-[#111318] dark:text-white text-xl font-bold">Vincular Roteador</h3>
+            <p class="text-[#616f89] text-sm text-center mt-2 max-w-xs">Insira o número de série do equipamento e selecione o cliente para vincular.</p>
+        </div>
+
+        <!-- Campo Serial -->
+        <div class="bg-white dark:bg-background-dark rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+            <h3 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-4">Dados do Equipamento</h3>
+            
+            <label class="flex flex-col">
+                <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-2">Número de Série</p>
+                <div class="relative">
+                    <input id="field-serial" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-14 placeholder:text-[#94a3b8] px-4 pr-12 text-base font-mono font-medium leading-normal uppercase" placeholder="Ex: SN123456789" type="text" value="" required/>
+                    <button id="btn-scan" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        <span class="material-symbols-outlined text-xl">qr_code_scanner</span>
+                    </button>
+                </div>
+                <p class="text-[#616f89] text-xs mt-2">Digite ou escaneie o código de barras/QR do equipamento</p>
+            </label>
+        </div>
+
+        <!-- Busca de Cliente -->
+        <div class="bg-white dark:bg-background-dark rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+            <h3 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-4">Selecionar Cliente</h3>
+            
+            <label class="flex flex-col mb-4">
+                <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-2">Buscar por Nome ou CPF</p>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                    <input id="field-search" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] pl-10 pr-4 text-base font-normal leading-normal" placeholder="Digite o nome ou CPF do cliente" type="text" value=""/>
+                </div>
+            </label>
+
+            <!-- Lista de resultados da busca -->
+            <div id="search-results" class="space-y-2 max-h-64 overflow-y-auto hidden">
+                <!-- Resultados serão inseridos aqui via JS -->
+            </div>
+
+            <!-- Cliente selecionado -->
+            <div id="selected-client" class="hidden mt-4 p-4 rounded-xl bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30">
+                <div class="flex items-center gap-3">
+                    <div class="size-12 rounded-full bg-green-100 dark:bg-green-500/20 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-green-600">person</span>
+                    </div>
+                    <div class="flex-1">
+                        <p id="selected-name" class="text-[#111318] dark:text-white font-semibold"></p>
+                        <p id="selected-cpf" class="text-[#616f89] text-sm"></p>
+                        <p id="selected-address" class="text-[#616f89] text-xs mt-1"></p>
+                    </div>
+                    <button id="btn-clear-selection" class="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600">
+                        <span class="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+                <!-- Serial atual do cliente (se houver) -->
+                <div id="current-serial-container" class="hidden mt-3 pt-3 border-t border-green-200 dark:border-green-500/30">
+                    <p class="text-xs text-orange-600 dark:text-orange-400 font-medium flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">warning</span>
+                        Equipamento atual: <span id="current-serial" class="font-mono"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-4 flex items-start gap-3">
+            <span class="material-symbols-outlined text-blue-600 mt-0.5">info</span>
+            <div>
+                <p class="text-blue-800 dark:text-blue-300 text-sm font-medium">Dica</p>
+                <p class="text-blue-600 dark:text-blue-400 text-xs mt-1">Verifique se o número de série está correto antes de vincular. Esta ação substituirá o equipamento anterior do cliente.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botão Vincular fixo -->
+    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 flex justify-center items-center z-40">
+        <button id="btn-vincular" disabled class="w-full max-w-[480px] bg-primary hover:bg-primary/90 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 active:scale-[0.97]">
+            <span class="material-symbols-outlined">link</span>
+            Vincular Equipamento
+        </button>
+    </div>
+</div>
+
+<!-- Scripts do App -->
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body></html>

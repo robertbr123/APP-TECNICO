@@ -74,6 +74,11 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
+    // Ignora requisições que não são HTTP/HTTPS (ex: chrome-extension://)
+    if (!url.protocol.startsWith('http')) {
+        return;
+    }
+
     // Ignora requisições para a API (sempre busca do servidor)
     if (url.pathname.startsWith('/api/')) {
         event.respondWith(networkFirst(request));
@@ -100,8 +105,9 @@ async function cacheFirst(request) {
     try {
         const networkResponse = await fetch(request);
         
-        // Cacheia a resposta para uso futuro
-        if (networkResponse.ok) {
+        // Cacheia a resposta para uso futuro (somente URLs http/https)
+        const url = new URL(request.url);
+        if (networkResponse.ok && url.protocol.startsWith('http')) {
             const cache = await caches.open(DYNAMIC_CACHE);
             cache.put(request, networkResponse.clone());
         }
