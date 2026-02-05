@@ -72,8 +72,8 @@ function handleGet($db) {
     $countStmt->execute($params);
     $total = $countStmt->fetch()['total'];
 
-    // Adiciona ordenação e paginação
-    $sql .= " ORDER BY registration_date DESC LIMIT $limit OFFSET $offset";
+    // Adiciona ordenação e paginação (created_at é o nome correto da coluna)
+    $sql .= " ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
     $clients = $stmt->fetchAll();
