@@ -3,9 +3,9 @@
  * Ondeline Tech - App do Técnico
  */
 
-const CACHE_NAME = 'ondeline-tech-v1';
-const STATIC_CACHE = 'ondeline-static-v1';
-const DYNAMIC_CACHE = 'ondeline-dynamic-v1';
+const CACHE_NAME = 'ondeline-tech-v2';
+const STATIC_CACHE = 'ondeline-static-v2';
+const DYNAMIC_CACHE = 'ondeline-dynamic-v2';
 
 // Arquivos estáticos para cache
 const STATIC_ASSETS = [

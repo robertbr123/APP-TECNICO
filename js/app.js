@@ -20,6 +20,14 @@ const App = {
     async registerServiceWorker() {
         if ('serviceWorker' in navigator) {
             try {
+                // Primeiro, desregistra qualquer SW antigo
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                    console.log('ServiceWorker antigo removido');
+                }
+                
+                // Registra o novo SW
                 const registration = await navigator.serviceWorker.register('/sw.js');
                 console.log('ServiceWorker registrado:', registration);
             } catch (error) {
@@ -280,16 +288,28 @@ const App = {
      * Atualiza estatísticas do dashboard
      */
     updateDashboardStats(data) {
-        const statCards = document.querySelectorAll('.grid.grid-cols-2 > div');
-        
-        if (statCards[0]) {
-            const countEl = statCards[0].querySelector('.text-2xl');
-            if (countEl) countEl.textContent = data.totals.today || '0';
-        }
+        // Atualiza cadastros de hoje
+        const statToday = document.getElementById('stat-today');
+        if (statToday) statToday.textContent = data.totals.today || '0';
 
-        if (statCards[1]) {
-            const countEl = statCards[1].querySelector('.text-2xl');
-            if (countEl) countEl.textContent = data.totals.week || '0';
+        // Atualiza total de clientes
+        const statTotal = document.getElementById('stat-total');
+        if (statTotal) statTotal.textContent = data.totals.clients || '0';
+
+        // Atualiza último cadastro
+        if (data.lastRegistration) {
+            const lastRegInfo = document.getElementById('last-reg-info');
+            const lastRegPlan = document.getElementById('last-reg-plan');
+            
+            if (lastRegInfo) {
+                const createdAt = new Date(data.lastRegistration.created_at);
+                const timeStr = createdAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                lastRegInfo.textContent = `${data.lastRegistration.name} • ${timeStr}`;
+            }
+            
+            if (lastRegPlan) {
+                lastRegPlan.textContent = data.lastRegistration.planId || 'Sem plano';
+            }
         }
     },
 
@@ -947,6 +967,7 @@ const App = {
 
         // Busca de clientes
         let searchTimeout;
+        const self = this; // Guarda referência para usar no setTimeout
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 clearTimeout(searchTimeout);
@@ -958,7 +979,7 @@ const App = {
                 }
 
                 searchTimeout = setTimeout(async () => {
-                    await this.searchClientsForVinculo(query);
+                    await self.searchClientsForVinculo(query);
                 }, 300);
             });
         }
@@ -994,9 +1015,11 @@ const App = {
      */
     async searchClientsForVinculo(query) {
         const searchResults = document.getElementById('search-results');
+        console.log('Buscando clientes:', query);
         
         try {
             const response = await API.getClients({ search: query, limit: 10 });
+            console.log('Resposta da busca:', response);
             
             if (response.success && response.data.length > 0) {
                 searchResults.innerHTML = response.data.map(client => `
