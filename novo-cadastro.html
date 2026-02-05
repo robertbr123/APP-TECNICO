@@ -117,10 +117,10 @@
 <label class="flex flex-col min-w-40 flex-1">
 <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Plano</p>
 <select id="field-plan" class="form-select flex w-full min-w-0 flex-1 rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 px-4 text-base font-normal leading-normal">
-<option>Ondeline Fiber 100MB</option>
-<option>Ondeline Fiber 300MB</option>
-<option>Ondeline Fiber 500MB</option>
-<option>Ondeline Fiber 1GB</option>
+<option value="6">Plano Básico - R$ 130</option>
+<option value="7">Plano 100 - R$ 100</option>
+<option value="9">Plano Intermediário - R$ 150</option>
+<option value="8">Plano Avançado - R$ 180</option>
 </select>
 </label>
 </div>
@@ -255,7 +255,7 @@
                     address: document.getElementById('field-street')?.value?.trim() || '',
                     number: document.getElementById('field-number')?.value?.trim() || '',
                     complement: document.getElementById('field-complement')?.value?.trim() || '',
-                    planId: document.getElementById('field-plan')?.value || '',
+                    planId: parseInt(document.getElementById('field-plan')?.value) || 6,
                     pppoe: document.getElementById('field-pppoe-user')?.value?.trim() || '',
                     password: document.getElementById('field-pppoe-pass')?.value || '',
                     dueDay: parseInt(document.getElementById('field-due-date')?.value) || 10,

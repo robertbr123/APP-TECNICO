@@ -34,7 +34,7 @@ try {
     
     if (!empty($authHeader) && preg_match('/Bearer\s+(.+)/', $authHeader, $matches)) {
         try {
-            $payload = verifyJWT($matches[1]);
+            $payload = verifyToken($matches[1]);
             if ($payload) {
                 $userId = $payload['user_id'] ?? null;
             }

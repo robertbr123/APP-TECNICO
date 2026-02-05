@@ -103,7 +103,13 @@ try {
         $installer = $userData ? $userData['username'] : 'app';
         
         // Prepara os valores garantindo que campos NOT NULL tenham valor
-        $planId = !empty($data['planId']) ? (int)preg_replace('/\D/', '', $data['planId']) : 6; // 6 = plano padrão
+        // planId deve ser um dos IDs válidos: 6, 7, 8, 9
+        $validPlanIds = [6, 7, 8, 9];
+        $planId = (int)($data['planId'] ?? 6);
+        if (!in_array($planId, $validPlanIds)) {
+            $planId = 6; // Plano básico como padrão
+        }
+        
         $pppoe = !empty($data['pppoe']) ? $data['pppoe'] : $cpf . '@ondeline';
         $password = !empty($data['password']) ? $data['password'] : '123';
         $address = !empty($data['address']) ? $data['address'] : (!empty($data['city']) ? $data['city'] : 'Não informado');
