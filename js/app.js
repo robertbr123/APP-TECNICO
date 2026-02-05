@@ -333,11 +333,13 @@ const App = {
         }
 
         // Botão salvar
-        const saveBtn = document.querySelector('button');
-        if (saveBtn && saveBtn.textContent.includes('Salvar')) {
-            saveBtn.addEventListener('click', (e) => {
+        const saveBtn = document.getElementById('btn-salvar-cadastro');
+        const self = this; // Guarda referência
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                this.handleSaveClient();
+                console.log('Botão salvar clicado');
+                await self.handleSaveClient();
             });
         }
 
@@ -538,6 +540,8 @@ const App = {
      * Salva novo cliente
      */
     async handleSaveClient() {
+        console.log('handleSaveClient iniciado');
+        
         // Coleta dados usando IDs dos campos
         const getValue = (id) => {
             const el = document.getElementById(id);
@@ -939,6 +943,7 @@ const App = {
      * Página de Vincular Equipamento
      */
     async initVincularPage() {
+        console.log('initVincularPage iniciado');
         this.selectedClient = null;
 
         // Botão voltar
@@ -957,6 +962,12 @@ const App = {
         const btnClearSelection = document.getElementById('btn-clear-selection');
         const btnScan = document.getElementById('btn-scan');
 
+        console.log('Elementos encontrados:', {
+            serialInput: !!serialInput,
+            searchInput: !!searchInput,
+            searchResults: !!searchResults
+        });
+
         // Transforma serial em maiúsculo
         if (serialInput) {
             serialInput.addEventListener('input', (e) => {
@@ -969,7 +980,9 @@ const App = {
         let searchTimeout;
         const self = this; // Guarda referência para usar no setTimeout
         if (searchInput) {
+            console.log('Adicionando listener ao searchInput');
             searchInput.addEventListener('input', (e) => {
+                console.log('Input detectado:', e.target.value);
                 clearTimeout(searchTimeout);
                 const query = e.target.value.trim();
                 
@@ -979,9 +992,12 @@ const App = {
                 }
 
                 searchTimeout = setTimeout(async () => {
+                    console.log('Chamando searchClientsForVinculo com:', query);
                     await self.searchClientsForVinculo(query);
                 }, 300);
             });
+        } else {
+            console.log('searchInput NÃO encontrado!');
         }
 
         // Limpar seleção
