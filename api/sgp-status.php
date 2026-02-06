@@ -126,23 +126,22 @@ jsonResponse(['success' => false, 'message' => 'Ação não especificada. Use: b
 // =====================================================
 // Função para chamar a API SGP via cURL
 // =====================================================
-function callSgpApi($url, $headers) {
+function callSgpApi($url, $data) {
     $ch = curl_init();
     
-    // Monta os headers HTTP
-    $httpHeaders = [];
-    foreach ($headers as $key => $value) {
-        $httpHeaders[] = "$key: $value";
-    }
+    $jsonBody = json_encode($data);
     
     curl_setopt_array($ch, [
         CURLOPT_URL => $url,
         CURLOPT_POST => true,
-        CURLOPT_HTTPHEADER => $httpHeaders,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($jsonBody)
+        ],
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 15,
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_POSTFIELDS => '' // POST sem body, dados vão nos headers
+        CURLOPT_POSTFIELDS => $jsonBody
     ]);
     
     $response = curl_exec($ch);
