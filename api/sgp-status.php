@@ -133,9 +133,11 @@ if (isset($data['action']) && $data['action'] === 'consultar_cliente') {
             'contrato' => (string)$contrato
         ]);
         
+        error_log("consultacliente [{$server['name']}] raw response: " . substr($result, 0, 1000));
+        
         if ($result !== false) {
             $decoded = json_decode($result, true);
-            if ($decoded && (isset($decoded['contratoStatusDisplay']) || isset($decoded['contrato']))) {
+            if ($decoded && !isset($decoded['detail'])) {
                 jsonResponse(['success' => true, 'data' => $decoded, 'servidor' => $server['name']]);
             }
         }
