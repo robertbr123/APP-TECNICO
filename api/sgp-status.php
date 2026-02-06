@@ -105,6 +105,46 @@ if (isset($data['action']) && $data['action'] === 'verificar_acesso') {
 }
 
 // =====================================================
+// Ação: consultar status do contrato (Ativo/Suspenso/Cancelado)
+// =====================================================
+if (isset($data['action']) && $data['action'] === 'consultar_cliente') {
+    $contrato = $data['contrato'] ?? null;
+    $servidor = $data['servidor'] ?? null;
+    
+    if (!$contrato) {
+        jsonResponse(['success' => false, 'message' => 'Número do contrato é obrigatório'], 400);
+    }
+    
+    // Se veio o nome do servidor, tenta ele primeiro
+    $serversToTry = $sgpServers;
+    if ($servidor) {
+        usort($serversToTry, function($a, $b) use ($servidor) {
+            if ($a['name'] === $servidor) return -1;
+            if ($b['name'] === $servidor) return 1;
+            return 0;
+        });
+    }
+    
+    // Tenta em cada servidor SGP
+    foreach ($serversToTry as $server) {
+        $result = callSgpApi($server['base_url'] . '/consultacliente/', [
+            'app' => $server['app'],
+            'token' => $server['token'],
+            'contrato' => (string)$contrato
+        ]);
+        
+        if ($result !== false) {
+            $decoded = json_decode($result, true);
+            if ($decoded && (isset($decoded['contratoStatusDisplay']) || isset($decoded['contrato']))) {
+                jsonResponse(['success' => true, 'data' => $decoded, 'servidor' => $server['name']]);
+            }
+        }
+    }
+    
+    jsonResponse(['success' => false, 'message' => 'Não foi possível consultar status do contrato em nenhum servidor SGP']);
+}
+
+// =====================================================
 // Ação: salvar contrato e MAC no banco de dados
 // =====================================================
 if (isset($data['action']) && $data['action'] === 'salvar_contrato') {

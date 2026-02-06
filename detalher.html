@@ -70,6 +70,7 @@
 <div class="flex items-center gap-2 mb-0.5">
 <h2 id="client-name" class="text-[#111318] dark:text-white text-xl font-bold">Carregando...</h2>
 <span id="client-status" class="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">...</span>
+<span id="contract-status" class="bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase hidden">...</span>
 </div>
 <p id="client-cpf" class="text-[#616f89] dark:text-gray-400 text-sm">CPF: ...</p>
 <div id="connection-status" class="flex items-center gap-1.5 mt-1">
@@ -278,9 +279,12 @@ Sincronizar
                 }).join('');
             } else {
                 countEl.textContent = '0 fotos';
-                container.innerHTML = '<div class="flex items-center justify-center w-full py-4 text-gray-400 text-sm">' +
-                    '<span class="material-symbols-outlined mr-2">photo_library</span>' +
-                    'Nenhuma foto cadastrada' +
+                container.innerHTML = '<div class="flex flex-col items-center justify-center w-full py-6 cursor-pointer" onclick="openUploadPhoto()">' +
+                    '<div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-2">' +
+                        '<span class="material-symbols-outlined text-primary text-3xl">add_a_photo</span>' +
+                    '</div>' +
+                    '<p class="text-sm font-medium text-gray-500">Adicionar fotos</p>' +
+                    '<p class="text-[11px] text-gray-400 mt-0.5">Toque para cadastrar</p>' +
                 '</div>';
             }
         } catch (error) {
@@ -378,8 +382,9 @@ Sincronizar
                     if (contratoEl) contratoEl.textContent = 'Contrato #' + client.contrato;
                     if (macEl) macEl.textContent = client.serial || '—';
                     
-                    // Se tem contrato, verifica o status online/offline (tenta ambos servidores)
+                    // Se tem contrato, verifica o status online/offline e status do contrato
                     await checkConnectionStatus(client.contrato, client.servidor || '');
+                    await checkContractStatus(client.contrato, client.servidor || '');
                 } else {
                     if (contratoEl) contratoEl.textContent = 'Não vinculado';
                     setConnectionStatus('unknown', 'Contrato não vinculado. Clique em Sincronizar.');
@@ -485,6 +490,58 @@ Sincronizar
     }
     
     // =====================================================
+    // Consulta status do contrato (Ativo/Suspenso/Cancelado)
+    // =====================================================
+    async function checkContractStatus(contrato, servidor) {
+        try {
+            var bodyData = {
+                action: 'consultar_cliente',
+                contrato: contrato
+            };
+            if (servidor) bodyData.servidor = servidor;
+            
+            var response = await fetch('/api/sgp-status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyData)
+            });
+            
+            var result = await response.json();
+            console.log('Status contrato SGP:', result);
+            
+            if (result.success && result.data) {
+                var statusDisplay = result.data.contratoStatusDisplay || '';
+                setContractStatusBadge(statusDisplay);
+            }
+        } catch (error) {
+            console.error('Erro ao consultar status do contrato:', error);
+        }
+    }
+    
+    // =====================================================
+    // Atualiza badge de status do contrato
+    // =====================================================
+    function setContractStatusBadge(status) {
+        var badge = document.getElementById('contract-status');
+        if (!badge) return;
+        
+        badge.classList.remove('hidden');
+        badge.textContent = status || 'Desconhecido';
+        
+        var s = status.toLowerCase();
+        
+        if (s === 'ativo') {
+            badge.className = 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase';
+        } else if (s === 'suspenso') {
+            badge.className = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase';
+        } else if (s === 'cancelado') {
+            badge.className = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase';
+        } else {
+            badge.className = 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase';
+        }
+    }
+    
+    // =====================================================
     // Sincroniza dados do SGP (busca contrato e MAC)
     // =====================================================
     async function syncFromSGP() {
@@ -564,8 +621,9 @@ Sincronizar
                 if (contratoEl) contratoEl.textContent = 'Contrato #' + contrato;
                 if (macEl) macEl.textContent = mac || '—';
                 
-                // 4. Agora verifica o status online/offline
+                // 4. Agora verifica o status online/offline e status do contrato
                 await checkConnectionStatus(contrato, currentServidor);
+                await checkContractStatus(contrato, currentServidor);
                 
                 // Feedback de sucesso
                 btn.innerHTML = '<span class="material-symbols-outlined text-sm">check_circle</span> Sincronizado!';
@@ -602,6 +660,126 @@ Sincronizar
                 '<span class="material-symbols-outlined">close</span>' +
             '</button>';
         document.body.appendChild(modal);
+    }
+    
+    // =====================================================
+    // Upload de foto da instalação
+    // =====================================================
+    function openUploadPhoto() {
+        if (!currentCpf) return;
+        
+        var modal = document.createElement('div');
+        modal.id = 'upload-modal';
+        modal.className = 'fixed inset-0 bg-black/60 z-50 flex items-end justify-center';
+        modal.innerHTML = 
+            '<div class="bg-white dark:bg-gray-900 w-full max-w-lg rounded-t-3xl p-6 pb-10 animate-slide-up" onclick="event.stopPropagation()">' +
+                '<div class="flex items-center justify-between mb-5">' +
+                    '<h3 class="text-lg font-bold text-gray-900 dark:text-white">Adicionar Foto</h3>' +
+                    '<button onclick="closeUploadModal()" class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">' +
+                        '<span class="material-symbols-outlined text-gray-500">close</span>' +
+                    '</button>' +
+                '</div>' +
+                '<div class="mb-4">' +
+                    '<label class="text-xs font-semibold text-gray-500 uppercase mb-2 block">Tipo da foto</label>' +
+                    '<select id="upload-photo-type" class="w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-4 text-sm">' +
+                        '<option value="router">Roteador</option>' +
+                        '<option value="cabling">Cabeamento</option>' +
+                        '<option value="signal">Sinal</option>' +
+                        '<option value="other">Outro</option>' +
+                    '</select>' +
+                '</div>' +
+                '<div id="upload-preview" class="hidden mb-4">' +
+                    '<img id="upload-preview-img" class="w-full h-40 object-cover rounded-xl" />' +
+                '</div>' +
+                '<div class="flex gap-3">' +
+                    '<label class="flex-1 h-14 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer">' +
+                        '<span class="material-symbols-outlined">photo_camera</span>' +
+                        'Câmera' +
+                        '<input type="file" accept="image/*" capture="environment" class="hidden" onchange="previewUploadPhoto(this)" />' +
+                    '</label>' +
+                    '<label class="flex-1 h-14 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer">' +
+                        '<span class="material-symbols-outlined">photo_library</span>' +
+                        'Galeria' +
+                        '<input type="file" accept="image/*" class="hidden" onchange="previewUploadPhoto(this)" />' +
+                    '</label>' +
+                '</div>' +
+                '<button id="btn-upload-send" onclick="sendUploadPhoto()" class="w-full h-14 bg-primary text-white rounded-2xl font-bold text-base flex items-center justify-center gap-2 mt-4 hidden">' +
+                    '<span class="material-symbols-outlined">cloud_upload</span>' +
+                    'Enviar Foto' +
+                '</button>' +
+            '</div>';
+        modal.onclick = function(e) { if (e.target === modal) closeUploadModal(); };
+        document.body.appendChild(modal);
+    }
+    
+    var uploadSelectedFile = null;
+    
+    function previewUploadPhoto(input) {
+        if (input.files && input.files[0]) {
+            uploadSelectedFile = input.files[0];
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var preview = document.getElementById('upload-preview');
+                var img = document.getElementById('upload-preview-img');
+                if (preview && img) {
+                    img.src = e.target.result;
+                    preview.classList.remove('hidden');
+                }
+                var sendBtn = document.getElementById('btn-upload-send');
+                if (sendBtn) sendBtn.classList.remove('hidden');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    
+    async function sendUploadPhoto() {
+        if (!uploadSelectedFile || !currentCpf) return;
+        
+        var btn = document.getElementById('btn-upload-send');
+        btn.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Enviando...';
+        btn.disabled = true;
+        
+        var type = document.getElementById('upload-photo-type').value;
+        var token = localStorage.getItem('authToken') || '';
+        
+        var formData = new FormData();
+        formData.append('photo', uploadSelectedFile);
+        formData.append('cpf', currentCpf);
+        formData.append('type', type);
+        
+        try {
+            var response = await fetch('/api/upload-foto.php', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                body: formData
+            });
+            
+            var result = await response.json();
+            console.log('Upload foto:', result);
+            
+            if (result.success) {
+                closeUploadModal();
+                // Recarrega as fotos
+                await loadPhotos(currentCpf);
+            } else {
+                alert('Erro ao enviar: ' + (result.message || 'Tente novamente'));
+                btn.innerHTML = '<span class="material-symbols-outlined">cloud_upload</span> Enviar Foto';
+                btn.disabled = false;
+            }
+        } catch (error) {
+            console.error('Erro no upload:', error);
+            alert('Erro ao enviar foto. Verifique sua conexão.');
+            btn.innerHTML = '<span class="material-symbols-outlined">cloud_upload</span> Enviar Foto';
+            btn.disabled = false;
+        }
+    }
+    
+    function closeUploadModal() {
+        var modal = document.getElementById('upload-modal');
+        if (modal) modal.remove();
+        uploadSelectedFile = null;
     }
     
     function formatCPF(cpf) {
