@@ -17,6 +17,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once 'config.php';
 
+// Função auxiliar para obter username do usuário
+function getUserUsername($db, $userId) {
+    try {
+        $stmt = $db->prepare("SELECT username FROM users WHERE id = ? LIMIT 1");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
+        return $user['username'] ?? 'sistema';
+    } catch (Exception $e) {
+        return 'sistema';
+    }
+}
+
 // Apenas POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Método não permitido']);
@@ -87,6 +99,36 @@ try {
     $result = $stmt->execute([$serial, $cpf]);
     
     if ($result) {
+        // Registra a vinculação no log de auditoria
+        try {
+            $auditStmt = $db->prepare("
+                INSERT INTO audit_logs 
+                (user_id, username, action_type, action_description, entity_type, entity_id, entity_name, details, ip_address, user_agent)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $username = $userId ? getUserUsername($db, $userId) : 'sistema';
+            
+            $auditStmt->execute([
+                $userId,
+                $username,
+                'equipment_linked',
+                'Equipamento vinculado ao cliente',
+                'client',
+                $cpf,
+                $client['name'],
+                json_encode([
+                    'old_serial' => $oldSerial,
+                    'new_serial' => $serial,
+                    'city' => $client['city'] ?? null
+                ]),
+                $_SERVER['REMOTE_ADDR'] ?? null,
+                $_SERVER['HTTP_USER_AGENT'] ?? null
+            ]);
+        } catch (Exception $e) {
+            // Não falha a vinculação se o auditoria falhar
+            error_log('Erro ao registrar auditoria: ' . $e->getMessage());
+        }
+        
         echo json_encode([
             'success' => true,
             'message' => 'Equipamento vinculado com sucesso',

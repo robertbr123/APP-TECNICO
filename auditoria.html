@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+    <title>Auditoria - Ondeline</title>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#135bec"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+    <meta name="apple-mobile-web-app-title" content="Ondeline Tech"/>
+    <link rel="manifest" href="manifest.json"/>
+    <link rel="icon" type="image/png" href="logo.png"/>
+    <link rel="apple-touch-icon" href="logo.png"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+        @media (min-width: 1024px) {
+            body {
+                background: #f6f6f8;
+            }
+            .desktop-container {
+                max-width: 1200px;
+                margin: 0 auto;
+                box-shadow: 0 0 40px rgba(0,0,0,0.1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+    <div class="relative flex flex-col min-h-screen bg-white dark:bg-background-dark desktop-container">
+        <!-- Header -->
+        <div class="flex items-center bg-white dark:bg-background-dark px-4 py-3 sticky top-0 z-20 border-b border-gray-100 dark:border-gray-800">
+            <button onclick="window.history.back()" class="text-primary flex size-10 items-center justify-start">
+                <span class="material-symbols-outlined">arrow_back_ios</span>
+            </button>
+            <h1 class="text-[#111318] dark:text-white text-lg font-bold flex-1 text-center pr-10">Auditoria</h1>
+        </div>
+
+        <!-- Filtros -->
+        <div class="px-4 py-4 bg-white dark:bg-background-dark border-b border-gray-100 dark:border-gray-800">
+            <div class="flex flex-col gap-3">
+                <!-- Busca por usuário -->
+                <div class="flex gap-2">
+                    <div class="flex-1 relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                        <input type="text" id="search-user" placeholder="Buscar por técnico..." 
+                            class="w-full h-11 pl-11 pr-4 rounded-xl bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    </div>
+                </div>
+
+                <!-- Filtro por tipo de ação -->
+                <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    <button class="filter-btn flex-shrink-0 h-9 px-4 rounded-full bg-primary text-white text-sm font-medium" data-action="">
+                        Todos
+                    </button>
+                    <button class="filter-btn flex-shrink-0 h-9 px-4 rounded-full bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-white text-sm font-medium" data-action="login">
+                        Logins
+                    </button>
+                    <button class="filter-btn flex-shrink-0 h-9 px-4 rounded-full bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-white text-sm font-medium" data-action="client_created">
+                        Cadastros
+                    </button>
+                    <button class="filter-btn flex-shrink-0 h-9 px-4 rounded-full bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-white text-sm font-medium" data-action="client_viewed">
+                        Visualizações
+                    </button>
+                    <button class="filter-btn flex-shrink-0 h-9 px-4 rounded-full bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-white text-sm font-medium" data-action="equipment_linked">
+                        Vinculações
+                    </button>
+                </div>
+
+                <!-- Filtro de data -->
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">De:</label>
+                        <input type="date" id="start-date" 
+                            class="w-full h-11 px-4 rounded-xl bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Até:</label>
+                        <input type="date" id="end-date" 
+                            class="w-full h-11 px-4 rounded-xl bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    </div>
+                </div>
+
+                <!-- Botão limpar filtros -->
+                <button id="clear-filters" class="w-full h-10 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    Limpar Filtros
+                </button>
+            </div>
+        </div>
+
+        <!-- Contador e Status -->
+        <div class="px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-xl">history</span>
+                    <span id="total-count" class="text-sm font-semibold text-[#111318] dark:text-white">Carregando...</span>
+                </div>
+                <button id="refresh-btn" class="flex items-center gap-1 text-primary text-sm font-medium hover:opacity-70">
+                    <span class="material-symbols-outlined text-lg">refresh</span>
+                    Atualizar
+                </button>
+            </div>
+        </div>
+
+        <!-- Lista de Logs -->
+        <div class="flex-1 overflow-y-auto">
+            <div id="logs-container" class="divide-y divide-gray-100 dark:divide-gray-800">
+                <!-- Os logs serão carregados dinamicamente aqui -->
+                <div class="flex items-center justify-center py-20">
+                    <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-gray-500 ml-4">Carregando logs...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts do App -->
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        var currentFilters = {
+            username: '',
+            action_type: '',
+            start_date: '',
+            end_date: ''
+        };
+        var isLoading = false;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurar data final como hoje
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('end-date').value = today;
+            
+            // Configurar data inicial como 7 dias atrás
+            var sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            document.getElementById('start-date').value = sevenDaysAgo.toISOString().split('T')[0];
+            
+            // Event listeners
+            setupEventListeners();
+            
+            // Carregar logs iniciais
+            loadAuditLogs();
+        });
+
+        function setupEventListeners() {
+            // Busca por usuário
+            var searchInput = document.getElementById('search-user');
+            var searchTimeout;
+            searchInput.addEventListener('input', function(e) {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() {
+                    currentFilters.username = e.target.value.trim();
+                    loadAuditLogs();
+                }, 500);
+            });
+
+            // Filtros por tipo de ação
+            document.querySelectorAll('.filter-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    // Remove classe ativa de todos
+                    document.querySelectorAll('.filter-btn').forEach(function(b) {
+                        b.classList.remove('bg-primary', 'text-white');
+                        b.classList.add('bg-gray-100', 'dark:bg-gray-800', 'text-[#111318]', 'dark:text-white');
+                    });
+                    
+                    // Adiciona classe ativa ao clicado
+                    this.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-[#111318]', 'dark:text-white');
+                    this.classList.add('bg-primary', 'text-white');
+                    
+                    currentFilters.action_type = this.dataset.action;
+                    loadAuditLogs();
+                });
+            });
+
+            // Filtros de data
+            document.getElementById('start-date').addEventListener('change', function(e) {
+                currentFilters.start_date = e.target.value;
+                loadAuditLogs();
+            });
+
+            document.getElementById('end-date').addEventListener('change', function(e) {
+                currentFilters.end_date = e.target.value;
+                loadAuditLogs();
+            });
+
+            // Limpar filtros
+            document.getElementById('clear-filters').addEventListener('click', function() {
+                currentFilters = {
+                    username: '',
+                    action_type: '',
+                    start_date: '',
+                    end_date: ''
+                };
+                
+                // Resetar campos
+                document.getElementById('search-user').value = '';
+                document.getElementById('start-date').value = '';
+                document.getElementById('end-date').value = '';
+                
+                // Resetar botões de filtro
+                document.querySelectorAll('.filter-btn').forEach(function(b) {
+                    b.classList.remove('bg-primary', 'text-white');
+                    b.classList.add('bg-gray-100', 'dark:bg-gray-800', 'text-[#111318]', 'dark:text-white');
+                });
+                document.querySelector('.filter-btn[data-action=""]').classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-[#111318]', 'dark:text-white');
+                document.querySelector('.filter-btn[data-action=""]').classList.add('bg-primary', 'text-white');
+                
+                loadAuditLogs();
+            });
+
+            // Botão atualizar
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                loadAuditLogs();
+            });
+        }
+
+        async function loadAuditLogs() {
+            if (isLoading) return;
+            isLoading = true;
+
+            var container = document.getElementById('logs-container');
+            var countEl = document.getElementById('total-count');
+            var refreshBtn = document.getElementById('refresh-btn');
+
+            // Mostrar loading
+            container.innerHTML = '<div class="flex items-center justify-center py-20">' +
+                '<div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>' +
+                '<p class="text-gray-500 ml-4">Carregando logs...</p>' +
+            '</div>';
+            
+            refreshBtn.disabled = true;
+
+            try {
+                // Montar URL com filtros
+                var url = '/api/get-audit-logs.php?limit=100';
+                if (currentFilters.action_type) {
+                    url += '&action_type=' + encodeURIComponent(currentFilters.action_type);
+                }
+                if (currentFilters.username) {
+                    url += '&username=' + encodeURIComponent(currentFilters.username);
+                }
+                if (currentFilters.start_date) {
+                    url += '&start_date=' + encodeURIComponent(currentFilters.start_date);
+                }
+                if (currentFilters.end_date) {
+                    url += '&end_date=' + encodeURIComponent(currentFilters.end_date);
+                }
+
+                var response = await fetch(url);
+                var result = await response.json();
+
+                console.log('Audit Logs:', result);
+
+                if (result.success) {
+                    // Atualizar contador
+                    countEl.textContent = result.total + ' registro(s)';
+
+                    if (result.data && result.data.length > 0) {
+                        container.innerHTML = result.data.map(function(log) {
+                            return renderLogCard(log);
+                        }).join('');
+                    } else {
+                        container.innerHTML = '<div class="flex flex-col items-center justify-center py-20 text-center px-4">' +
+                            '<span class="material-symbols-outlined text-6xl text-gray-300 mb-4">history</span>' +
+                            '<p class="text-gray-500 text-lg font-medium">Nenhum registro encontrado</p>' +
+                            '<p class="text-gray-400 text-sm mt-2">Tente ajustar os filtros ou o período de busca</p>' +
+                        '</div>';
+                    }
+                } else {
+                    throw new Error(result.message || 'Erro ao carregar logs');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                countEl.textContent = 'Erro';
+                container.innerHTML = '<div class="flex flex-col items-center justify-center py-20 text-center px-4">' +
+                    '<span class="material-symbols-outlined text-6xl text-red-300 mb-4">error</span>' +
+                    '<p class="text-red-500 text-lg font-medium">Erro ao carregar logs</p>' +
+                    '<p class="text-gray-400 text-sm mt-2">' + error.message + '</p>' +
+                    '<button onclick="loadAuditLogs()" class="mt-4 px-6 py-2 bg-primary text-white rounded-xl font-medium hover:bg-blue-600 transition-colors">' +
+                        'Tentar Novamente' +
+                    '</button>' +
+                '</div>';
+            } finally {
+                isLoading = false;
+                refreshBtn.disabled = false;
+            }
+        }
+
+        function renderLogCard(log) {
+            var actionIcon = getActionIcon(log.action_type);
+            var actionColor = getActionColor(log.action_type);
+            var actionLabel = getActionLabel(log.action_type);
+            var userName = log.user_full_name || log.username || 'Sistema';
+            var timeAgo = log.created_at_relative;
+            var fullDate = log.created_at_formatted;
+
+            var detailsHtml = '';
+            if (log.details) {
+                detailsHtml = '<div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">';
+                Object.keys(log.details).forEach(function(key) {
+                    if (log.details[key]) {
+                        var label = {
+                            'plan': 'Plano',
+                            'city': 'Cidade',
+                            'status': 'Status',
+                            'old_serial': 'Serial Antigo',
+                            'new_serial': 'Serial Novo',
+                            'phone': 'Telefone'
+                        }[key] || key;
+                        detailsHtml += '<p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-medium">' + label + ':</span> ' + log.details[key] + '</p>';
+                    }
+                });
+                detailsHtml += '</div>';
+            }
+
+            var entityInfo = '';
+            if (log.entity_name) {
+                entityInfo = '<p class="text-xs text-gray-500 dark:text-gray-400">' + log.entity_name + '</p>';
+            }
+
+            return '<div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">' +
+                '<div class="flex items-start gap-3">' +
+                    '<div class="size-11 rounded-full ' + actionColor + ' flex items-center justify-center flex-shrink-0">' +
+                        '<span class="material-symbols-outlined text-xl">' + actionIcon + '</span>' +
+                    '</div>' +
+                    '<div class="flex-1 min-w-0">' +
+                        '<div class="flex items-start justify-between gap-2">' +
+                            '<div class="flex-1 min-w-0">' +
+                                '<p class="text-sm font-semibold text-[#111318] dark:text-white">' + actionLabel + '</p>' +
+                                '<p class="text-xs text-gray-600 dark:text-gray-400">' + log.action_description + '</p>' +
+                                entityInfo +
+                            '</div>' +
+                        '</div>' +
+                        detailsHtml +
+                        '<div class="flex items-center gap-2 mt-2">' +
+                            '<p class="text-xs text-gray-500 dark:text-gray-400">' + userName + '</p>' +
+                            '<span class="text-gray-300 dark:text-gray-700">•</span>' +
+                            '<p class="text-xs text-gray-500 dark:text-gray-400" title="' + fullDate + '">' + timeAgo + '</p>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function getActionIcon(actionType) {
+            var icons = {
+                'login': 'login',
+                'client_created': 'person_add',
+                'client_viewed': 'visibility',
+                'equipment_linked': 'router',
+                'client_updated': 'edit',
+                'client_deleted': 'delete'
+            };
+            return icons[actionType] || 'history';
+        }
+
+        function getActionColor(actionType) {
+            var colors = {
+                'login': 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+                'client_created': 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+                'client_viewed': 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+                'equipment_linked': 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+                'client_updated': 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
+                'client_deleted': 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+            };
+            return colors[actionType] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+        }
+
+        function getActionLabel(actionType) {
+            var labels = {
+                'login': 'Login',
+                'client_created': 'Novo Cadastro',
+                'client_viewed': 'Cliente Visualizado',
+                'equipment_linked': 'Equipamento Vinculado',
+                'client_updated': 'Cliente Atualizado',
+                'client_deleted': 'Cliente Excluído'
+            };
+            return labels[actionType] || actionType;
+        }
+    </script>
+</body>
+</html>

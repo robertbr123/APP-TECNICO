@@ -265,6 +265,9 @@
             if (result.success && result.data && result.data.length > 0) {
                 var client = result.data[0];
                 
+                // Registra a visualização no log de auditoria
+                logClientView(client);
+                
                 // Nome
                 var nameEl = document.getElementById('client-name');
                 if (nameEl) nameEl.textContent = client.name || 'Sem nome';
@@ -353,6 +356,36 @@
         cpf = cpf.toString().replace(/\D/g, '');
         if (cpf.length !== 11) return cpf;
         return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+    
+    // Registra visualização do cliente no log de auditoria
+    async function logClientView(client) {
+        try {
+            var token = localStorage.getItem('authToken');
+            if (!token) return;
+            
+            await fetch('/api/audit-log.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    action_type: 'client_viewed',
+                    action_description: 'Visualizou detalhes do cliente',
+                    entity_type: 'client',
+                    entity_id: client.cpf,
+                    entity_name: client.name,
+                    details: {
+                        plan: client.planId,
+                        city: client.city,
+                        status: client.status
+                    }
+                })
+            });
+        } catch (error) {
+            console.error('Erro ao registrar visualização:', error);
+        }
     }
 </script>
 </body></html>

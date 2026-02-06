@@ -145,6 +145,34 @@ try {
             $data['active'] ?? 1
         ]);
         
+        // Registra o cadastro no log de auditoria
+        try {
+            $auditStmt = $db->prepare("
+                INSERT INTO audit_logs 
+                (user_id, username, action_type, action_description, entity_type, entity_id, entity_name, details, ip_address, user_agent)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $auditStmt->execute([
+                $userData['user_id'] ?? null,
+                $userData['username'] ?? 'app',
+                'client_created',
+                'Novo cliente cadastrado',
+                'client',
+                $cpf,
+                $data['name'],
+                json_encode([
+                    'plan' => $planId,
+                    'city' => $data['city'] ?? '',
+                    'phone' => $data['phone'] ?? ''
+                ]),
+                $_SERVER['REMOTE_ADDR'] ?? null,
+                $_SERVER['HTTP_USER_AGENT'] ?? null
+            ]);
+        } catch (Exception $e) {
+            // Não falha o cadastro se o auditoria falhar
+            error_log('Erro ao registrar auditoria: ' . $e->getMessage());
+        }
+        
         jsonResponse([
             'success' => true,
             'message' => 'Cliente cadastrado com sucesso',

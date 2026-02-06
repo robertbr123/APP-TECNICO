@@ -57,6 +57,29 @@ try {
     // Remove a senha do objeto de retorno
     unset($user['password']);
 
+    // Registra o login no log de auditoria
+    try {
+        $auditStmt = $db->prepare("
+            INSERT INTO audit_logs 
+            (user_id, username, action_type, action_description, entity_type, entity_id, entity_name, ip_address, user_agent)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $auditStmt->execute([
+            $user['id'],
+            $user['username'],
+            'login',
+            'Usuário fez login no sistema',
+            'user',
+            $user['id'],
+            $user['full_name'] ?? $user['username'],
+            $_SERVER['REMOTE_ADDR'] ?? null,
+            $_SERVER['HTTP_USER_AGENT'] ?? null
+        ]);
+    } catch (Exception $e) {
+        // Não falha o login se o auditoria falhar
+        error_log('Erro ao registrar auditoria: ' . $e->getMessage());
+    }
+
     jsonResponse([
         'success' => true,
         'message' => 'Login realizado com sucesso',
