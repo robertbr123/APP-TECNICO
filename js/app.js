@@ -300,7 +300,9 @@ const App = {
         const statTotal = document.getElementById('stat-total');
         if (statTotal) {
             const user = API.getUser();
-            if (user && user.role === 'admin') {
+            const isAdmin = user && user.role === 'admin';
+            console.log('User role:', user ? user.role : 'sem user', '| isAdmin:', isAdmin);
+            if (isAdmin) {
                 statTotal.textContent = data.totals.clients || '0';
             } else {
                 statTotal.textContent = '100+';

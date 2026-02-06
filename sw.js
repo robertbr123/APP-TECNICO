@@ -3,9 +3,9 @@
  * Ondeline Tech - App do Técnico
  */
 
-const CACHE_NAME = 'ondeline-tech-v2';
-const STATIC_CACHE = 'ondeline-static-v2';
-const DYNAMIC_CACHE = 'ondeline-dynamic-v2';
+const CACHE_NAME = 'ondeline-tech-v3';
+const STATIC_CACHE = 'ondeline-static-v3';
+const DYNAMIC_CACHE = 'ondeline-dynamic-v3';
 
 // Arquivos estáticos para cache
 const STATIC_ASSETS = [
@@ -19,11 +19,7 @@ const STATIC_ASSETS = [
     '/js/api.js',
     '/js/app.js',
     '/icons/icon-192x192.png',
-    '/icons/icon-512x512.png',
-    // CDNs importantes
-    'https://cdn.tailwindcss.com?plugins=forms,container-queries',
-    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
-    'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
+    '/icons/icon-512x512.png'
 ];
 
 // Instalação do Service Worker
