@@ -241,8 +241,11 @@
         other: null
     };
     
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
         console.log('DOM carregado');
+        
+        // Registra o acesso à página de cadastro no log de auditoria
+        logPageAccess('new_client_page', 'Acessou página de novo cadastro');
         
         // Configura os inputs de foto
         document.querySelectorAll('.photo-upload').forEach(function(container) {
@@ -253,27 +256,27 @@
             var addBtn = container.querySelector('.photo-add-btn');
             var removeBtn = container.querySelector('.photo-remove-btn');
             
-            if (input) {
-                input.addEventListener('change', function(e) {
-                    var file = e.target.files[0];
-                    if (file) {
-                        console.log('Foto selecionada:', type, file.name);
-                        selectedPhotos[type] = file;
-                        
-                        // Mostra preview
-                        var reader = new FileReader();
-                        reader.onload = function(ev) {
-                            preview.src = ev.target.result;
-                            preview.classList.remove('hidden');
-                            icon.classList.add('hidden');
-                            addBtn.classList.add('hidden');
-                            removeBtn.classList.remove('hidden');
-                            removeBtn.style.display = 'flex';
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-            }
+                if (input) {
+                    input.addEventListener('change', function(e) {
+                        var file = e.target.files[0];
+                        if (file) {
+                            console.log('Foto selecionada:', type, file.name);
+                            selectedPhotos[type] = file;
+                            
+                            // Mostra preview
+                            var reader = new FileReader();
+                            reader.onload = function(ev) {
+                                preview.src = ev.target.result;
+                                preview.classList.remove('hidden');
+                                icon.classList.add('hidden');
+                                addBtn.classList.add('hidden');
+                                removeBtn.classList.remove('hidden');
+                                removeBtn.style.display = 'flex';
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                }
             
             if (removeBtn) {
                 removeBtn.addEventListener('click', function(e) {
@@ -418,5 +421,30 @@
             };
         }
     });
+
+    // Registra acesso à página no log de auditoria
+    async function logPageAccess(actionType, actionDescription) {
+        try {
+            var token = localStorage.getItem('authToken');
+            if (!token) return;
+            
+            await fetch('/api/audit-log.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    action_type: actionType,
+                    action_description: actionDescription,
+                    entity_type: 'page',
+                    entity_id: 'novo-cadastro.html',
+                    entity_name: 'Página de Novo Cadastro'
+                })
+            });
+        } catch (error) {
+            console.error('Erro ao registrar acesso:', error);
+        }
+    }
 </script>
 </body></html>

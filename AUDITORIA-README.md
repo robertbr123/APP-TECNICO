@@ -2,10 +2,12 @@
 
 ## Visão Geral
 
-O sistema de auditoria permite acompanhar todas as ações realizadas pelos técnicos no aplicativo, incluindo:
+O sistema de auditoria permite acompanhar TODAS as ações realizadas pelos técnicos no aplicativo, incluindo:
 - ✅ Login no sistema
+- ✅ Acesso à página de cadastro (quando o técnico clica no botão)
 - ✅ Cadastro de novos clientes
 - ✅ Visualização de detalhes de clientes
+- ✅ Acesso à página de vincular equipamento (quando o técnico clica no botão)
 - ✅ Vinculação de equipamentos
 
 ## Instalação
@@ -85,8 +87,10 @@ Cada log mostra:
 | Tipo | Descrição | Cor |
 |------|-----------|-----|
 | `login` | Técnico acessou o sistema | Verde |
+| `new_client_page` | Técnico clicou na página de cadastro | Teal |
 | `client_created` | Novo cliente cadastrado | Azul |
 | `client_viewed` | Detalhes do cliente visualizados | Roxo |
+| `link_equipment_page` | Técnico clicou na página de vincular | Ciano |
 | `equipment_linked` | Equipamento vinculado ao cliente | Laranja |
 
 ## Estrutura da Tabela audit_logs
@@ -159,15 +163,23 @@ O sistema registra automaticamente as seguintes ações:
    - Quando um técnico faz login
    - Arquivo: `api/login.php`
 
-2. **Cadastro de Cliente**
+2. **Acesso à Página de Cadastro**
+   - Quando um técnico clica no botão "Novo Cadastro" ou acessa a página
+   - Arquivo: `novo-cadastro.html`
+
+3. **Cadastro de Cliente**
    - Quando um novo cliente é cadastrado
    - Arquivo: `api/cadastro.php`
 
-3. **Visualização de Cliente**
+4. **Visualização de Cliente**
    - Quando os detalhes de um cliente são visualizados
    - Arquivo: `detalher.html`
 
-4. **Vinculação de Equipamento**
+5. **Acesso à Página de Vincular Equipamento**
+   - Quando um técnico clica no botão "Vincular Equipamento" ou acessa a página
+   - Arquivo: `vincular-equipamento.html`
+
+6. **Vinculação de Equipamento**
    - Quando um equipamento é vinculado a um cliente
    - Arquivo: `api/vincular.php`
 
