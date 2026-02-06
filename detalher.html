@@ -521,7 +521,7 @@ Sincronizar
             
             // 2. Extrai contrato e MAC dos dados do SGP
             if (sgpClient.contratos && sgpClient.contratos.length > 0) {
-                contrato = sgpClient.contratos[0].contrato;
+                contrato = sgpClient.contratos[0].id || sgpClient.contratos[0].contrato;
                 
                 if (sgpClient.contratos[0].servicos && sgpClient.contratos[0].servicos.length > 0) {
                     mac = sgpClient.contratos[0].servicos[0].mac || null;
