@@ -70,7 +70,6 @@
 <div class="flex items-center gap-2 mb-0.5">
 <h2 id="client-name" class="text-[#111318] dark:text-white text-xl font-bold">Carregando...</h2>
 <span id="client-status" class="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">...</span>
-<span id="contract-status" class="bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase hidden">...</span>
 </div>
 <p id="client-cpf" class="text-[#616f89] dark:text-gray-400 text-sm">CPF: ...</p>
 <div id="connection-status" class="flex items-center gap-1.5 mt-1">
@@ -514,16 +513,23 @@ Sincronizar
             
             if (result.success && result.data) {
                 console.log('Dados consultacliente completo:', JSON.stringify(result.data));
-                // Tenta vários campos possíveis para o status
-                var statusDisplay = result.data.contratoStatusDisplay 
-                    || result.data.status 
-                    || result.data.contrato_status
-                    || result.data.statusContrato
-                    || '';
+                var statusDisplay = '';
                 
-                // Se não achou direto, tenta dentro de sub-objetos
-                if (!statusDisplay && result.data.contrato && typeof result.data.contrato === 'object') {
-                    statusDisplay = result.data.contrato.status || result.data.contrato.statusDisplay || '';
+                // O status vem dentro de contratos[0].contratoStatusDisplay
+                if (result.data.contratos && result.data.contratos.length > 0) {
+                    var c = result.data.contratos[0];
+                    statusDisplay = c.contratoStatusDisplay || c.status || c.contratoStatus || '';
+                    
+                    // Se contratoStatus é numérico (1=Ativo, 2=Suspenso, 3=Cancelado)
+                    if (!statusDisplay && typeof c.contratoStatus === 'number') {
+                        var statusMap = {1: 'Ativo', 2: 'Suspenso', 3: 'Cancelado'};
+                        statusDisplay = statusMap[c.contratoStatus] || '';
+                    }
+                }
+                
+                // Fallback para campos na raiz
+                if (!statusDisplay) {
+                    statusDisplay = result.data.contratoStatusDisplay || result.data.status || '';
                 }
                 
                 if (statusDisplay) {
@@ -539,10 +545,9 @@ Sincronizar
     // Atualiza badge de status do contrato
     // =====================================================
     function setContractStatusBadge(status) {
-        var badge = document.getElementById('contract-status');
+        var badge = document.getElementById('client-status');
         if (!badge) return;
         
-        badge.classList.remove('hidden');
         badge.textContent = status || 'Desconhecido';
         
         var s = status.toLowerCase();
@@ -654,9 +659,30 @@ Sincronizar
                     btn.disabled = false;
                 }, 3000);
             } else {
-                alert('Erro ao salvar: ' + (saveResult.message || 'Erro desconhecido'));
-                btn.innerHTML = originalHTML;
-                btn.disabled = false;
+                // Mesmo se não salvou no banco local, ainda mostra os dados do SGP
+                console.warn('Não salvou no banco local:', saveResult.message);
+                currentContrato = contrato.toString();
+                currentServidor = result.servidor || '';
+                
+                var contratoEl = document.getElementById('client-contrato');
+                var macEl = document.getElementById('client-mac');
+                if (contratoEl) contratoEl.textContent = 'Contrato #' + contrato;
+                if (macEl) macEl.textContent = mac || '—';
+                
+                // Verifica status mesmo sem salvar
+                await checkConnectionStatus(contrato, currentServidor);
+                await checkContractStatus(contrato, currentServidor);
+                
+                btn.innerHTML = '<span class="material-symbols-outlined text-sm">warning</span> Parcial';
+                btn.classList.remove('bg-primary/10', 'text-primary');
+                btn.classList.add('bg-yellow-100', 'text-yellow-600');
+                
+                setTimeout(function() {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('bg-yellow-100', 'text-yellow-600');
+                    btn.classList.add('bg-primary/10', 'text-primary');
+                    btn.disabled = false;
+                }, 3000);
             }
             
         } catch (error) {
@@ -757,7 +783,7 @@ Sincronizar
         btn.disabled = true;
         
         var type = document.getElementById('upload-photo-type').value;
-        var token = localStorage.getItem('authToken') || '';
+        var token = localStorage.getItem('auth_token') || '';
         
         var formData = new FormData();
         formData.append('photo', uploadSelectedFile);
@@ -809,7 +835,7 @@ Sincronizar
     // Registra visualização do cliente no log de auditoria
     async function logClientView(client) {
         try {
-            var token = localStorage.getItem('authToken');
+            var token = localStorage.getItem('auth_token');
             if (!token) return;
             
             await fetch('/api/audit-log.php', {

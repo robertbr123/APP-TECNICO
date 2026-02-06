@@ -793,20 +793,10 @@ const App = {
 
         this.showLoading(true);
 
-        try {
-            const response = await API.getClient(cpf);
-            if (response.success) {
-                this.renderClientDetails(response.data);
-                // Carrega fotos do cliente
-                this.loadClientPhotos(cpf);
-            } else {
-                this.showToast('Cliente não encontrado', 'error');
-            }
-        } catch (error) {
-            this.showToast('Erro ao carregar cliente', 'error');
-        } finally {
-            this.showLoading(false);
-        }
+        // O carregamento de dados e fotos é feito pelo script inline do detalher.html
+        // que tem integração com SGP, status de conexão, contrato, etc.
+        // Não carregar aqui para evitar sobrescrever o conteúdo.
+        this.showLoading(false);
     },
 
     /**
