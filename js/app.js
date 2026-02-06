@@ -296,9 +296,16 @@ const App = {
         const statToday = document.getElementById('stat-today');
         if (statToday) statToday.textContent = data.totals.today || '0';
 
-        // Atualiza total de clientes
+        // Atualiza total de clientes (só admin vê o número real)
         const statTotal = document.getElementById('stat-total');
-        if (statTotal) statTotal.textContent = data.totals.clients || '0';
+        if (statTotal) {
+            const user = API.getUser();
+            if (user && user.role === 'admin') {
+                statTotal.textContent = data.totals.clients || '0';
+            } else {
+                statTotal.textContent = '100+';
+            }
+        }
 
         // Atualiza último cadastro
         if (data.lastRegistration) {

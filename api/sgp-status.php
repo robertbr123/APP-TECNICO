@@ -15,6 +15,24 @@ if ($method !== 'POST') {
 $data = getRequestBody();
 
 // =====================================================
+// Servidores SGP disponíveis
+// =====================================================
+$sgpServers = [
+    [
+        'name' => 'Ondeline',
+        'base_url' => 'https://ondeline.sgp.tsmx.com.br/api/ura',
+        'app' => 'bot',
+        'token' => '8e6523a9-2c7e-43de-888b-555da380a8fd'
+    ],
+    [
+        'name' => 'Linknet',
+        'base_url' => 'https://linknetam.sgp.net.br/api/ura',
+        'app' => 'APP',
+        'token' => '74b3dfe5-8333-458a-adab-ea2b544d64ad'
+    ]
+];
+
+// =====================================================
 // Ação: buscar dados do cliente pelo CPF
 // =====================================================
 if (isset($data['action']) && $data['action'] === 'buscar_cliente') {
@@ -27,23 +45,23 @@ if (isset($data['action']) && $data['action'] === 'buscar_cliente') {
     // Limpa o CPF
     $cpf = preg_replace('/\D/', '', $cpf);
     
-    $result = callSgpApi('https://ondeline.sgp.tsmx.com.br/api/ura/clientes/', [
-        'app' => 'bot',
-        'token' => '8e6523a9-2c7e-43de-888b-555da380a8fd',
-        'cpfcnpj' => $cpf
-    ]);
-    
-    if ($result === false) {
-        jsonResponse(['success' => false, 'message' => 'Erro ao consultar API SGP'], 500);
+    // Tenta em cada servidor SGP
+    foreach ($sgpServers as $server) {
+        $result = callSgpApi($server['base_url'] . '/clientes/', [
+            'app' => $server['app'],
+            'token' => $server['token'],
+            'cpfcnpj' => $cpf
+        ]);
+        
+        if ($result !== false) {
+            $decoded = json_decode($result, true);
+            if ($decoded && isset($decoded['clientes']) && !empty($decoded['clientes'])) {
+                jsonResponse(['success' => true, 'data' => $decoded, 'servidor' => $server['name']]);
+            }
+        }
     }
     
-    $decoded = json_decode($result, true);
-    
-    if (!$decoded || !isset($decoded['clientes']) || empty($decoded['clientes'])) {
-        jsonResponse(['success' => false, 'message' => 'Cliente não encontrado no SGP', 'raw' => $decoded]);
-    }
-    
-    jsonResponse(['success' => true, 'data' => $decoded]);
+    jsonResponse(['success' => false, 'message' => 'Cliente não encontrado em nenhum servidor SGP']);
 }
 
 // =====================================================
@@ -51,24 +69,39 @@ if (isset($data['action']) && $data['action'] === 'buscar_cliente') {
 // =====================================================
 if (isset($data['action']) && $data['action'] === 'verificar_acesso') {
     $contrato = $data['contrato'] ?? null;
+    $servidor = $data['servidor'] ?? null;
     
     if (!$contrato) {
         jsonResponse(['success' => false, 'message' => 'Número do contrato é obrigatório'], 400);
     }
     
-    $result = callSgpApi('https://ondeline.sgp.tsmx.com.br/api/ura/verificaacesso/', [
-        'app' => 'bot',
-        'token' => '8e6523a9-2c7e-43de-888b-555da380a8fd',
-        'contrato' => (string)$contrato
-    ]);
-    
-    if ($result === false) {
-        jsonResponse(['success' => false, 'message' => 'Erro ao verificar acesso no SGP'], 500);
+    // Se veio o nome do servidor, tenta ele primeiro
+    $serversToTry = $sgpServers;
+    if ($servidor) {
+        usort($serversToTry, function($a, $b) use ($servidor) {
+            if ($a['name'] === $servidor) return -1;
+            if ($b['name'] === $servidor) return 1;
+            return 0;
+        });
     }
     
-    $decoded = json_decode($result, true);
+    // Tenta em cada servidor SGP
+    foreach ($serversToTry as $server) {
+        $result = callSgpApi($server['base_url'] . '/verificaacesso/', [
+            'app' => $server['app'],
+            'token' => $server['token'],
+            'contrato' => (string)$contrato
+        ]);
+        
+        if ($result !== false) {
+            $decoded = json_decode($result, true);
+            if ($decoded && isset($decoded['msg'])) {
+                jsonResponse(['success' => true, 'data' => $decoded, 'servidor' => $server['name']]);
+            }
+        }
+    }
     
-    jsonResponse(['success' => true, 'data' => $decoded]);
+    jsonResponse(['success' => false, 'message' => 'Não foi possível verificar acesso em nenhum servidor SGP']);
 }
 
 // =====================================================

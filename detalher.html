@@ -201,6 +201,7 @@ Sincronizar
     var passwordVisible = false;
     var currentCpf = '';
     var currentContrato = '';
+    var currentServidor = '';
     
     document.addEventListener('DOMContentLoaded', async function() {
         // Pega o CPF da URL
@@ -377,8 +378,8 @@ Sincronizar
                     if (contratoEl) contratoEl.textContent = 'Contrato #' + client.contrato;
                     if (macEl) macEl.textContent = client.serial || '—';
                     
-                    // Se tem contrato, verifica o status online/offline
-                    await checkConnectionStatus(client.contrato);
+                    // Se tem contrato, verifica o status online/offline (tenta ambos servidores)
+                    await checkConnectionStatus(client.contrato, client.servidor || '');
                 } else {
                     if (contratoEl) contratoEl.textContent = 'Não vinculado';
                     setConnectionStatus('unknown', 'Contrato não vinculado. Clique em Sincronizar.');
@@ -395,17 +396,20 @@ Sincronizar
     // =====================================================
     // Verifica status de conexão (Online/Offline) via SGP
     // =====================================================
-    async function checkConnectionStatus(contrato) {
+    async function checkConnectionStatus(contrato, servidor) {
         setConnectionStatus('loading', 'Verificando conexão...');
         
         try {
+            var bodyData = {
+                action: 'verificar_acesso',
+                contrato: contrato
+            };
+            if (servidor) bodyData.servidor = servidor;
+            
             var response = await fetch('/api/sgp-status.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'verificar_acesso',
-                    contrato: contrato
-                })
+                body: JSON.stringify(bodyData)
             });
             
             var result = await response.json();
@@ -552,6 +556,7 @@ Sincronizar
             
             if (saveResult.success) {
                 currentContrato = contrato.toString();
+                currentServidor = result.servidor || '';
                 
                 // Atualiza a UI
                 var contratoEl = document.getElementById('client-contrato');
@@ -560,7 +565,7 @@ Sincronizar
                 if (macEl) macEl.textContent = mac || '—';
                 
                 // 4. Agora verifica o status online/offline
-                await checkConnectionStatus(contrato);
+                await checkConnectionStatus(contrato, currentServidor);
                 
                 // Feedback de sucesso
                 btn.innerHTML = '<span class="material-symbols-outlined text-sm">check_circle</span> Sincronizado!';
