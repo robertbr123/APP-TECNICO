@@ -175,7 +175,7 @@ function handlePut($db) {
     // Monta a query de atualização dinamicamente
     $updateFields = [];
     $params = [];
-    $allowedFields = ['name', 'birthDate', 'phone', 'cep', 'address', 'number', 'complement', 'city', 'planId', 'pppoe', 'password', 'dueDay', 'installer', 'observation', 'status', 'active', 'serial', 'phone_number'];
+    $allowedFields = ['name', 'birthDate', 'phone', 'cep', 'address', 'number', 'complement', 'city', 'planId', 'pppoe', 'password', 'dueDay', 'installer', 'observation', 'status', 'active', 'serial', 'phone_number', 'contrato'];
 
     foreach ($allowedFields as $field) {
         if (isset($data[$field])) {

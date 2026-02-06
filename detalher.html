@@ -72,6 +72,10 @@
 <span id="client-status" class="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">...</span>
 </div>
 <p id="client-cpf" class="text-[#616f89] dark:text-gray-400 text-sm">CPF: ...</p>
+<div id="connection-status" class="flex items-center gap-1.5 mt-1">
+<div id="status-dot" class="w-2.5 h-2.5 rounded-full bg-gray-300 animate-pulse"></div>
+<span id="status-text" class="text-xs text-gray-400">Verificando conexão...</span>
+</div>
 </div>
 </div>
 </div>
@@ -107,6 +111,36 @@
 </div>
 </div>
 </section>
+<section class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">cloud_sync</span>
+<h3 class="text-[#111318] dark:text-white text-base font-bold">Contrato SGP</h3>
+</div>
+<button id="btn-sync-sgp" onclick="syncFromSGP()" class="text-xs bg-primary/10 text-primary font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-sm">sync</span>
+Sincronizar
+</button>
+</div>
+<div class="grid grid-cols-1 gap-3">
+<div>
+<p class="text-[#616f89] dark:text-gray-400 text-xs font-medium uppercase mb-1">Nº Contrato</p>
+<p id="client-contrato" class="text-[#111318] dark:text-white font-semibold">Não vinculado</p>
+</div>
+<div>
+<p class="text-[#616f89] dark:text-gray-400 text-xs font-medium uppercase mb-1">MAC / Serial (SGP)</p>
+<p id="client-mac" class="text-[#111318] dark:text-white font-mono text-sm">—</p>
+</div>
+<div id="connection-detail" class="hidden">
+<p class="text-[#616f89] dark:text-gray-400 text-xs font-medium uppercase mb-1">Status Conexão</p>
+<div id="connection-msg" class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-gray-300"></div>
+<span class="text-sm text-gray-400">—</span>
+</div>
+</div>
+</div>
+</section>
+
 <section class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
 <div class="flex items-center gap-2 mb-4">
 <span class="material-symbols-outlined text-primary text-xl">location_on</span>
@@ -165,11 +199,14 @@
 <script>
     var clientPassword = ''; // Armazena a senha real
     var passwordVisible = false;
+    var currentCpf = '';
+    var currentContrato = '';
     
     document.addEventListener('DOMContentLoaded', async function() {
         // Pega o CPF da URL
         var params = new URLSearchParams(window.location.search);
         var cpf = params.get('cpf');
+        currentCpf = cpf;
         
         console.log('Carregando detalhes do cliente:', cpf);
         
@@ -330,12 +367,223 @@
                 if (obsEl) {
                     obsEl.textContent = client.observation ? '"' + client.observation + '"' : 'Nenhuma observação registrada.';
                 }
+                
+                // Contrato SGP
+                var contratoEl = document.getElementById('client-contrato');
+                var macEl = document.getElementById('client-mac');
+                
+                if (client.contrato) {
+                    currentContrato = client.contrato;
+                    if (contratoEl) contratoEl.textContent = 'Contrato #' + client.contrato;
+                    if (macEl) macEl.textContent = client.serial || '—';
+                    
+                    // Se tem contrato, verifica o status online/offline
+                    await checkConnectionStatus(client.contrato);
+                } else {
+                    if (contratoEl) contratoEl.textContent = 'Não vinculado';
+                    setConnectionStatus('unknown', 'Contrato não vinculado. Clique em Sincronizar.');
+                }
             } else {
                 alert('Cliente não encontrado');
             }
         } catch (error) {
             console.error('Erro ao carregar cliente:', error);
             alert('Erro ao carregar dados do cliente');
+        }
+    }
+    
+    // =====================================================
+    // Verifica status de conexão (Online/Offline) via SGP
+    // =====================================================
+    async function checkConnectionStatus(contrato) {
+        setConnectionStatus('loading', 'Verificando conexão...');
+        
+        try {
+            var response = await fetch('/api/sgp-status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'verificar_acesso',
+                    contrato: contrato
+                })
+            });
+            
+            var result = await response.json();
+            console.log('Status conexão SGP:', result);
+            
+            if (result.success && result.data) {
+                var msg = result.data.msg || '';
+                var isOnline = msg.toLowerCase().indexOf('online') !== -1;
+                
+                if (isOnline) {
+                    setConnectionStatus('online', msg);
+                } else {
+                    setConnectionStatus('offline', msg || 'Serviço Offline');
+                }
+                
+                // Mostra detalhes da conexão
+                var detailEl = document.getElementById('connection-detail');
+                var msgEl = document.getElementById('connection-msg');
+                if (detailEl && msgEl) {
+                    detailEl.classList.remove('hidden');
+                    var dotColor = isOnline ? 'bg-green-500' : 'bg-red-500';
+                    var textColor = isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                    msgEl.innerHTML = '<div class="w-3 h-3 rounded-full ' + dotColor + '"></div>' +
+                        '<span class="text-sm font-semibold ' + textColor + '">' + (msg || 'Sem resposta') + '</span>';
+                }
+            } else {
+                setConnectionStatus('error', 'Erro ao verificar');
+            }
+        } catch (error) {
+            console.error('Erro ao verificar status:', error);
+            setConnectionStatus('error', 'Erro de conexão');
+        }
+    }
+    
+    // =====================================================
+    // Atualiza indicador visual de status (bolinha + texto)
+    // =====================================================
+    function setConnectionStatus(status, message) {
+        var dot = document.getElementById('status-dot');
+        var text = document.getElementById('status-text');
+        
+        if (!dot || !text) return;
+        
+        // Remove animate-pulse de todos
+        dot.classList.remove('animate-pulse');
+        
+        switch (status) {
+            case 'online':
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm shadow-green-500/50';
+                text.className = 'text-xs font-semibold text-green-600 dark:text-green-400';
+                text.textContent = message || 'Online';
+                break;
+            case 'offline':
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500/50';
+                text.className = 'text-xs font-semibold text-red-600 dark:text-red-400';
+                text.textContent = message || 'Offline';
+                break;
+            case 'loading':
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse';
+                text.className = 'text-xs text-yellow-600 dark:text-yellow-400';
+                text.textContent = message || 'Verificando...';
+                break;
+            case 'error':
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-orange-400';
+                text.className = 'text-xs text-orange-500';
+                text.textContent = message || 'Erro';
+                break;
+            default:
+                dot.className = 'w-2.5 h-2.5 rounded-full bg-gray-300';
+                text.className = 'text-xs text-gray-400';
+                text.textContent = message || 'Desconhecido';
+        }
+    }
+    
+    // =====================================================
+    // Sincroniza dados do SGP (busca contrato e MAC)
+    // =====================================================
+    async function syncFromSGP() {
+        if (!currentCpf) {
+            alert('CPF não disponível');
+            return;
+        }
+        
+        var btn = document.getElementById('btn-sync-sgp');
+        var originalHTML = btn.innerHTML;
+        btn.innerHTML = '<div class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div> Buscando...';
+        btn.disabled = true;
+        
+        try {
+            // 1. Busca dados do cliente no SGP pelo CPF
+            var response = await fetch('/api/sgp-status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'buscar_cliente',
+                    cpf: currentCpf
+                })
+            });
+            
+            var result = await response.json();
+            console.log('SGP Clientes:', result);
+            
+            if (!result.success || !result.data || !result.data.clientes || result.data.clientes.length === 0) {
+                alert('Cliente não encontrado no SGP. Verifique o CPF.');
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                return;
+            }
+            
+            var sgpClient = result.data.clientes[0];
+            var contrato = null;
+            var mac = null;
+            
+            // 2. Extrai contrato e MAC dos dados do SGP
+            if (sgpClient.contratos && sgpClient.contratos.length > 0) {
+                contrato = sgpClient.contratos[0].contrato;
+                
+                if (sgpClient.contratos[0].servicos && sgpClient.contratos[0].servicos.length > 0) {
+                    mac = sgpClient.contratos[0].servicos[0].mac || null;
+                }
+            }
+            
+            if (!contrato) {
+                alert('Nenhum contrato encontrado para este cliente no SGP.');
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                return;
+            }
+            
+            // 3. Salva contrato e MAC no banco de dados local
+            var saveResponse = await fetch('/api/sgp-status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'salvar_contrato',
+                    cpf: currentCpf,
+                    contrato: contrato.toString(),
+                    mac: mac
+                })
+            });
+            
+            var saveResult = await saveResponse.json();
+            console.log('Salvar contrato:', saveResult);
+            
+            if (saveResult.success) {
+                currentContrato = contrato.toString();
+                
+                // Atualiza a UI
+                var contratoEl = document.getElementById('client-contrato');
+                var macEl = document.getElementById('client-mac');
+                if (contratoEl) contratoEl.textContent = 'Contrato #' + contrato;
+                if (macEl) macEl.textContent = mac || '—';
+                
+                // 4. Agora verifica o status online/offline
+                await checkConnectionStatus(contrato);
+                
+                // Feedback de sucesso
+                btn.innerHTML = '<span class="material-symbols-outlined text-sm">check_circle</span> Sincronizado!';
+                btn.classList.remove('bg-primary/10', 'text-primary');
+                btn.classList.add('bg-green-100', 'text-green-600');
+                
+                setTimeout(function() {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('bg-green-100', 'text-green-600');
+                    btn.classList.add('bg-primary/10', 'text-primary');
+                    btn.disabled = false;
+                }, 3000);
+            } else {
+                alert('Erro ao salvar: ' + (saveResult.message || 'Erro desconhecido'));
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+            
+        } catch (error) {
+            console.error('Erro ao sincronizar SGP:', error);
+            alert('Erro ao comunicar com o SGP. Tente novamente.');
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
         }
     }
     

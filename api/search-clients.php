@@ -32,7 +32,7 @@ try {
     $db = Database::getInstance()->getConnection();
     
     $searchTerm = "%$search%";
-    $sql = "SELECT cpf, name, address, number, complement, city, serial, phone, pppoe, password, dueDay, planId, status, observation FROM clients WHERE name LIKE ? OR cpf LIKE ? ORDER BY name LIMIT ?";
+    $sql = "SELECT cpf, name, address, number, complement, city, serial, phone, pppoe, password, dueDay, planId, status, observation, contrato FROM clients WHERE name LIKE ? OR cpf LIKE ? ORDER BY name LIMIT ?";
     $stmt = $db->prepare($sql);
     $stmt->execute([$searchTerm, $searchTerm, $limit]);
     $clients = $stmt->fetchAll();
