@@ -232,6 +232,13 @@
 <!-- Scripts do App -->
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
+<script src="js/geolocation.js"></script>
+<script src="js/feedback.js"></script>
+
+<!-- Campos ocultos para geolocalização -->
+<input type="hidden" id="field-latitude" name="latitude">
+<input type="hidden" id="field-longitude" name="longitude">
+<input type="hidden" id="field-accuracy" name="accuracy">
 <script>
     // Armazena as fotos selecionadas
     var selectedPhotos = {
@@ -247,6 +254,24 @@
         // Registra o acesso à página de cadastro no log de auditoria
         logPageAccess('new_client_page', 'Acessou página de novo cadastro');
         
+        // Tenta obter geolocalização automaticamente
+        try {
+            showInfo('Obtendo sua localização...');
+            var location = await getLocation();
+            
+            if (location) {
+                document.getElementById('field-latitude').value = location.latitude;
+                document.getElementById('field-longitude').value = location.longitude;
+                document.getElementById('field-accuracy').value = location.accuracy;
+                console.log('Localização obtida:', location);
+                showSuccess('Localização obtida com sucesso!');
+            }
+        } catch (error) {
+            console.warn('Erro ao obter localização:', error);
+            // Não bloqueia o cadastro se falhar a geolocalização
+            showWarning('Não foi possível obter sua localização. O cadastro continuará sem ela.');
+        }
+        
         // Configura os inputs de foto
         document.querySelectorAll('.photo-upload').forEach(function(container) {
             var type = container.dataset.type;
@@ -256,27 +281,27 @@
             var addBtn = container.querySelector('.photo-add-btn');
             var removeBtn = container.querySelector('.photo-remove-btn');
             
-                if (input) {
-                    input.addEventListener('change', function(e) {
-                        var file = e.target.files[0];
-                        if (file) {
-                            console.log('Foto selecionada:', type, file.name);
-                            selectedPhotos[type] = file;
-                            
-                            // Mostra preview
-                            var reader = new FileReader();
-                            reader.onload = function(ev) {
-                                preview.src = ev.target.result;
-                                preview.classList.remove('hidden');
-                                icon.classList.add('hidden');
-                                addBtn.classList.add('hidden');
-                                removeBtn.classList.remove('hidden');
-                                removeBtn.style.display = 'flex';
-                            };
-                            reader.readAsDataURL(file);
-                        }
-                    });
-                }
+            if (input) {
+                input.addEventListener('change', function(e) {
+                    var file = e.target.files[0];
+                    if (file) {
+                        console.log('Foto selecionada:', type, file.name);
+                        selectedPhotos[type] = file;
+                        
+                        // Mostra preview
+                        var reader = new FileReader();
+                        reader.onload = function(ev) {
+                            preview.src = ev.target.result;
+                            preview.classList.remove('hidden');
+                            icon.classList.add('hidden');
+                            addBtn.classList.add('hidden');
+                            removeBtn.classList.remove('hidden');
+                            removeBtn.style.display = 'flex';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
             
             if (removeBtn) {
                 removeBtn.addEventListener('click', function(e) {
@@ -320,18 +345,31 @@
                     dueDay: parseInt(document.getElementById('field-due-date')?.value) || 10,
                     observation: document.getElementById('field-observations')?.value?.trim() || '',
                     status: 'ativo',
-                    active: 1
+                    active: 1,
+                    latitude: document.getElementById('field-latitude')?.value || null,
+                    longitude: document.getElementById('field-longitude')?.value || null,
+                    accuracy: document.getElementById('field-accuracy')?.value || null
                 };
                 
                 console.log('Dados coletados:', data);
                 
                 // Validação
                 if (!data.name) {
-                    alert('Preencha o nome do cliente');
+                    showError('Preencha o nome do cliente');
                     return;
                 }
                 if (!data.cpf) {
-                    alert('Preencha o CPF do cliente');
+                    showError('Preencha o CPF do cliente');
+                    return;
+                }
+                
+                // Verifica se está offline
+                if (!navigator.onLine) {
+                    saveOffline('create_client', data);
+                    showSuccess('Cliente salvo offline! Será sincronizado quando reconectar.');
+                    setTimeout(function() {
+                        window.location.href = 'dashboard.html';
+                    }, 2000);
                     return;
                 }
                 
@@ -406,10 +444,25 @@
                             mensagem += '\n' + fotosFalha + ' foto(s) falharam.';
                         }
                         
-                        alert(mensagem);
-                        window.location.href = 'dashboard.html';
+                        showSuccess(mensagem);
+                        setTimeout(function() {
+                            window.location.href = 'dashboard.html';
+                        }, 1000);
                     } else {
-                        alert('Erro: ' + (result.message || 'Erro desconhecido'));
+                        showError('Erro: ' + (result.message || 'Erro desconhecido'));
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    
+                    // Salva offline se falhar
+                    if (!navigator.onLine) {
+                        saveOffline('create_client', data);
+                        showSuccess('Salvo offline! Será sincronizado quando reconectar.');
+                        setTimeout(function() {
+                            window.location.href = 'dashboard.html';
+                        }, 2000);
+                    } else {
+                        showError('Erro ao salvar: ' + error.message);
                     }
                 } catch (error) {
                     console.error('Erro:', error);

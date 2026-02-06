@@ -65,6 +65,8 @@ try {
     
     $cpf = preg_replace('/\D/', '', $input['cpf'] ?? '');
     $serial = strtoupper(trim($input['serial'] ?? ''));
+    $reason = $input['reason'] ?? 'other';
+    $reasonDesc = $input['reason_description'] ?? '';
     
     // Validações
     if (empty($cpf)) {
@@ -93,6 +95,25 @@ try {
     }
     
     $oldSerial = $client['serial'];
+    
+    // Salva histórico da troca
+    $historyStmt = $db->prepare("
+        INSERT INTO serial_history 
+        (cpf, client_name, old_serial, new_serial, reason, reason_description, changed_by, changed_by_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    
+    $username = $userId ? getUserUsername($db, $userId) : 'sistema';
+    $historyStmt->execute([
+        $cpf,
+        $client['name'],
+        $oldSerial,
+        $serial,
+        $reason,
+        $reasonDesc,
+        $userId,
+        $username
+    ]);
     
     // Atualiza o serial do cliente (cpf é a primary key)
     $stmt = $db->prepare("UPDATE clients SET serial = ? WHERE cpf = ?");

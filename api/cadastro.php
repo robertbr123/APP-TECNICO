@@ -121,9 +121,14 @@ try {
             $birthDate = $data['birthDate'];
         }
         
+        // Coordenadas de geolocalização
+        $latitude = isset($data['latitude']) ? (float)$data['latitude'] : null;
+        $longitude = isset($data['longitude']) ? (float)$data['longitude'] : null;
+        $locationAccuracy = isset($data['accuracy']) ? (float)$data['accuracy'] : null;
+        
         $stmt = $db->prepare("
-            INSERT INTO clients (cpf, name, phone, birthDate, city, address, number, complement, planId, pppoe, password, dueDay, observation, installer, status, active, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            INSERT INTO clients (cpf, name, phone, birthDate, city, address, number, complement, planId, pppoe, password, dueDay, observation, latitude, longitude, location_accuracy, installer, status, active, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ");
         
         $stmt->execute([
@@ -140,6 +145,9 @@ try {
             $password,
             $dueDay,
             $data['observation'] ?? '',
+            $latitude,
+            $longitude,
+            $locationAccuracy,
             $installer,
             $data['status'] ?? 'ativo',
             $data['active'] ?? 1

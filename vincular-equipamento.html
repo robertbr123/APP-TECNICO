@@ -76,6 +76,24 @@
                 </div>
                 <p class="text-[#616f89] text-xs mt-2">Digite ou escaneie o código de barras/QR do equipamento</p>
             </label>
+            
+            <!-- Motivo da Troca -->
+            <label class="flex flex-col mt-4">
+                <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-2">Motivo da Troca</p>
+                <select id="field-reason" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 text-base font-normal leading-normal">
+                    <option value="other">Selecione um motivo</option>
+                    <option value="defect">Defeito no equipamento</option>
+                    <option value="upgrade">Upgrade de equipamento</option>
+                    <option value="transfer">Transferência de unidade</option>
+                    <option value="theft">Roubo ou furto</option>
+                    <option value="other">Outro motivo</option>
+                </select>
+            </label>
+            
+            <label class="flex flex-col mt-4">
+                <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-2">Descrição do Motivo (opcional)</p>
+                <textarea id="field-reason-desc" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary min-h-[80px] px-4 py-3 text-base font-normal leading-normal" placeholder="Descreva mais detalhes sobre a troca..."></textarea>
+            </label>
         </div>
 
         <!-- Busca de Cliente -->
@@ -142,6 +160,7 @@
 <!-- Scripts do App -->
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
+<script src="js/feedback.js"></script>
 <script>
     // Script de backup para vincular equipamento
     var selectedClient = null;
@@ -327,7 +346,15 @@
         if (btnVincular) {
             btnVincular.onclick = async function() {
                 if (!selectedClient || !serialInput.value.trim()) {
-                    alert('Preencha todos os campos');
+                    showError('Preencha todos os campos');
+                    return;
+                }
+                
+                var reason = document.getElementById('field-reason').value;
+                var reasonDesc = document.getElementById('field-reason-desc').value;
+                
+                if (reason === 'other' && !reasonDesc.trim()) {
+                    showWarning('Por favor, descreva o motivo da troca');
                     return;
                 }
                 
@@ -336,30 +363,56 @@
                 btnVincular.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Vinculando...';
                 
                 try {
+                    var payload = {
+                        cpf: selectedClient.cpf,
+                        serial: serialInput.value.trim().toUpperCase(),
+                        reason: reason,
+                        reason_description: reasonDesc
+                    };
+                    
+                    // Verifica se está offline
+                    if (!navigator.onLine) {
+                        saveOffline('link_equipment', payload);
+                        showSuccess('Equipamento salvo offline! Será sincronizado quando reconectar.');
+                        setTimeout(function() {
+                            window.location.href = 'dashboard.html';
+                        }, 2000);
+                        return;
+                    }
+                    
                     var response = await fetch('/api/vincular.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': 'Bearer ' + (token || '')
                         },
-                        body: JSON.stringify({
-                            cpf: selectedClient.cpf,
-                            serial: serialInput.value.trim().toUpperCase()
-                        })
+                        body: JSON.stringify(payload)
                     });
                     
                     var result = await response.json();
                     console.log('Resultado vincular:', result);
                     
                     if (result.success) {
-                        alert('Equipamento vinculado com sucesso!');
-                        window.location.href = 'dashboard.html';
+                        showSuccess('Equipamento vinculado com sucesso!');
+                        setTimeout(function() {
+                            window.location.href = 'dashboard.html';
+                        }, 1000);
                     } else {
-                        alert('Erro: ' + (result.message || 'Erro desconhecido'));
+                        showError('Erro: ' + (result.message || 'Erro desconhecido'));
                     }
                 } catch (error) {
                     console.error('Erro:', error);
-                    alert('Erro ao vincular: ' + error.message);
+                    
+                    // Salva offline se falhar
+                    if (!navigator.onLine) {
+                        saveOffline('link_equipment', payload);
+                        showSuccess('Salvo offline! Será sincronizado quando reconectar.');
+                        setTimeout(function() {
+                            window.location.href = 'dashboard.html';
+                        }, 2000);
+                    } else {
+                        showError('Erro ao vincular: ' + error.message);
+                    }
                 } finally {
                     btnVincular.disabled = false;
                     btnVincular.innerHTML = '<span class="material-symbols-outlined">link</span> Vincular Equipamento';
