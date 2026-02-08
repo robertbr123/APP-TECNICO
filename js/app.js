@@ -209,13 +209,10 @@ const App = {
                 this.initHistoricoPage();
                 break;
             case 'mapa.html':
-                this.initMapaPage();
-                break;
             case 'ponto.html':
-                this.initPontoPage();
-                break;
             case 'estoque.html':
-                // A página estoque.html tem sua própria lógica inline
+                // Estas páginas têm sua própria lógica inline
+                console.log('Página com lógica própria: ' + page);
                 break;
         }
     },
@@ -1777,29 +1774,6 @@ const App = {
         return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     },
 
-    /**
-     * Página de Mapa
-     */
-    initMapaPage() {
-        // A página mapa.html tem sua própria lógica inline com Leaflet
-        console.log('initMapaPage iniciado');
-    },
-
-    /**
-     * Página de Ponto
-     */
-    initPontoPage() {
-        // A página ponto.html tem sua própria lógica inline
-        console.log('initPontoPage iniciado');
-    },
-
-    /**
-     * Página de Estoque
-     */
-    initEstoquePage() {
-        // A página estoque.html tem sua própria lógica inline
-        console.log('initEstoquePage iniciado');
-    }
 };
 
 // Inicializa quando o DOM estiver pronto
