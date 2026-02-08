@@ -301,7 +301,17 @@ Sincronizar
     
     async function loadClientData(cpf) {
         try {
-            var response = await fetch('/api/search-clients.php?search=' + encodeURIComponent(cpf) + '&limit=1');
+            var token = localStorage.getItem('auth_token') || '';
+            var headers = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+            
+            var response = await fetch('/api/search-clients.php?search=' + encodeURIComponent(cpf) + '&limit=1', {
+                headers: headers
+            });
             var result = await response.json();
             
             console.log('Cliente:', result);
@@ -407,6 +417,14 @@ Sincronizar
         setConnectionStatus('loading', 'Verificando conexão...');
         
         try {
+            var token = localStorage.getItem('auth_token') || '';
+            var headers = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+            
             var bodyData = {
                 action: 'verificar_acesso',
                 contrato: contrato
@@ -415,7 +433,7 @@ Sincronizar
             
             var response = await fetch('/api/sgp-status.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: headers,
                 body: JSON.stringify(bodyData)
             });
             
@@ -496,6 +514,14 @@ Sincronizar
     // =====================================================
     async function checkContractStatus(contrato, servidor) {
         try {
+            var token = localStorage.getItem('auth_token') || '';
+            var headers = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+            
             var bodyData = {
                 action: 'consultar_cliente',
                 contrato: contrato
@@ -504,7 +530,7 @@ Sincronizar
             
             var response = await fetch('/api/sgp-status.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: headers,
                 body: JSON.stringify(bodyData)
             });
             
@@ -578,10 +604,18 @@ Sincronizar
         btn.disabled = true;
         
         try {
+            var token = localStorage.getItem('auth_token') || '';
+            var headers = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+            
             // 1. Busca dados do cliente no SGP pelo CPF
             var response = await fetch('/api/sgp-status.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: headers,
                 body: JSON.stringify({
                     action: 'buscar_cliente',
                     cpf: currentCpf
@@ -621,7 +655,7 @@ Sincronizar
             // 3. Salva contrato e MAC no banco de dados local
             var saveResponse = await fetch('/api/sgp-status.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: headers,
                 body: JSON.stringify({
                     action: 'salvar_contrato',
                     cpf: currentCpf,
