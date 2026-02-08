@@ -548,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Registra acesso à página no log de auditoria
 async function logPageAccess(actionType, actionDescription) {
     try {
-        var token = localStorage.getItem('authToken');
+        var token = localStorage.getItem('auth_token');
         if (!token) return;
         
         await fetch('/api/audit-log.php', {

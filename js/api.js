@@ -324,6 +324,176 @@ const API = {
      */
     async getHistorico() {
         return this.get('historico.php');
+    },
+
+    // ==========================================
+    // SINCRONIZAÇÃO OFFLINE
+    // ==========================================
+
+    /**
+     * Sincronizar dados offline
+     */
+    async sync() {
+        return this.post('sync.php');
+    },
+
+    /**
+     * Verificar itens pendentes de sincronização
+     */
+    async checkSyncQueue() {
+        return this.get('sync.php');
+    },
+
+    // ==========================================
+    // BUSCA DE CLIENTES
+    // ==========================================
+
+    /**
+     * Buscar clientes com filtros avançados
+     */
+    async searchClients(params = {}) {
+        return this.get('search-clients.php', params);
+    },
+
+    // ==========================================
+    // TIME CLOCK - REGISTRO DE PONTO
+    // ==========================================
+
+    /**
+     * Registrar entrada/saída
+     */
+    async timeClock(data) {
+        return this.post('time-clock.php', data);
+    },
+
+    /**
+     * Buscar registros de ponto
+     */
+    async getTimeClock(params = {}) {
+        return this.get('time-clock.php', params);
+    },
+
+    /**
+     * Registrar entrada
+     */
+    async clockEntry(photo, latitude, longitude, accuracy, notes = '') {
+        return this.timeClock({
+            type: 'entry',
+            photo,
+            latitude,
+            longitude,
+            accuracy,
+            notes
+        });
+    },
+
+    /**
+     * Registrar saída
+     */
+    async clockExit(photo, latitude, longitude, accuracy, notes = '') {
+        return this.timeClock({
+            type: 'exit',
+            photo,
+            latitude,
+            longitude,
+            accuracy,
+            notes
+        });
+    },
+
+    // ==========================================
+    // GESTÃO DE ESTOQUE
+    // ==========================================
+
+    /**
+     * Adicionar equipamento
+     */
+    async addEquipment(data) {
+        return this.post('inventory.php', {
+            action: 'add',
+            ...data
+        });
+    },
+
+    /**
+     * Listar equipamentos
+     */
+    async getEquipment(params = {}) {
+        return this.get('inventory.php', { action: 'list', ...params });
+    },
+
+    /**
+     * Estatísticas de estoque
+     */
+    async getInventoryStats() {
+        return this.get('inventory.php', { action: 'statistics' });
+    },
+
+    /**
+     * Movimentações de estoque
+     */
+    async getInventoryMovements(params = {}) {
+        return this.get('inventory.php', { action: 'movements', ...params });
+    },
+
+    /**
+     * Alertas de estoque
+     */
+    async getInventoryAlerts() {
+        return this.get('inventory.php', { action: 'alerts' });
+    },
+
+    /**
+     * Entregar equipamento para cliente
+     */
+    async checkoutEquipment(equipmentId, clientCpf, notes = '') {
+        return this.post('inventory.php', {
+            action: 'checkout',
+            equipment_id: equipmentId,
+            client_cpf: clientCpf,
+            notes
+        });
+    },
+
+    /**
+     * Retornar equipamento ao estoque
+     */
+    async returnEquipment(id, status = 'available', location = 'Estoque Principal', notes = '') {
+        return this.put('inventory.php', {
+            action: 'return',
+            id,
+            status,
+            location,
+            notes
+        });
+    },
+
+    /**
+     * Atualizar equipamento
+     */
+    async updateEquipment(id, data) {
+        return this.put('inventory.php', {
+            action: 'update',
+            id,
+            ...data
+        });
+    },
+
+    /**
+     * Resolver alerta de estoque
+     */
+    async resolveInventoryAlert(alertId) {
+        return this.put('inventory.php', {
+            action: 'resolve_alert',
+            alert_id: alertId
+        });
+    },
+
+    /**
+     * Excluir equipamento
+     */
+    async deleteEquipment(id) {
+        return this.delete('inventory.php', { id });
     }
 };
 

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Mapa de Clientes - Ondeline</title>
+<meta name="theme-color" content="#135bec"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Ondeline Tech"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" type="image/png" href="logo.png"/>
+<link rel="apple-touch-icon" href="logo.png"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body {
+        min-height: 100dvh;
+    }
+    #map {
+        height: calc(100dvh - 140px);
+        width: 100%;
+    }
+    .leaflet-popup-content-wrapper {
+        border-radius: 12px;
+    }
+    .leaflet-popup-content {
+        font-family: 'Inter', sans-serif;
+    }
+    .custom-marker {
+        background: #135bec;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .marker-active {
+        background: #22c55e;
+        border-color: #16a34a;
+    }
+    .marker-pending {
+        background: #f59e0b;
+    }
+    .marker-inactive {
+        background: #ef4444;
+    }
+</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<!-- Header -->
+<div class="flex items-center bg-white dark:bg-background-dark p-4 pb-2 justify-between border-b border-gray-100 dark:border-gray-800">
+<div class="flex items-center gap-3">
+<div class="text-[#111318] dark:text-white flex items-center cursor-pointer" onclick="window.history.back()">
+<span class="material-symbols-outlined">arrow_back_ios</span>
+</div>
+<h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Mapa de Clientes</h2>
+</div>
+<button id="btn-route" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-medium">
+<span class="material-symbols-outlined">route</span>
+<span>Calcular Rota</span>
+</button>
+</div>
+
+<!-- Filtros -->
+<div class="bg-white dark:bg-background-dark px-4 py-3 border-b border-gray-100 dark:border-gray-800 overflow-x-auto">
+<div class="flex gap-2 min-w-max">
+<button class="filter-btn active px-3 py-1.5 rounded-full text-sm font-medium bg-primary text-white" data-filter="all">Todos</button>
+<button class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="active">Ativos</button>
+<button class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="pending">Pendentes</button>
+<button class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="inactive">Inativos</button>
+</div>
+</div>
+
+<!-- Mapa -->
+<div id="map"></div>
+
+<!-- Estatísticas -->
+<div class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-background-dark/80 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 p-4 z-40">
+<div class="flex items-center justify-around">
+<div class="text-center">
+<p class="text-2xl font-bold text-[#111318] dark:text-white" id="stat-total">0</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Total</p>
+</div>
+<div class="text-center">
+<p class="text-2xl font-bold text-green-600" id="stat-active">0</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Ativos</p>
+</div>
+<div class="text-center">
+<p class="text-2xl font-bold text-orange-500" id="stat-pending">0</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Pendentes</p>
+</div>
+<div class="text-center">
+<p class="text-2xl font-bold text-blue-600" id="stat-with-location">0</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Com GPS</p>
+</div>
+</div>
+</div>
+
+<!-- Scripts -->
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/feedback.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    let map = null;
+    let markers = [];
+    let clients = [];
+    let currentFilter = 'all';
+    let routeLayer = null;
+
+    // Inicializa mapa
+    function initMap() {
+        map = L.map('map', {
+            zoomControl: false
+        }).setView([-3.1190, -60.0217], 13); // Centro do Amazonas
+
+        // Adiciona controle de zoom customizado
+        L.control.zoom({
+            position: 'topright'
+        }).addTo(map);
+
+        // Camada do OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+    }
+
+    // Carrega clientes
+    async function loadClients() {
+        showLoading(true);
+        
+        try {
+            const response = await API.getClients();
+            if (response.success) {
+                clients = response.data;
+                addMarkers(clients);
+                updateStats(clients);
+            }
+        } catch (error) {
+            showError('Erro ao carregar clientes: ' + error.message);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    // Adiciona marcadores
+    function addMarkers(clientList) {
+        // Remove marcadores existentes
+        markers.forEach(marker => map.removeLayer(marker));
+        markers = [];
+
+        // Filtra clientes com localização
+        const clientsWithLocation = clientList.filter(client => 
+            client.latitude && client.longitude
+        );
+
+        if (clientsWithLocation.length === 0) {
+            showInfo('Nenhum cliente com localização encontrada');
+            return;
+        }
+
+        // Adiciona marcadores
+        clientsWithLocation.forEach(client => {
+            const isActive = client.active == 1 || client.status === 'ativo';
+            const statusClass = isActive ? 'marker-active' : (client.status === 'pendente' ? 'marker-pending' : 'marker-inactive');
+            
+            const icon = L.divIcon({
+                className: 'custom-marker ' + statusClass,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+
+            const marker = L.marker([client.latitude, client.longitude], { icon })
+                .addTo(map)
+                .bindPopup(`
+                    <div class="p-2 min-w-[200px]">
+                        <h3 class="font-bold text-sm mb-1">${client.name}</h3>
+                        <p class="text-xs text-gray-600 mb-1">CPF: ${Utils.formatCPF(client.cpf)}</p>
+                        <p class="text-xs text-gray-600 mb-1">${client.address}, ${client.number}</p>
+                        <p class="text-xs text-gray-600 mb-2">${client.city}</p>
+                        <a href="detalher.html?cpf=${client.cpf}" 
+                           class="block text-center px-3 py-1.5 bg-primary text-white text-xs rounded-lg font-medium">
+                            Ver Detalhes
+                        </a>
+                    </div>
+                `);
+
+            marker.clientData = client;
+            markers.push(marker);
+        });
+
+        // Ajusta visualização
+        if (markers.length > 0) {
+            const group = L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+    }
+
+    // Atualiza estatísticas
+    function updateStats(clientList) {
+        document.getElementById('stat-total').textContent = clientList.length;
+        document.getElementById('stat-active').textContent = clientList.filter(c => c.active == 1 || c.status === 'ativo').length;
+        document.getElementById('stat-pending').textContent = clientList.filter(c => c.status === 'pendente').length;
+        document.getElementById('stat-with-location').textContent = clientList.filter(c => c.latitude && c.longitude).length;
+    }
+
+    // Filtros
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove classe ativa de todos
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.classList.remove('active', 'bg-primary', 'text-white');
+                b.classList.add('bg-gray-100', 'text-gray-600');
+            });
+
+            // Adiciona classe ativa ao clicado
+            btn.classList.add('active', 'bg-primary', 'text-white');
+            btn.classList.remove('bg-gray-100', 'text-gray-600');
+
+            currentFilter = btn.dataset.filter;
+            filterClients();
+        });
+    });
+
+    // Filtra clientes
+    function filterClients() {
+        let filtered = clients;
+
+        switch (currentFilter) {
+            case 'active':
+                filtered = clients.filter(c => c.active == 1 || c.status === 'ativo');
+                break;
+            case 'pending':
+                filtered = clients.filter(c => c.status === 'pendente');
+                break;
+            case 'inactive':
+                filtered = clients.filter(c => c.active == 0 || c.status === 'inativo');
+                break;
+        }
+
+        addMarkers(filtered);
+    }
+
+    // Calcular rota otimizada
+    document.getElementById('btn-route').addEventListener('click', calculateRoute);
+
+    function calculateRoute() {
+        const clientsWithLocation = clients.filter(c => c.latitude && c.longitude);
+        
+        if (clientsWithLocation.length < 2) {
+            showWarning('Precisa de pelo menos 2 clientes com localização para calcular rota');
+            return;
+        }
+
+        showLoading(true);
+
+        // Obtém localização atual
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const currentLat = position.coords.latitude;
+                const currentLon = position.coords.longitude;
+
+                // Calcula distâncias de todos os clientes
+                const clientsWithDistance = clientsWithLocation.map(client => ({
+                    ...client,
+                    distance: Utils.calculateDistance(
+                        currentLat, currentLon,
+                        client.latitude, client.longitude
+                    )
+                }));
+
+                // Ordena por distância
+                clientsWithDistance.sort((a, b) => a.distance - b.distance);
+
+                // Pega os 10 mais próximos
+                const nearestClients = clientsWithDistance.slice(0, 10);
+
+                // Desenha rota
+                if (routeLayer) {
+                    map.removeLayer(routeLayer);
+                }
+
+                const routePoints = [[currentLat, currentLon]];
+                nearestClients.forEach(client => {
+                    routePoints.push([client.latitude, client.longitude]);
+                });
+
+                routeLayer = L.polyline(routePoints, {
+                    color: '#135bec',
+                    weight: 4,
+                    opacity: 0.7,
+                    dashArray: '10, 10'
+                }).addTo(map);
+
+                // Ajusta visualização
+                map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+
+                // Mostra resumo
+                const totalDistance = nearestClients.reduce((sum, client) => sum + client.distance, 0);
+                showSuccess(`Rota calculada! ${nearestClients.length} clientes, distância total: ${totalDistance.toFixed(1)} km`);
+
+                // Abre Google Maps com rota
+                const waypoints = nearestClients.slice(0, 5).map(c => `${c.latitude},${c.longitude}`).join('/');
+                Utils.openRouteUrl(currentLat, currentLon, nearestClients[0].latitude, nearestClients[0].longitude);
+
+                showLoading(false);
+            },
+            (error) => {
+                showWarning('Não foi possível obter sua localização. Usando centro do mapa como ponto de partida.');
+                
+                // Fallback: usa primeiro cliente como ponto de partida
+                const firstClient = clientsWithLocation[0];
+                const remaining = clientsWithLocation.slice(1, 11);
+                
+                if (routeLayer) {
+                    map.removeLayer(routeLayer);
+                }
+
+                const routePoints = remaining.map(c => [c.latitude, c.longitude]);
+                routePoints.unshift([firstClient.latitude, firstClient.longitude]);
+
+                routeLayer = L.polyline(routePoints, {
+                    color: '#135bec',
+                    weight: 4,
+                    opacity: 0.7
+                }).addTo(map);
+
+                map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+                showLoading(false);
+            },
+            { enableHighAccuracy: true }
+        );
+    }
+
+    // Inicializa
+    initMap();
+    loadClients();
+});
+</script>
+</body>
+</html>

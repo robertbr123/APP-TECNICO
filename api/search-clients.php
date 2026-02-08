@@ -1,76 +1,100 @@
 <?php
 /**
- * API de Busca de Clientes - Com filtro por cidade do técnico
- * Ondeline Tech - App do Técnico
+ * API de Busca de Clientes
+ * Endpoint otimizado para busca rápida
  */
 
-require_once 'config.php';
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Content-Type: application/json');
 
-// Headers CORS
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
-
+// Handle preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
-    exit();
+    exit;
 }
+
+require_once 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
 }
 
-$search = $_GET['search'] ?? null;
-$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
-
-if (!$search || strlen($search) < 2) {
-    jsonResponse(['success' => false, 'message' => 'Termo de busca deve ter pelo menos 2 caracteres']);
-}
-
-// Busca cidade do técnico para filtro
-$userCity = null;
-$headers = getallheaders();
-$authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-
-if (!empty($authHeader) && preg_match('/Bearer\s+(.+)/', $authHeader, $matches)) {
-    try {
-        $payload = verifyToken($matches[1]);
-        if ($payload && isset($payload['role']) && $payload['role'] === 'tecnico') {
-            $tmpDb = Database::getInstance()->getConnection();
-            $cityStmt = $tmpDb->prepare("SELECT city FROM users WHERE id = ?");
-            $cityStmt->execute([$payload['user_id']]);
-            $userCity = $cityStmt->fetch()['city'] ?? null;
-        }
-    } catch (Exception $e) {
-        // Token inválido, continua sem filtro
-    }
-}
+$userData = requireAuth();
 
 try {
     $db = Database::getInstance()->getConnection();
-
+    
+    // Parâmetros
+    $search = $_GET['search'] ?? '';
+    $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+    $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+    
+    if (empty($search)) {
+        jsonResponse([
+            'success' => false,
+            'message' => 'Termo de busca é obrigatório'
+        ], 400);
+    }
+    
+    // Busca cidade do usuário para filtro (técnico)
+    $userCity = null;
+    if ($userData['role'] === 'tecnico') {
+        try {
+            $cityStmt = $db->prepare("SELECT city FROM users WHERE id = ?");
+            $cityStmt->execute([$userData['user_id']]);
+            $userCity = $cityStmt->fetch()['city'] ?? null;
+        } catch (Exception $e) {
+            // Se falhar, não filtra
+        }
+    }
+    
+    // Query de busca otimizada
     $searchTerm = "%$search%";
-    $conditions = ["(name LIKE ? OR cpf LIKE ?)"];
-    $params = [$searchTerm, $searchTerm];
-
-    // Filtro por cidade do técnico
+    $sql = "SELECT 
+                cpf, 
+                name, 
+                phone, 
+                city, 
+                address, 
+                number, 
+                serial,
+                status,
+                active,
+                planId,
+                latitude,
+                longitude
+             FROM clients 
+             WHERE (name LIKE ? OR cpf LIKE ? OR phone LIKE ? OR city LIKE ?)";
+    
+    $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm];
+    
+    // Filtro por cidade para técnicos
     if ($userCity) {
-        $conditions[] = "LOWER(city) LIKE LOWER(?)";
+        $sql .= " AND LOWER(city) LIKE LOWER(?)";
         $params[] = "%$userCity%";
     }
-
-    $sql = "SELECT cpf, name, address, number, complement, city, serial, phone, pppoe, password, dueDay, planId, status, observation, contrato FROM clients WHERE " . implode(' AND ', $conditions) . " ORDER BY name LIMIT " . (int)$limit;
+    
+    $sql .= " ORDER BY name ASC LIMIT $limit OFFSET $offset";
+    
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
     $clients = $stmt->fetchAll();
-
+    
     jsonResponse([
         'success' => true,
         'data' => $clients,
-        'total' => count($clients)
+        'count' => count($clients),
+        'search' => $search,
+        'filtered_by_city' => $userCity ? true : false
     ]);
-
+    
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados', 'error' => $e->getMessage()], 500);
+    error_log('Erro em search-clients.php: ' . $e->getMessage());
+    jsonResponse([
+        'success' => false,
+        'message' => 'Erro ao buscar clientes',
+        'error' => $e->getMessage()
+    ], 500);
 }

@@ -15,6 +15,7 @@ const App = {
         this.checkAuth();
         this.setupEventListeners();
         this.startAutoThemeCheck();
+        this.setupOnlineOfflineListeners();
         this.initCurrentPage();
     },
 
@@ -94,6 +95,36 @@ const App = {
 
         // Aplica tema salvo ou do sistema
         this.applyTheme();
+    },
+
+    /**
+     * Configura listeners de online/offline para sincronização
+     */
+    setupOnlineOfflineListeners() {
+        window.addEventListener('online', async () => {
+            console.log('Conexão restaurada!');
+            this.showToast('Conexão restaurada! Sincronizando...', 'info');
+            
+            // Sincroniza dados offline
+            try {
+                const response = await API.sync();
+                if (response.success) {
+                    this.showToast(`${response.processed || 0} itens sincronizados`, 'success');
+                    
+                    // Limpa fila se foi sincronizado com sucesso
+                    if (response.processed > 0) {
+                        Utils.clearOfflineQueue();
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao sincronizar:', error);
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('Sem conexão!');
+            this.showToast('Sem conexão! Dados serão salvos offline', 'warning');
+        });
     },
 
     /**
@@ -177,6 +208,15 @@ const App = {
             case 'historico.html':
                 this.initHistoricoPage();
                 break;
+            case 'mapa.html':
+                this.initMapaPage();
+                break;
+            case 'ponto.html':
+                this.initPontoPage();
+                break;
+            case 'estoque.html':
+                this.initEstoquePage();
+                break;
         }
     },
 
@@ -234,10 +274,57 @@ const App = {
     // ==========================================
 
     /**
+     * Página de Dashboard
+     */
+    async initDashboardPage() {
+        console.log('initDashboardPage iniciado');
+        
+        const user = API.getUser();
+
+        // Atualiza nome do usuário no greeting
+        const greetingEl = document.querySelector('h1');
+        if (greetingEl && user) {
+            greetingEl.textContent = `Olá, ${user.full_name || user.username}!`;
+        }
+
+        // Atualiza foto e dados do header
+        this.updateHeaderProfile(user);
+
+        // Configura navegação
+        this.setupBottomNavigation();
+
+        // Botão de cadastrar
+        const cadastrarBtn = document.querySelector('button');
+        if (cadastrarBtn && cadastrarBtn.textContent.includes('Cadastrar')) {
+            cadastrarBtn.addEventListener('click', () => {
+                window.location.href = 'novo-cadastro.html';
+            });
+        }
+
+        // Carrega estatísticas do dashboard
+        this.showLoading(true);
+        try {
+            const response = await API.getDashboard();
+            if (response.success) {
+                this.updateDashboardStats(response.data);
+            } else {
+                this.showToast('Erro ao carregar dashboard', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao carregar dashboard:', error);
+            this.showToast('Erro ao carregar dashboard', 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    },
+
+    /**
      * Página de Login
      */
     initLoginPage() {
-        const form = document.querySelector('form') || document.querySelector('button')?.closest('div').parentElement;
+        console.log('initLoginPage iniciado');
+        
+        const form = document.querySelector('div').parentElement;
         const usernameInput = document.querySelector('input[type="text"]');
         const passwordInput = document.querySelector('input[type="password"]');
         const submitBtn = document.querySelector('button');
@@ -245,8 +332,8 @@ const App = {
 
         // Toggle visibilidade da senha
         if (togglePassword) {
+            const icon = togglePassword.querySelector('.material-symbols-outlined');
             togglePassword.addEventListener('click', () => {
-                const icon = togglePassword.querySelector('.material-symbols-outlined');
                 if (passwordInput.type === 'password') {
                     passwordInput.type = 'text';
                     icon.textContent = 'visibility_off';
@@ -271,63 +358,141 @@ const App = {
                 }
 
                 this.showLoading(true);
-                submitBtn.disabled = true;
 
                 try {
                     const response = await API.login(username, password);
+                    
                     if (response.success) {
                         this.showToast('Login realizado com sucesso!', 'success');
                         setTimeout(() => {
                             window.location.href = 'dashboard.html';
                         }, 500);
                     } else {
-                        this.showToast(response.message || 'Erro ao fazer login', 'error');
+                        this.showToast(response.message || 'Usuário ou senha inválidos', 'error');
                     }
                 } catch (error) {
-                    this.showToast(error.message || 'Erro ao conectar com o servidor', 'error');
+                    console.error('Erro ao fazer login:', error);
+                    this.showToast('Erro ao fazer login. Verifique sua conexão.', 'error');
                 } finally {
                     this.showLoading(false);
-                    submitBtn.disabled = false;
                 }
+            });
+        }
+
+        // Submit com Enter
+        if (usernameInput && passwordInput) {
+            [usernameInput, passwordInput].forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        submitBtn?.click();
+                    }
+                });
             });
         }
     },
 
     /**
-     * Página do Dashboard
+     * Salva novo cliente
      */
-    async initDashboardPage() {
-        const user = API.getUser();
+    async handleSaveClient() {
+        console.log('handleSaveClient iniciado');
+        
+        // Coleta dados usando IDs dos campos
+        const getValue = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value.trim() : '';
+        };
 
-        // Atualiza nome do usuário
-        const greetingEl = document.querySelector('h1');
-        if (greetingEl && user) {
-            greetingEl.textContent = `Olá, ${user.full_name || user.username}!`;
+        // Mapeamento para as colunas do banco de dados
+        const data = {
+            name: getValue('field-name'),
+            cpf: getValue('field-cpf'),
+            phone: getValue('field-phone'),
+            birthDate: getValue('field-dob'),
+            cep: getValue('field-cep'),
+            city: getValue('field-city'),
+            address: getValue('field-street'),
+            number: getValue('field-number'),
+            complement: getValue('field-complement'),
+            planId: getValue('field-plan'),
+            pppoe: getValue('field-pppoe-user'),
+            password: getValue('field-pppoe-pass'),
+            dueDay: parseInt(getValue('field-due-date').replace(/\D/g, '')) || 10,
+            observation: getValue('field-observations'),
+            status: 'ativo',
+            active: 1
+        };
+
+        console.log('Dados a serem salvos:', data);
+
+        // Validação básica
+        if (!data.name) {
+            this.showToast('Preencha o nome do cliente', 'warning');
+            return;
+        }
+        if (!data.cpf) {
+            this.showToast('Preencha o CPF do cliente', 'warning');
+            return;
         }
 
-        // Atualiza foto e dados do header
-        this.updateHeaderProfile(user);
-
-        // Configura navegação
-        this.setupBottomNavigation();
-
-        // Botão de cadastrar
-        const cadastrarBtn = document.querySelector('button');
-        if (cadastrarBtn && cadastrarBtn.textContent.includes('Cadastrar')) {
-            cadastrarBtn.addEventListener('click', () => {
-                window.location.href = 'novo-cadastro.html';
-            });
+        // Valida CPF usando Utils.js
+        const cpfValidation = Utils.validateCPF(data.cpf);
+        if (!cpfValidation.valid) {
+            this.showToast(cpfValidation.message || 'CPF inválido', 'error');
+            return;
         }
 
-        // Carrega estatísticas
         this.showLoading(true);
+
         try {
-            const response = await API.getDashboard();
+            // Verifica conexão
+            if (!navigator.onLine) {
+                // Salva offline
+                const cpf = data.cpf.replace(/\D/g, '');
+                Utils.saveOffline('create_client', data);
+                
+                // Salva fotos offline
+                if (this.pendingPhotos && this.pendingPhotos.length > 0) {
+                    const offlinePhotos = this.pendingPhotos.map(p => ({
+                        type: p.type,
+                        base64: p.base64,
+                        client_cpf: cpf
+                    }));
+                    offlinePhotos.forEach(photo => {
+                        Utils.saveOffline('upload_photo', photo);
+                    });
+                }
+                
+                this.showToast('Salvo offline! Será sincronizado quando reconectar.', 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+                return;
+            }
+
+            console.log('Enviando para API...');
+            const response = await API.createClient(data);
+            console.log('Resposta da API:', response);
+            
             if (response.success) {
-                this.updateDashboardStats(response.data);
+                // Faz upload das fotos
+                const cpf = data.cpf.replace(/\D/g, '');
+                const photoResult = await this.uploadPendingPhotos(cpf);
+                
+                if (photoResult.uploaded > 0) {
+                    this.showToast(`Cliente cadastrado com ${photoResult.uploaded} foto(s)!`, 'success');
+                } else {
+                    this.showToast('Cliente cadastrado com sucesso!', 'success');
+                }
+                
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            } else {
+                this.showToast(response.message || 'Erro ao cadastrar', 'error');
             }
         } catch (error) {
-            console.error('Erro ao carregar dashboard:', error);
+            this.showToast(error.message || 'Erro ao salvar cliente', 'error');
         } finally {
             this.showLoading(false);
         }
