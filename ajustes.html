@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Ajustes - Ondeline</title>
+<!-- PWA Meta Tags -->
+<meta name="theme-color" content="#135bec"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Ondeline Tech"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" type="image/png" href="logo.png"/>
+<link rel="apple-touch-icon" href="logo.png"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#135bec",
+                    "background-light": "#F2F2F7",
+                    "background-dark": "#000000",
+                    "card-light": "#FFFFFF",
+                    "card-dark": "#1C1C1E"
+                },
+                fontFamily: {
+                    "display": ["Inter", "sans-serif"]
+                },
+                borderRadius: {
+                    "ios": "12px",
+                    "ios-lg": "16px",
+                    "ios-xl": "20px"
+                }
+            },
+        },
+    }
+</script>
+<style type="text/tailwindcss">
+    @layer base {
+        body {
+            @apply bg-background-light dark:bg-background-dark font-display text-[#000000] dark:text-white antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+    }
+    .ios-blur {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+    .safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .safe-top {
+        padding-top: env(safe-area-inset-top);
+    }
+</style>
+<style>
+    body {
+        min-height: max(884px, 100dvh);
+    }
+</style>
+</head>
+<body class="min-h-screen">
+<header class="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top">
+<div class="flex items-center justify-between px-4 h-16">
+    <div class="flex items-center gap-3">
+        <button onclick="window.history.back()" class="flex items-center justify-center size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+            <span class="material-symbols-outlined text-[22px]">arrow_back</span>
+        </button>
+        <h1 class="text-lg font-bold text-gray-900 dark:text-white">Ajustes</h1>
+    </div>
+</div>
+</header>
+
+<main class="px-4 pb-32">
+    <!-- Perfil -->
+    <section class="py-6">
+        <div class="flex flex-col items-center gap-3">
+            <div class="relative">
+                <div id="profile-avatar" class="size-24 rounded-full border-2 border-gray-200 dark:border-gray-700 bg-center bg-cover bg-primary/10 flex items-center justify-center cursor-pointer">
+                    <span class="material-symbols-outlined text-primary text-4xl">person</span>
+                </div>
+                <button id="profile-avatar-btn" class="absolute bottom-0 right-0 size-8 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-black">
+                    <span class="material-symbols-outlined text-[16px]">photo_camera</span>
+                </button>
+                <input type="file" id="photo-input" accept="image/*" class="hidden"/>
+            </div>
+            <div class="text-center">
+                <p id="profile-name" class="text-xl font-bold text-gray-900 dark:text-white">Carregando...</p>
+                <p id="profile-role" class="text-sm text-primary font-medium">Tecnico</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dados do Perfil -->
+    <section class="mb-6">
+        <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-3">Dados Pessoais</h2>
+        <div class="bg-white dark:bg-card-dark rounded-ios-xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 dark:border-white/5">
+                <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Nome Completo</label>
+                <input id="edit-name" type="text" class="w-full mt-1 text-[15px] font-medium text-gray-900 dark:text-white bg-transparent border-0 p-0 focus:ring-0" placeholder="Seu nome"/>
+            </div>
+            <div class="p-4 border-b border-gray-100 dark:border-white/5">
+                <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Email</label>
+                <input id="edit-email" type="email" class="w-full mt-1 text-[15px] font-medium text-gray-900 dark:text-white bg-transparent border-0 p-0 focus:ring-0" placeholder="seu@email.com"/>
+            </div>
+            <div class="p-4 border-b border-gray-100 dark:border-white/5">
+                <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Cidade</label>
+                <input id="edit-city" type="text" class="w-full mt-1 text-[15px] font-medium text-gray-900 dark:text-white bg-transparent border-0 p-0 focus:ring-0" placeholder="Sua cidade"/>
+            </div>
+            <div class="p-4 flex items-center justify-between">
+                <div>
+                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Funcao</label>
+                    <p id="profile-email" class="text-[15px] font-medium text-gray-900 dark:text-white mt-1">Carregando...</p>
+                </div>
+                <span class="material-symbols-outlined text-gray-300">lock</span>
+            </div>
+        </div>
+        <button id="btn-save-profile" class="w-full mt-4 h-12 bg-primary hover:bg-blue-600 active:scale-[0.98] transition-all text-white rounded-ios-xl flex items-center justify-center gap-2 font-semibold text-sm">
+            <span class="material-symbols-outlined text-[20px]">save</span>
+            Salvar Alteracoes
+        </button>
+    </section>
+
+    <!-- Aparencia -->
+    <section class="mb-6">
+        <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-3">Aparencia</h2>
+        <div class="grid grid-cols-3 gap-3">
+            <div data-theme-option="auto" class="bg-white dark:bg-card-dark rounded-ios-xl p-4 flex flex-col items-center gap-2 cursor-pointer border border-gray-100 dark:border-white/5 shadow-sm transition-all active:scale-95">
+                <div class="size-12 rounded-full bg-gradient-to-br from-yellow-400 to-indigo-900 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-white text-xl">schedule</span>
+                </div>
+                <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Auto</span>
+                <span class="text-[10px] text-gray-400">6h-18h</span>
+            </div>
+            <div data-theme-option="light" class="bg-white dark:bg-card-dark rounded-ios-xl p-4 flex flex-col items-center gap-2 cursor-pointer border border-gray-100 dark:border-white/5 shadow-sm transition-all active:scale-95">
+                <div class="size-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-yellow-600 text-xl">light_mode</span>
+                </div>
+                <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Claro</span>
+                <span class="text-[10px] text-gray-400">Sempre</span>
+            </div>
+            <div data-theme-option="dark" class="bg-white dark:bg-card-dark rounded-ios-xl p-4 flex flex-col items-center gap-2 cursor-pointer border border-gray-100 dark:border-white/5 shadow-sm transition-all active:scale-95">
+                <div class="size-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-indigo-600 dark:text-indigo-400 text-xl">dark_mode</span>
+                </div>
+                <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Escuro</span>
+                <span class="text-[10px] text-gray-400">Sempre</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Informacoes da Cidade -->
+    <section class="mb-6">
+        <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-3">Informacoes</h2>
+        <div class="bg-white dark:bg-card-dark rounded-ios-xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+            <div class="p-4 flex items-center gap-3 border-b border-gray-100 dark:border-white/5">
+                <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary text-xl">location_city</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Cidade Vinculada</p>
+                    <p id="profile-city" class="text-[15px] font-semibold text-gray-900 dark:text-white">Nao definida</p>
+                </div>
+            </div>
+            <div class="p-4 flex items-center gap-3">
+                <div class="size-10 rounded-full bg-green-50 dark:bg-green-500/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-green-500 text-xl">info</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Versao do App</p>
+                    <p class="text-[15px] font-semibold text-gray-900 dark:text-white">v4.0</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sistema -->
+    <section class="mb-6">
+        <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-3">Sistema</h2>
+        <div class="bg-white dark:bg-card-dark rounded-ios-xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+            <button id="btn-clear-cache" class="w-full p-4 flex items-center gap-3 border-b border-gray-100 dark:border-white/5 text-left active:bg-gray-50 dark:active:bg-gray-800 transition-colors">
+                <div class="size-10 rounded-full bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-orange-500 text-xl">cached</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-[15px] font-medium text-gray-900 dark:text-white">Limpar Cache</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Remove dados armazenados localmente</p>
+                </div>
+                <span class="material-symbols-outlined text-gray-300">chevron_right</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- Logout -->
+    <button id="btn-logout" class="w-full h-12 bg-red-500 hover:bg-red-600 active:scale-[0.98] transition-all text-white rounded-ios-xl flex items-center justify-center gap-2 font-semibold text-sm shadow-lg shadow-red-500/25">
+        <span class="material-symbols-outlined text-[20px]">logout</span>
+        Sair da Conta
+    </button>
+</main>
+
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-black/80 ios-blur border-t border-gray-200 dark:border-white/10 safe-bottom z-50">
+<div class="flex justify-around items-center h-16">
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="#">
+<span class="material-symbols-outlined text-[26px]">home</span>
+<span class="text-[10px] font-medium">Inicio</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="#">
+<span class="material-symbols-outlined text-[26px]">map</span>
+<span class="text-[10px] font-medium">Rotas</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="#">
+<span class="material-symbols-outlined text-[26px]">groups</span>
+<span class="text-[10px] font-medium">Clientes</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-primary" href="#">
+<span class="material-symbols-outlined text-[26px]" style="font-variation-settings: 'FILL' 1">settings</span>
+<span class="text-[10px] font-semibold">Ajustes</span>
+</a>
+</div>
+</nav>
+
+<!-- Scripts do App -->
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body></html>

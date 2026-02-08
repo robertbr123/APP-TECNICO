@@ -9,6 +9,19 @@ require_once 'config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $userData = requireAuth(); // Requer autenticação
 
+// Busca a cidade do técnico para filtro
+$userCity = null;
+if ($userData['role'] === 'tecnico') {
+    try {
+        $tmpDb = Database::getInstance()->getConnection();
+        $cityStmt = $tmpDb->prepare("SELECT city FROM users WHERE id = ?");
+        $cityStmt->execute([$userData['user_id']]);
+        $userCity = $cityStmt->fetch()['city'] ?? null;
+    } catch (Exception $e) {
+        // Se falhar, não filtra
+    }
+}
+
 try {
     $db = Database::getInstance()->getConnection();
 
@@ -57,13 +70,25 @@ function handleGet($db) {
     }
 
     // Lista de clientes com busca opcional
+    global $userCity;
     $sql = "SELECT * FROM clients";
     $params = [];
+    $conditions = [];
+
+    // Filtro por cidade do técnico
+    if ($userCity) {
+        $conditions[] = "city LIKE ?";
+        $params[] = "%$userCity%";
+    }
 
     if ($search) {
-        $sql .= " WHERE name LIKE ? OR cpf LIKE ? OR phone LIKE ? OR city LIKE ?";
         $searchTerm = "%$search%";
-        $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm];
+        $conditions[] = "(name LIKE ? OR cpf LIKE ? OR phone LIKE ? OR city LIKE ?)";
+        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+    }
+
+    if (!empty($conditions)) {
+        $sql .= " WHERE " . implode(' AND ', $conditions);
     }
 
     // Conta total para paginação

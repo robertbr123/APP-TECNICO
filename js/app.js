@@ -14,6 +14,7 @@ const App = {
         this.registerServiceWorker();
         this.checkAuth();
         this.setupEventListeners();
+        this.startAutoThemeCheck();
         this.initCurrentPage();
     },
 
@@ -108,11 +109,40 @@ const App = {
      */
     applyTheme() {
         const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        if (savedTheme === 'dark') {
             document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+        } else if (savedTheme === 'light') {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+        } else {
+            // Default: auto por horário (6h-18h claro, 18h-6h escuro)
+            this.applyAutoTimeTheme();
         }
+    },
+
+    /**
+     * Aplica tema automático baseado no horário
+     * 6h-18h = claro, 18h-6h = escuro
+     */
+    applyAutoTimeTheme() {
+        const hour = new Date().getHours();
+        const isDark = hour < 6 || hour >= 18;
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.classList.toggle('light', !isDark);
+    },
+
+    /**
+     * Inicia verificação periódica do tema automático
+     */
+    startAutoThemeCheck() {
+        // Verifica a cada minuto se o tema precisa mudar
+        setInterval(() => {
+            const savedTheme = localStorage.getItem('theme');
+            if (!savedTheme || savedTheme === 'auto') {
+                this.applyAutoTimeTheme();
+            }
+        }, 60000);
     },
 
     /**
@@ -140,6 +170,9 @@ const App = {
                 break;
             case 'vincular-equipamento.html':
                 this.initVincularPage();
+                break;
+            case 'ajustes.html':
+                this.initAjustesPage();
                 break;
         }
     },
@@ -262,12 +295,15 @@ const App = {
      */
     async initDashboardPage() {
         const user = API.getUser();
-        
+
         // Atualiza nome do usuário
         const greetingEl = document.querySelector('h1');
         if (greetingEl && user) {
             greetingEl.textContent = `Olá, ${user.full_name || user.username}!`;
         }
+
+        // Atualiza foto e dados do header
+        this.updateHeaderProfile(user);
 
         // Configura navegação
         this.setupBottomNavigation();
@@ -941,7 +977,7 @@ const App = {
                         window.location.href = 'consultar.html';
                         break;
                     case 'ajustes':
-                        // Página de ajustes (pode criar depois)
+                        window.location.href = 'ajustes.html';
                         break;
                 }
             });
@@ -1164,6 +1200,191 @@ const App = {
             this.showToast('Erro ao vincular equipamento', 'error');
         } finally {
             this.showLoading(false);
+        }
+    },
+
+    /**
+     * Atualiza foto e dados do perfil no header
+     */
+    updateHeaderProfile(user) {
+        if (!user) return;
+
+        const avatarEl = document.getElementById('user-avatar');
+        const nameEl = document.getElementById('header-user-name');
+        const roleEl = document.getElementById('header-user-role');
+
+        if (avatarEl && user.photo) {
+            avatarEl.style.backgroundImage = `url("${user.photo}")`;
+        }
+        if (nameEl) {
+            nameEl.textContent = user.full_name || user.username;
+        }
+        if (roleEl) {
+            const roleLabels = { admin: 'Administrador', tecnico: 'Tecnico de Campo' };
+            roleEl.textContent = roleLabels[user.role] || user.role;
+        }
+    },
+
+    /**
+     * Pagina de Ajustes
+     */
+    async initAjustesPage() {
+        this.setupBottomNavigation();
+        const user = API.getUser();
+
+        // Carrega perfil atualizado do servidor
+        try {
+            const response = await API.getProfile();
+            if (response.success) {
+                const profile = response.data;
+                // Atualiza dados locais
+                API.setUser({ ...user, ...profile });
+
+                // Preenche dados na tela
+                const avatarEl = document.getElementById('profile-avatar');
+                const nameEl = document.getElementById('profile-name');
+                const emailEl = document.getElementById('profile-email');
+                const roleEl = document.getElementById('profile-role');
+                const cityEl = document.getElementById('profile-city');
+
+                if (avatarEl && profile.photo) {
+                    avatarEl.style.backgroundImage = `url("${profile.photo}")`;
+                }
+                if (nameEl) nameEl.textContent = profile.full_name || profile.username;
+                if (emailEl) emailEl.textContent = profile.email || 'Sem email';
+                if (roleEl) {
+                    const roleLabels = { admin: 'Administrador', tecnico: 'Tecnico de Campo' };
+                    roleEl.textContent = roleLabels[profile.role] || profile.role;
+                }
+                if (cityEl) cityEl.textContent = profile.city || 'Nao definida';
+
+                // Preenche campos de edicao
+                const editName = document.getElementById('edit-name');
+                const editEmail = document.getElementById('edit-email');
+                const editCity = document.getElementById('edit-city');
+                if (editName) editName.value = profile.full_name || '';
+                if (editEmail) editEmail.value = profile.email || '';
+                if (editCity) editCity.value = profile.city || '';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar perfil:', error);
+        }
+
+        // Upload de foto de perfil
+        const photoInput = document.getElementById('photo-input');
+        const avatarBtn = document.getElementById('profile-avatar-btn');
+        if (avatarBtn && photoInput) {
+            avatarBtn.addEventListener('click', () => photoInput.click());
+            photoInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                    this.showToast('Selecione apenas imagens', 'warning');
+                    return;
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                    this.showToast('Imagem muito grande (max 5MB)', 'warning');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    this.showLoading(true);
+                    try {
+                        const response = await API.uploadProfilePhoto(ev.target.result);
+                        if (response.success) {
+                            const avatarEl = document.getElementById('profile-avatar');
+                            if (avatarEl) avatarEl.style.backgroundImage = `url("${response.data.photo}")`;
+                            // Atualiza dados locais
+                            const currentUser = API.getUser();
+                            API.setUser({ ...currentUser, photo: response.data.photo });
+                            this.showToast('Foto atualizada!', 'success');
+                        } else {
+                            this.showToast(response.message || 'Erro ao enviar foto', 'error');
+                        }
+                    } catch (error) {
+                        this.showToast('Erro ao enviar foto', 'error');
+                    } finally {
+                        this.showLoading(false);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Salvar perfil
+        const saveBtn = document.getElementById('btn-save-profile');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async () => {
+                const data = {
+                    full_name: document.getElementById('edit-name')?.value?.trim(),
+                    email: document.getElementById('edit-email')?.value?.trim(),
+                    city: document.getElementById('edit-city')?.value?.trim()
+                };
+
+                this.showLoading(true);
+                try {
+                    const response = await API.updateProfile(data);
+                    if (response.success) {
+                        API.setUser({ ...API.getUser(), ...response.data });
+                        const nameEl = document.getElementById('profile-name');
+                        const emailEl = document.getElementById('profile-email');
+                        const cityEl = document.getElementById('profile-city');
+                        if (nameEl) nameEl.textContent = response.data.full_name || '';
+                        if (emailEl) emailEl.textContent = response.data.email || 'Sem email';
+                        if (cityEl) cityEl.textContent = response.data.city || 'Nao definida';
+                        this.showToast('Perfil atualizado!', 'success');
+                    } else {
+                        this.showToast(response.message || 'Erro ao atualizar', 'error');
+                    }
+                } catch (error) {
+                    this.showToast('Erro ao atualizar perfil', 'error');
+                } finally {
+                    this.showLoading(false);
+                }
+            });
+        }
+
+        // Seletor de tema
+        const themeOptions = document.querySelectorAll('[data-theme-option]');
+        const currentTheme = localStorage.getItem('theme') || 'auto';
+        themeOptions.forEach(option => {
+            const value = option.dataset.themeOption;
+            if (value === currentTheme || (!localStorage.getItem('theme') && value === 'auto')) {
+                option.classList.add('ring-2', 'ring-primary', 'bg-primary/5');
+            }
+            option.addEventListener('click', () => {
+                themeOptions.forEach(o => o.classList.remove('ring-2', 'ring-primary', 'bg-primary/5'));
+                option.classList.add('ring-2', 'ring-primary', 'bg-primary/5');
+                if (value === 'auto') {
+                    localStorage.removeItem('theme');
+                    this.applyAutoTimeTheme();
+                } else {
+                    localStorage.setItem('theme', value);
+                    this.applyTheme();
+                }
+            });
+        });
+
+        // Limpar cache
+        const clearCacheBtn = document.getElementById('btn-clear-cache');
+        if (clearCacheBtn) {
+            clearCacheBtn.addEventListener('click', async () => {
+                if (confirm('Limpar todo o cache do app?')) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    this.showToast('Cache limpo! Recarregando...', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                }
+            });
+        }
+
+        // Logout
+        const logoutBtn = document.getElementById('btn-logout');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                API.logout();
+            });
         }
     },
 

@@ -24,9 +24,17 @@ $password = $data['password'];
 
 try {
     $db = Database::getInstance()->getConnection();
-    
+
+    // Auto-migrate: adiciona colunas city e photo se não existirem
+    try {
+        $db->exec("ALTER TABLE users ADD COLUMN city VARCHAR(100) DEFAULT NULL");
+    } catch (PDOException $e) { /* coluna já existe */ }
+    try {
+        $db->exec("ALTER TABLE users ADD COLUMN photo VARCHAR(255) DEFAULT NULL");
+    } catch (PDOException $e) { /* coluna já existe */ }
+
     // Busca o usuário no banco
-    $stmt = $db->prepare("SELECT id, username, password, full_name, email, role FROM users WHERE username = ? LIMIT 1");
+    $stmt = $db->prepare("SELECT id, username, password, full_name, email, role, city, photo FROM users WHERE username = ? LIMIT 1");
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 

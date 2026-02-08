@@ -276,6 +276,31 @@ const API = {
      */
     async deletePhoto(id) {
         return this.delete('upload.php', { id });
+    },
+
+    // ==========================================
+    // PERFIL DO USUÁRIO
+    // ==========================================
+
+    /**
+     * Buscar perfil do usuário
+     */
+    async getProfile() {
+        return this.get('user.php');
+    },
+
+    /**
+     * Atualizar perfil do usuário
+     */
+    async updateProfile(data) {
+        return this.put('user.php', data);
+    },
+
+    /**
+     * Upload de foto de perfil
+     */
+    async uploadProfilePhoto(base64Image) {
+        return this.post('user.php', { photo: base64Image });
     }
 };
 
