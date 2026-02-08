@@ -117,12 +117,31 @@ function handleGet($db, $userData) {
             
             // Busca itens do checklist
             $itemsStmt = $db->prepare("
-                SELECT * FROM checklist_items 
+                SELECT 
+                    id,
+                    checklist_id,
+                    task_name,
+                    task_category,
+                    is_required,
+                    is_completed,
+                    completed_at,
+                    completed_by,
+                    notes,
+                    photo_url,
+                    order_index,
+                    created_at
+                FROM checklist_items 
                 WHERE checklist_id = ? 
                 ORDER BY task_category, order_index
             ");
             $itemsStmt->execute([$id]);
             $items = $itemsStmt->fetchAll();
+            
+            // Converte valores booleanos
+            foreach ($items as &$item) {
+                $item['is_required'] = (bool)$item['is_required'];
+                $item['is_completed'] = (bool)$item['is_completed'];
+            }
             
             jsonResponse([
                 'success' => true,
@@ -333,6 +352,32 @@ function handlePut($db, $userData) {
             $stmt->execute([$itemId]);
             
             jsonResponse(['success' => true, 'message' => 'Item desmarcado']);
+            
+        case 'mark_na':
+            // Marca item como N/A (Não Aplicável) - apenas para itens não obrigatórios
+            $itemId = (int)($data['item_id'] ?? 0);
+            
+            // Verifica se o item é obrigatório
+            $checkStmt = $db->prepare("SELECT is_required FROM checklist_items WHERE id = ?");
+            $checkStmt->execute([$itemId]);
+            $item = $checkStmt->fetch();
+            
+            if (!$item) {
+                jsonResponse(['success' => false, 'message' => 'Item não encontrado'], 404);
+            }
+            
+            if ($item['is_required']) {
+                jsonResponse(['success' => false, 'message' => 'Itens obrigatórios não podem ser marcados como N/A'], 400);
+            }
+            
+            $stmt = $db->prepare("
+                UPDATE checklist_items 
+                SET is_completed = 1, completed_at = NOW(), completed_by = ?, notes = CONCAT(IFNULL(notes, ''), ' [N/A - Não Aplicável]')
+                WHERE id = ?
+            ");
+            $stmt->execute([$userData['user_id'], $itemId]);
+            
+            jsonResponse(['success' => true, 'message' => 'Item marcado como N/A']);
             
         default:
             jsonResponse(['success' => false, 'message' => 'Ação inválida'], 400);

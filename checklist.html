@@ -360,13 +360,23 @@
         async function loadTasks() {
             try {
                 const response = await API.getChecklist(currentChecklist);
-                if (response.success) {
-                    tasks = response.data.items;
+                console.log('Response getChecklist:', response);
+                
+                if (response.success && response.data) {
+                    tasks = response.data.items || [];
+                    console.log('Tasks carregadas:', tasks.length, 'itens');
+                    console.log('Itens obrigatórios:', tasks.filter(t => t.is_required).length);
+                    console.log('Itens concluídos:', tasks.filter(t => t.is_completed).length);
+                    
                     renderTasks();
                     updateProgress();
+                } else {
+                    console.error('Erro na resposta:', response.message);
+                    showToast('Erro ao carregar tarefas: ' + (response.message || 'Resposta inválida'), 'error');
                 }
             } catch (error) {
                 console.error('Erro ao carregar tarefas:', error);
+                showToast('Erro ao carregar tarefas', 'error');
             }
         }
 
@@ -383,12 +393,18 @@
                 grouped[task.task_category].push(task);
             });
 
+            // Verifica se há itens obrigatórios pendentes para expandir automaticamente
+            const requiredPending = tasks.filter(t => t.is_required && !t.is_completed);
+            const pendingCategories = new Set(requiredPending.map(t => t.task_category));
+
             container.innerHTML = Object.entries(categories).map(([key, label]) => {
                 const categoryTasks = grouped[key] || [];
                 if (categoryTasks.length === 0) return '';
 
                 const completedCount = categoryTasks.filter(t => t.is_completed).length;
-                const expanded = completedCount < categoryTasks.length;
+                const hasRequiredPending = categoryTasks.some(t => t.is_required && !t.is_completed);
+                // Expande se tiver itens obrigatórios pendentes ou se não estiver completo
+                const expanded = hasRequiredPending || completedCount < categoryTasks.length;
 
                 return `
                     <div class="bg-white dark:bg-gray-900 rounded-xl shadow-sm overflow-hidden">
@@ -419,10 +435,12 @@
                                                onchange="toggleTask(${task.id}, this.checked)">
                                     </div>
                                     <div class="flex-1">
-                                        <p class="text-[#111318] dark:text-white ${task.is_completed ? 'line-through text-gray-500' : ''}">
+                                        <p class="text-[#111318] dark:text-white ${task.is_completed ? 'line-through text-gray-500' : ''} ${task.is_required && !task.is_completed ? 'font-semibold text-red-600 dark:text-red-400' : ''}">
                                             ${task.task_name}
-                                            ${task.is_required ? '<span class="text-red-500">*</span>' : ''}
+                                            ${task.is_required ? '<span class="text-red-500" title="Obrigatório">*</span>' : '<span class="text-gray-400 text-xs">(opcional)</span>'}
                                         </p>
+                                        ${!task.is_completed && task.is_required ? '<p class="text-xs text-red-500 mt-1">⚠️ Item obrigatório pendente</p>' : ''}
+                                        ${!task.is_completed && !task.is_required ? '<p class="text-xs text-blue-500 mt-1 cursor-pointer" onclick="markAsNA(${task.id}, event)">ℹ️ Marcar como N/A</p>' : ''}
                                         ${task.notes ? `<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${task.notes}</p>` : ''}
                                     </div>
                                     <button onclick="openPhotoModal(${task.id})" 
@@ -479,6 +497,33 @@
                 showToast('Erro ao atualizar tarefa', 'error');
             }
         }
+        
+        // Marca item como N/A (Não Aplicável)
+        async function markAsNA(taskId, event) {
+            event.stopPropagation();
+            
+            if (!confirm('Marcar este item como "Não Aplicável"?\n\nEsta ação não pode ser desfeita.')) {
+                return;
+            }
+            
+            try {
+                await API.markChecklistItemNA(taskId);
+                
+                // Atualiza local
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.is_completed = true;
+                    task.notes = '[N/A - Não Aplicável]';
+                }
+                
+                renderTasks();
+                updateProgress();
+                showToast('Item marcado como N/A', 'success');
+            } catch (error) {
+                console.error('Erro ao marcar N/A:', error);
+                showToast('Erro: ' + error.message, 'error');
+            }
+        }
 
         // Atualiza progresso
         function updateProgress() {
@@ -486,17 +531,46 @@
             const completed = tasks.filter(t => t.is_completed).length;
             const required = tasks.filter(t => t.is_required);
             const requiredCompleted = required.filter(t => t.is_completed).length;
+            const requiredPending = required.filter(t => !t.is_completed);
             
             const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
             
             document.getElementById('progress-bar').style.width = `${percent}%`;
             document.getElementById('progress-text').textContent = `${percent}%`;
+            
+            // Mostra itens pendentes se houver
+            let pendingText = '';
+            if (requiredPending.length > 0 && requiredPending.length <= 3) {
+                pendingText = ' - Faltam: ' + requiredPending.slice(0, 3).map(t => t.task_name.substring(0, 20)).join(', ');
+                if (requiredPending.length > 3) pendingText += '...';
+            }
+            
             document.getElementById('progress-detail').textContent = 
-                `${completed} de ${total} tarefas concluídas (${requiredCompleted}/${required.length} obrigatórias)`;
+                `${completed} de ${total} tarefas concluídas (${requiredCompleted}/${required.length} obrigatórias)${pendingText}`;
             
             // Habilita botão de finalizar se todas obrigatórias estiverem completas
             const allRequiredDone = required.length === requiredCompleted;
-            document.getElementById('btn-complete').disabled = !allRequiredDone;
+            const btnComplete = document.getElementById('btn-complete');
+            btnComplete.disabled = !allRequiredDone;
+            
+            // Atualiza texto do botão
+            if (allRequiredDone) {
+                btnComplete.textContent = 'Finalizar Instalação';
+                btnComplete.classList.remove('bg-gray-400');
+                btnComplete.classList.add('bg-green-500');
+            } else {
+                btnComplete.textContent = `Concluir ${requiredPending.length} item(s) obrigatório(s)`;
+                btnComplete.classList.remove('bg-green-500');
+                btnComplete.classList.add('bg-gray-400');
+            }
+            
+            console.log('Progresso atualizado:', { 
+                total, 
+                completed, 
+                required: required.length, 
+                requiredCompleted,
+                allRequiredDone 
+            });
         }
 
         // Abre modal de foto
@@ -561,6 +635,20 @@
 
         // Finaliza checklist
         async function completeChecklist() {
+            // Verifica se há itens obrigatórios pendentes antes de tentar finalizar
+            const requiredPending = tasks.filter(t => t.is_required && !t.is_completed);
+            
+            if (requiredPending.length > 0) {
+                // Mostra modal com itens pendentes
+                showPendingItemsModal(requiredPending);
+                return;
+            }
+            
+            // Confirmação final
+            if (!confirm('Tem certeza que deseja finalizar esta instalação?\n\nVerifique se todos os itens foram concluídos corretamente.')) {
+                return;
+            }
+            
             try {
                 const response = await API.completeChecklist(currentChecklist);
                 if (response.success) {
@@ -572,6 +660,68 @@
             } catch (error) {
                 console.error('Erro ao finalizar:', error);
                 showToast('Erro ao finalizar instalação', 'error');
+            }
+        }
+        
+        // Mostra modal com itens pendentes
+        function showPendingItemsModal(pendingItems) {
+            // Cria modal dinamicamente se não existir
+            let modal = document.getElementById('pending-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'pending-modal';
+                modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
+                document.body.appendChild(modal);
+            }
+            
+            const itemsList = pendingItems.map(item => `
+                <li class="py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                    <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-red-500">error</span>
+                        <div>
+                            <p class="font-medium text-[#111318] dark:text-white">${item.task_name}</p>
+                            <p class="text-sm text-gray-500">${categories[item.task_category] || item.task_category}</p>
+                        </div>
+                    </div>
+                </li>
+            `).join('');
+            
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-900 rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <h3 class="text-lg font-bold text-[#111318] dark:text-white">
+                            ⚠️ Itens Obrigatórios Pendentes
+                        </h3>
+                        <button onclick="closePendingModal()" class="text-gray-400 hover:text-gray-600">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    <div class="p-4 overflow-y-auto max-h-[50vh]">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            Você precisa concluir os seguintes <strong>${pendingItems.length} item(s)</strong> antes de finalizar:
+                        </p>
+                        <ul class="space-y-1">
+                            ${itemsList}
+                        </ul>
+                    </div>
+                    <div class="p-4 border-t border-gray-100 dark:border-gray-800 flex gap-3">
+                        <button onclick="closePendingModal()" class="flex-1 py-2 px-4 bg-primary text-white rounded-lg font-medium">
+                            Ver Itens
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        // Fecha modal de pendentes
+        function closePendingModal() {
+            const modal = document.getElementById('pending-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
             }
         }
 

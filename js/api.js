@@ -566,6 +566,16 @@ const API = {
     },
 
     /**
+     * Marcar item como N/A (não aplicável)
+     */
+    async markChecklistItemNA(itemId) {
+        return this.put('checklist.php', {
+            action: 'mark_na',
+            item_id: itemId
+        });
+    },
+
+    /**
      * Completar checklist
      */
     async completeChecklist(checklistId) {
