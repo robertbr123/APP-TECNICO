@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Meu Desempenho - Ondeline</title>
+<meta name="theme-color" content="#135bec"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Ondeline Tech"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" type="image/png" href="logo.png"/>
+<link rel="apple-touch-icon" href="logo.png"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#135bec",
+                    "background-light": "#F2F2F7",
+                    "background-dark": "#000000",
+                    "card-light": "#FFFFFF",
+                    "card-dark": "#1C1C1E"
+                },
+                fontFamily: {
+                    "display": ["Inter", "sans-serif"]
+                },
+                borderRadius: {
+                    "ios": "12px",
+                    "ios-lg": "16px",
+                    "ios-xl": "20px"
+                }
+            },
+        },
+    }
+</script>
+<style type="text/tailwindcss">
+    @layer base {
+        body {
+            @apply bg-background-light dark:bg-background-dark font-display text-[#000000] dark:text-white antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+    }
+    .ios-blur {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+    .safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .safe-top {
+        padding-top: env(safe-area-inset-top);
+    }
+</style>
+<style>
+    body { min-height: max(884px, 100dvh); }
+    .progress-ring {
+        transform: rotate(-90deg);
+    }
+    .progress-ring circle {
+        transition: stroke-dashoffset 1s ease-in-out;
+    }
+    .bar-animate {
+        transition: height 0.8s ease-out;
+    }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Header -->
+<header class="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top">
+<div class="flex items-center justify-between px-4 h-16">
+<button onclick="window.history.back()" class="flex items-center justify-center size-10 rounded-full text-primary">
+<span class="material-symbols-outlined text-[26px]">arrow_back_ios</span>
+</button>
+<h1 class="text-[17px] font-bold tracking-tight">Meu Desempenho</h1>
+<div class="size-10"></div>
+</div>
+</header>
+
+<main class="px-4 pb-32">
+
+<!-- Card motivacional -->
+<section class="py-6">
+<div id="motivation-card" class="bg-gradient-to-br from-primary to-blue-700 rounded-ios-xl p-6 text-white shadow-lg shadow-primary/25">
+<div class="flex items-start gap-4">
+<div class="text-4xl" id="motivation-emoji">&#128170;</div>
+<div class="flex-1">
+<p id="motivation-title" class="text-lg font-bold leading-tight">Carregando...</p>
+<p id="motivation-subtitle" class="text-sm text-white/80 mt-1">Aguarde enquanto buscamos seus dados</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Progresso mensal -->
+<section class="mb-6">
+<div class="bg-white dark:bg-card-dark rounded-ios-xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<div>
+<p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Meta Mensal</p>
+<p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+<span id="month-count">-</span><span class="text-base font-normal text-gray-400">/<span id="month-goal">30</span></span>
+</p>
+</div>
+<div class="relative">
+<svg class="progress-ring" width="80" height="80">
+<circle cx="40" cy="40" r="34" stroke-width="6" fill="none" class="stroke-gray-100 dark:stroke-gray-800"/>
+<circle id="progress-circle" cx="40" cy="40" r="34" stroke-width="6" fill="none" class="stroke-primary" stroke-linecap="round" stroke-dasharray="213.63" stroke-dashoffset="213.63"/>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center">
+<span id="progress-percent" class="text-sm font-bold text-gray-900 dark:text-white">0%</span>
+</div>
+</div>
+</div>
+<div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+<div id="progress-bar" class="bg-primary h-2 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+</div>
+</div>
+</section>
+
+<!-- Stats cards -->
+<section class="grid grid-cols-2 gap-3 mb-6">
+<div class="bg-white dark:bg-card-dark p-4 rounded-ios-xl border border-gray-100 dark:border-white/5 shadow-sm">
+<div class="flex items-start justify-between mb-3">
+<div class="p-2 rounded-ios bg-blue-50 dark:bg-blue-500/10 text-primary">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1">today</span>
+</div>
+</div>
+<p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Hoje</p>
+<p id="stat-today" class="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">-</p>
+</div>
+
+<div class="bg-white dark:bg-card-dark p-4 rounded-ios-xl border border-gray-100 dark:border-white/5 shadow-sm">
+<div class="flex items-start justify-between mb-3">
+<div class="p-2 rounded-ios bg-green-50 dark:bg-green-500/10 text-green-500">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1">date_range</span>
+</div>
+</div>
+<p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Semana</p>
+<p id="stat-week" class="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">-</p>
+</div>
+
+<div class="bg-white dark:bg-card-dark p-4 rounded-ios-xl border border-gray-100 dark:border-white/5 shadow-sm">
+<div class="flex items-start justify-between mb-3">
+<div class="p-2 rounded-ios bg-purple-50 dark:bg-purple-500/10 text-purple-500">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1">calendar_month</span>
+</div>
+</div>
+<p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Este Mes</p>
+<p id="stat-month" class="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">-</p>
+</div>
+
+<div class="bg-white dark:bg-card-dark p-4 rounded-ios-xl border border-gray-100 dark:border-white/5 shadow-sm">
+<div class="flex items-start justify-between mb-3">
+<div class="p-2 rounded-ios bg-orange-50 dark:bg-orange-500/10 text-orange-500">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1">emoji_events</span>
+</div>
+</div>
+<p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Ranking</p>
+<p id="stat-ranking" class="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">-</p>
+</div>
+</section>
+
+<!-- Comparacao com mes anterior + Streak -->
+<section class="grid grid-cols-2 gap-3 mb-6">
+<div id="comparison-card" class="bg-white dark:bg-card-dark p-4 rounded-ios-xl border border-gray-100 dark:border-white/5 shadow-sm">
+<p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">vs. Mes Anterior</p>
+<div class="flex items-center gap-2">
+<span id="comparison-icon" class="material-symbols-outlined text-green-500 text-[20px]">trending_up</span>
+<span id="comparison-value" class="text-lg font-bold text-gray-900 dark:text-white">-</span>
+</div>
+<p id="comparison-detail" class="text-xs text-gray-400 mt-1">Carregando...</p>
+</div>
+
+<div class="bg-white dark:bg-card-dark p-4 rounded-ios-xl border border-gray-100 dark:border-white/5 shadow-sm">
+<p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Sequencia</p>
+<div class="flex items-center gap-2">
+<span class="text-xl">&#128293;</span>
+<span id="streak-value" class="text-lg font-bold text-gray-900 dark:text-white">-</span>
+</div>
+<p class="text-xs text-gray-400 mt-1">dias consecutivos</p>
+</div>
+</section>
+
+<!-- Grafico diario -->
+<section class="mb-6">
+<div class="bg-white dark:bg-card-dark rounded-ios-xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[15px] font-bold text-gray-900 dark:text-white">Cadastros no Mes</h3>
+<span class="text-xs text-gray-400" id="chart-month-label">-</span>
+</div>
+<div id="daily-chart" class="flex items-end gap-[3px] h-32 overflow-x-auto">
+<div class="flex items-center justify-center w-full h-full text-gray-400 text-sm">Carregando...</div>
+</div>
+</div>
+</section>
+
+</main>
+
+<!-- Bottom Nav -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-black/80 ios-blur border-t border-gray-200 dark:border-white/10 safe-bottom z-50">
+<div class="flex justify-around items-center h-16">
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="#">
+<span class="material-symbols-outlined text-[26px]">home</span>
+<span class="text-[10px] font-medium">Inicio</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="#">
+<span class="material-symbols-outlined text-[26px]">map</span>
+<span class="text-[10px] font-medium">Rotas</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="#">
+<span class="material-symbols-outlined text-[26px]">punch_clock</span>
+<span class="text-[10px] font-medium">Ponto</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="#">
+<span class="material-symbols-outlined text-[26px]">groups</span>
+<span class="text-[10px] font-medium">Clientes</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="#">
+<span class="material-symbols-outlined text-[26px]">settings</span>
+<span class="text-[10px] font-medium">Ajustes</span>
+</a>
+</div>
+</nav>
+
+<!-- Scripts -->
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body></html>

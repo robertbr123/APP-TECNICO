@@ -84,11 +84,31 @@ try {
         exit;
     }
     
-    // Verifica se o cliente existe (cpf é a primary key)
-    $stmt = $db->prepare("SELECT cpf, name, serial FROM clients WHERE cpf = ?");
-    $stmt->execute([$cpf]);
+    // Busca cidade do técnico para filtro
+    $userCity = null;
+    if ($userId) {
+        try {
+            $userStmt = $db->prepare("SELECT role, city FROM users WHERE id = ?");
+            $userStmt->execute([$userId]);
+            $userInfo = $userStmt->fetch(PDO::FETCH_ASSOC);
+            if ($userInfo && $userInfo['role'] === 'tecnico' && !empty($userInfo['city'])) {
+                $userCity = $userInfo['city'];
+            }
+        } catch (Exception $e) {
+            // Se falhar, não filtra
+        }
+    }
+
+    // Verifica se o cliente existe (com filtro de cidade para técnicos)
+    if ($userCity) {
+        $stmt = $db->prepare("SELECT cpf, name, serial FROM clients WHERE cpf = ? AND LOWER(city) LIKE LOWER(?)");
+        $stmt->execute([$cpf, "%$userCity%"]);
+    } else {
+        $stmt = $db->prepare("SELECT cpf, name, serial FROM clients WHERE cpf = ?");
+        $stmt->execute([$cpf]);
+    }
     $client = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$client) {
         echo json_encode(['success' => false, 'message' => 'Cliente não encontrado']);
         exit;

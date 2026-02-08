@@ -24,7 +24,7 @@ try {
         $cityStmt->execute([$userData['user_id']]);
         $userCity = $cityStmt->fetch()['city'] ?? null;
         if ($userCity) {
-            $cityFilter = " AND city LIKE ?";
+            $cityFilter = " AND LOWER(city) LIKE LOWER(?)";
             $cityParam = ["%$userCity%"];
         }
     }

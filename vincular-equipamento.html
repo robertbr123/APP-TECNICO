@@ -217,11 +217,15 @@
                     console.log('Iniciando busca por:', query);
                     
                     try {
-                        // Usa endpoint de busca sem autenticação
+                        // Usa endpoint de busca com autenticação para filtro por cidade
                         var url = '/api/search-clients.php?search=' + encodeURIComponent(query) + '&limit=10';
                         console.log('URL da requisição:', url);
-                        
-                        var response = await fetch(url);
+
+                        var fetchOptions = {};
+                        if (token) {
+                            fetchOptions.headers = { 'Authorization': 'Bearer ' + token };
+                        }
+                        var response = await fetch(url, fetchOptions);
                         console.log('Status da resposta:', response.status);
                         
                         var responseText = await response.text();

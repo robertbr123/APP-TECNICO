@@ -49,6 +49,8 @@ try {
  * GET - Listar clientes ou buscar um específico
  */
 function handleGet($db) {
+    global $userCity;
+
     // Verifica se foi passado um CPF específico
     $cpf = $_GET['cpf'] ?? null;
     $search = $_GET['search'] ?? null;
@@ -57,9 +59,15 @@ function handleGet($db) {
     $offset = ($page - 1) * $limit;
 
     if ($cpf) {
-        // Busca cliente específico
-        $stmt = $db->prepare("SELECT * FROM clients WHERE cpf = ?");
-        $stmt->execute([preg_replace('/\D/', '', $cpf)]);
+        // Busca cliente específico (com filtro de cidade para técnicos)
+        $cleanCpf = preg_replace('/\D/', '', $cpf);
+        if ($userCity) {
+            $stmt = $db->prepare("SELECT * FROM clients WHERE cpf = ? AND LOWER(city) LIKE LOWER(?)");
+            $stmt->execute([$cleanCpf, "%$userCity%"]);
+        } else {
+            $stmt = $db->prepare("SELECT * FROM clients WHERE cpf = ?");
+            $stmt->execute([$cleanCpf]);
+        }
         $client = $stmt->fetch();
 
         if (!$client) {
@@ -70,14 +78,13 @@ function handleGet($db) {
     }
 
     // Lista de clientes com busca opcional
-    global $userCity;
     $sql = "SELECT * FROM clients";
     $params = [];
     $conditions = [];
 
-    // Filtro por cidade do técnico
+    // Filtro por cidade do técnico (case-insensitive)
     if ($userCity) {
-        $conditions[] = "city LIKE ?";
+        $conditions[] = "LOWER(city) LIKE LOWER(?)";
         $params[] = "%$userCity%";
     }
 

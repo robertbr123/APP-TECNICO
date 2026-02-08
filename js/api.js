@@ -313,6 +313,17 @@ const API = {
         });
 
         return response.json();
+    },
+
+    // ==========================================
+    // HISTORICO / DESEMPENHO
+    // ==========================================
+
+    /**
+     * Buscar dados de desempenho do tecnico
+     */
+    async getHistorico() {
+        return this.get('historico.php');
     }
 };
 
