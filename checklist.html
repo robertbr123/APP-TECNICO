@@ -144,7 +144,34 @@
 
             <!-- Lista de Checklists Anteriores -->
             <div id="checklists-list" class="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm">
-                <h3 class="text-[#111318] dark:text-white text-base font-semibold mb-3">Checklists Recentes</h3>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-[#111318] dark:text-white text-base font-semibold">Checklists Recentes</h3>
+                    <div id="admin-counts" class="flex gap-2"></div>
+                </div>
+                
+                <!-- Filtros para Admin -->
+                <div id="admin-filters" class="hidden mb-4">
+                    <div class="flex gap-2 overflow-x-auto pb-2">
+                        <button onclick="loadRecentChecklists(false)" class="px-3 py-1.5 bg-primary text-white rounded-lg text-sm font-medium whitespace-nowrap">
+                            Meus Checklists
+                        </button>
+                        <button onclick="loadRecentChecklists(true)" class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium whitespace-nowrap">
+                            Todos os Checklists
+                        </button>
+                    </div>
+                    <div class="flex gap-2 mt-2 text-xs text-gray-500">
+                        <span class="flex items-center gap-1">
+                            <span class="w-2 h-2 bg-yellow-400 rounded-full"></span> Aguardando Aprovação
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="w-2 h-2 bg-green-500 rounded-full"></span> Aprovado
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="w-2 h-2 bg-red-500 rounded-full"></span> Rejeitado
+                        </span>
+                    </div>
+                </div>
+                
                 <div id="checklists-container" class="space-y-3">
                     <p class="text-gray-500 text-center py-4">Nenhum checklist encontrado</p>
                 </div>
@@ -217,7 +244,8 @@
         };
 
         // Inicialização
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadUserData();
             initEventListeners();
             loadRecentChecklists();
         });
@@ -657,8 +685,12 @@
             try {
                 const response = await API.completeChecklist(currentChecklist);
                 if (response.success) {
-                    showToast('Instalação finalizada com sucesso!', 'success');
-                    setTimeout(() => location.reload(), 1500);
+                    showToast('✓ Checklist enviado para aprovação do administrador!', 'success');
+                    // Mostra mensagem mais detalhada
+                    setTimeout(() => {
+                        alert('Seu checklist foi enviado para aprovação do administrador.\n\nVocê receberá uma notificação quando for aprovado ou caso precise de correções.');
+                        location.reload();
+                    }, 500);
                 } else {
                     showToast(response.message, 'error');
                 }
@@ -776,20 +808,57 @@
             return true;
         }
 
+        // Estado do usuário
+        let currentUser = null;
+        let isAdmin = false;
+
+        // Carrega dados do usuário
+        async function loadUserData() {
+            try {
+                const user = API.getUser();
+                currentUser = user;
+                isAdmin = user?.role === 'admin';
+                console.log('User loaded:', user?.username, 'Admin:', isAdmin);
+                
+                // Atualiza interface baseado no role
+                if (isAdmin) {
+                    document.getElementById('admin-filters')?.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar usuário:', error);
+            }
+        }
+
         // Carrega checklists recentes
-        async function loadRecentChecklists() {
+        async function loadRecentChecklists(showAll = false) {
             // Aguarda API estar disponível
             if (!checkAPI()) {
                 console.log('Aguardando API...');
-                setTimeout(loadRecentChecklists, 500);
+                setTimeout(() => loadRecentChecklists(showAll), 500);
                 return;
             }
             
             try {
-                const response = await API.getChecklists({ limit: 5 });
-                if (response.success && response.data.length > 0) {
-                    renderChecklistsList(response.data);
-                } else if (!response.success && response.message && 
+                const params = { limit: 20 };
+                if (isAdmin && showAll) {
+                    params.mine = 'false';
+                }
+                
+                const response = await API.getChecklists(params);
+                if (response.success) {
+                    isAdmin = response.is_admin;
+                    if (response.data.length > 0) {
+                        renderChecklistsList(response.data, response.counts);
+                    } else {
+                        document.getElementById('checklists-container').innerHTML = 
+                            '<p class="text-gray-500 text-center py-4">Nenhum checklist encontrado</p>';
+                    }
+                    
+                    // Mostra contadores para admin
+                    if (isAdmin && response.counts) {
+                        renderAdminCounts(response.counts);
+                    }
+                } else if (response.message && 
                           (response.message.includes('tabela') || response.message.includes('não configuradas'))) {
                     showSetupButton();
                 }
@@ -797,14 +866,26 @@
                 console.error('Erro ao carregar checklists:', error);
             }
         }
+        
+        // Renderiza contadores para admin
+        function renderAdminCounts(counts) {
+            let html = '';
+            if (counts.pending_approval > 0) {
+                html += `<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">${counts.pending_approval} aguardando aprovação</span>`;
+            }
+            if (html) {
+                document.getElementById('admin-counts').innerHTML = html;
+            }
+        }
 
         // Renderiza lista de checklists
-        function renderChecklistsList(checklists) {
+        function renderChecklistsList(checklists, counts = null) {
             const container = document.getElementById('checklists-container');
             
             container.innerHTML = checklists.map(checklist => {
+                // Status de progresso
                 const statusColors = {
-                    'pending': 'bg-yellow-100 text-yellow-700',
+                    'pending': 'bg-gray-100 text-gray-700',
                     'in_progress': 'bg-blue-100 text-blue-700',
                     'completed': 'bg-green-100 text-green-700',
                     'cancelled': 'bg-red-100 text-red-700'
@@ -816,21 +897,180 @@
                     'completed': 'Concluído',
                     'cancelled': 'Cancelado'
                 };
+                
+                // Status de aprovação
+                const approvalColors = {
+                    'pending': '',
+                    'pending_approval': 'bg-yellow-100 text-yellow-700 border border-yellow-300',
+                    'approved': 'bg-green-100 text-green-700 border border-green-300',
+                    'rejected': 'bg-red-100 text-red-700 border border-red-300'
+                };
+                
+                const approvalLabels = {
+                    'pending': '',
+                    'pending_approval': '⚠️ Aguardando Aprovação',
+                    'approved': '✓ Aprovado',
+                    'rejected': '✕ Rejeitado'
+                };
+                
+                const showApproval = checklist.approval_status && checklist.approval_status !== 'pending';
+                const isPendingApproval = checklist.approval_status === 'pending_approval';
+                const isRejected = checklist.approval_status === 'rejected';
+                
+                // Botões de ação para admin
+                let adminActions = '';
+                if (isAdmin && isPendingApproval) {
+                    adminActions = `
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="approveChecklist(${checklist.id})" 
+                                    class="flex-1 py-1.5 px-3 bg-green-500 text-white rounded-lg text-sm font-medium">
+                                ✓ Aprovar
+                            </button>
+                            <button onclick="showRejectModal(${checklist.id})" 
+                                    class="flex-1 py-1.5 px-3 bg-red-500 text-white rounded-lg text-sm font-medium">
+                                ✕ Rejeitar
+                            </button>
+                        </div>
+                    `;
+                } else if (isAdmin) {
+                    adminActions = `
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="deleteChecklist(${checklist.id})" 
+                                    class="py-1.5 px-3 text-red-600 hover:bg-red-50 rounded-lg text-sm">
+                                🗑 Excluir
+                            </button>
+                        </div>
+                    `;
+                } else if (isRejected && checklist.technician_id === currentUser?.id) {
+                    // Técnico pode reabrir checklist rejeitado
+                    adminActions = `
+                        <div class="mt-2">
+                            <button onclick="reopenChecklist(${checklist.id})" 
+                                    class="w-full py-1.5 px-3 bg-primary text-white rounded-lg text-sm font-medium">
+                                ↻ Reabrir para Correção
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                // Mostra nome do técnico para admin
+                const techInfo = isAdmin ? `
+                    <p class="text-xs text-gray-500">
+                        <span class="material-symbols-outlined text-xs align-middle">person</span>
+                        ${checklist.technician_name || 'Técnico'}
+                    </p>
+                ` : '';
+                
+                // Motivo da rejeição
+                const rejectionInfo = isRejected && checklist.rejection_reason ? `
+                    <div class="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-700 dark:text-red-400">
+                        <strong>Motivo:</strong> ${checklist.rejection_reason}
+                        ${checklist.rejection_notes ? `<br>${checklist.rejection_notes}` : ''}
+                    </div>
+                ` : '';
 
                 return `
-                    <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center justify-between">
-                        <div>
-                            <p class="text-[#111318] dark:text-white font-medium">${checklist.client_name}</p>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                ${new Date(checklist.created_at).toLocaleDateString('pt-BR')}
-                            </p>
+                    <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg ${isPendingApproval ? 'ring-2 ring-yellow-400' : ''}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-[#111318] dark:text-white font-medium truncate">${checklist.client_name}</p>
+                                ${techInfo}
+                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    ${new Date(checklist.created_at).toLocaleDateString('pt-BR')}
+                                </p>
+                            </div>
+                            <div class="flex flex-col items-end gap-1">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium ${statusColors[checklist.status]}">
+                                    ${statusLabels[checklist.status]}
+                                </span>
+                                ${showApproval ? `
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium ${approvalColors[checklist.approval_status]}">
+                                        ${approvalLabels[checklist.approval_status]}
+                                    </span>
+                                ` : ''}
+                            </div>
                         </div>
-                        <span class="px-3 py-1 rounded-full text-xs font-medium ${statusColors[checklist.status]}">
-                            ${statusLabels[checklist.status]}
-                        </span>
+                        ${rejectionInfo}
+                        ${adminActions}
                     </div>
                 `;
             }).join('');
+        }
+        
+        // Aprova checklist (admin)
+        async function approveChecklist(id) {
+            if (!confirm('Confirmar aprovação deste checklist?')) return;
+            
+            try {
+                const response = await API.approveChecklist(id);
+                if (response.success) {
+                    showToast('Checklist aprovado!', 'success');
+                    loadRecentChecklists(true);
+                } else {
+                    showToast(response.message, 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao aprovar', 'error');
+            }
+        }
+        
+        // Mostra modal de rejeição
+        function showRejectModal(id) {
+            const reason = prompt('Motivo da rejeição (obrigatório):');
+            if (!reason) return;
+            
+            const notes = prompt('Observações adicionais (opcional):') || '';
+            
+            rejectChecklist(id, reason, notes);
+        }
+        
+        // Rejeita checklist (admin)
+        async function rejectChecklist(id, reason, notes) {
+            try {
+                const response = await API.rejectChecklist(id, reason, notes);
+                if (response.success) {
+                    showToast('Checklist rejeitado', 'success');
+                    loadRecentChecklists(true);
+                } else {
+                    showToast(response.message, 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao rejeitar', 'error');
+            }
+        }
+        
+        // Reabre checklist rejeitado (técnico)
+        async function reopenChecklist(id) {
+            if (!confirm('Reabrir este checklist para correção?\n\nVocê precisará corrigir os itens e enviar novamente para aprovação.')) return;
+            
+            try {
+                const response = await API.reopenChecklist(id);
+                if (response.success) {
+                    showToast('Checklist reaberto!', 'success');
+                    location.reload();
+                } else {
+                    showToast(response.message, 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao reabrir', 'error');
+            }
+        }
+        
+        // Deleta checklist (admin)
+        async function deleteChecklist(id) {
+            if (!confirm('Tem certeza que deseja EXCLUIR este checklist permanentemente?\n\nEsta ação não pode ser desfeita.')) return;
+            
+            try {
+                const response = await API.deleteChecklist(id);
+                if (response.success) {
+                    showToast('Checklist excluído', 'success');
+                    loadRecentChecklists(true);
+                } else {
+                    showToast(response.message, 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao excluir', 'error');
+            }
         }
 
         // Formata CPF

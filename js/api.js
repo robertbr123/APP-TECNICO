@@ -604,6 +604,39 @@ const API = {
      */
     async deleteChecklist(id) {
         return this.delete('checklist.php', { id });
+    },
+
+    /**
+     * Aprovar checklist (admin)
+     */
+    async approveChecklist(checklistId, notes = '') {
+        return this.put('checklist.php', {
+            action: 'approve',
+            checklist_id: checklistId,
+            notes
+        });
+    },
+
+    /**
+     * Rejeitar checklist (admin)
+     */
+    async rejectChecklist(checklistId, reason, notes = '') {
+        return this.put('checklist.php', {
+            action: 'reject',
+            checklist_id: checklistId,
+            reason,
+            notes
+        });
+    },
+
+    /**
+     * Reabrir checklist rejeitado (técnico)
+     */
+    async reopenChecklist(checklistId) {
+        return this.put('checklist.php', {
+            action: 'reopen',
+            checklist_id: checklistId
+        });
     }
 };
 

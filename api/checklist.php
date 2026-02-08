@@ -1,7 +1,11 @@
 <?php
 /**
- * API de Checklist de Instalação
+ * API de Checklist de Instalação - Com Sistema de Aprovação
  * Ondeline Tech - App do Técnico
+ * 
+ * Sistema de Aprovação:
+ * - Técnicos: criam e finalizam checklists (vão para pending_approval)
+ * - Admins: aprovam, rejeitam ou excluem qualquer checklist
  */
 
 require_once 'config.php';
@@ -19,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 $userData = requireAuth();
+$isAdmin = ($userData['role'] ?? '') === 'admin';
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
@@ -26,16 +31,16 @@ try {
 
     switch ($method) {
         case 'GET':
-            handleGet($db, $userData);
+            handleGet($db, $userData, $isAdmin);
             break;
         case 'POST':
-            handlePost($db, $userData);
+            handlePost($db, $userData, $isAdmin);
             break;
         case 'PUT':
-            handlePut($db, $userData);
+            handlePut($db, $userData, $isAdmin);
             break;
         case 'DELETE':
-            handleDelete($db, $userData);
+            handleDelete($db, $userData, $isAdmin);
             break;
         default:
             jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
@@ -51,38 +56,76 @@ try {
 /**
  * GET - Busca checklists
  */
-function handleGet($db, $userData) {
+function handleGet($db, $userData, $isAdmin) {
     $action = $_GET['action'] ?? 'list';
     
     switch ($action) {
         case 'list':
-            // Lista checklists do técnico
+            // Lista checklists
             $status = $_GET['status'] ?? null;
+            $approvalStatus = $_GET['approval_status'] ?? null;
+            $filterMine = $_GET['mine'] ?? 'true'; // Por padrão, técnicos só veem os seus
             $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
             $limit = isset($_GET['limit']) ? min(50, max(1, (int)$_GET['limit'])) : 20;
             $offset = ($page - 1) * $limit;
             
-            $sql = "SELECT * FROM installation_checklists WHERE technician_id = ?";
-            $params = [$userData['user_id']];
+            // Se não for admin e filterMine for true, só mostra os próprios
+            $showAll = $isAdmin && $filterMine === 'false';
+            
+            $sql = "SELECT ic.*, 
+                           u.full_name as technician_name,
+                           approver.full_name as approved_by_name
+                    FROM installation_checklists ic
+                    LEFT JOIN users u ON ic.technician_id = u.id
+                    LEFT JOIN users approver ON ic.approved_by = approver.id
+                    WHERE 1=1";
+            $params = [];
+            
+            // Filtra por técnico se não for admin ou se solicitou apenas os seus
+            if (!$showAll) {
+                $sql .= " AND ic.technician_id = ?";
+                $params[] = $userData['user_id'];
+            }
             
             if ($status) {
-                $sql .= " AND status = ?";
+                $sql .= " AND ic.status = ?";
                 $params[] = $status;
             }
             
+            if ($approvalStatus) {
+                $sql .= " AND ic.approval_status = ?";
+                $params[] = $approvalStatus;
+            }
+            
             // Conta total
-            $countStmt = $db->prepare(str_replace("SELECT *", "SELECT COUNT(*) as total", $sql));
+            $countSql = str_replace("SELECT ic.*, \n                           u.full_name as technician_name,\n                           approver.full_name as approved_by_name", "SELECT COUNT(*) as total", $sql);
+            $countStmt = $db->prepare($countSql);
             $countStmt->execute($params);
             $total = $countStmt->fetch()['total'];
             
-            $sql .= " ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+            $sql .= " ORDER BY ic.created_at DESC LIMIT $limit OFFSET $offset";
             $stmt = $db->prepare($sql);
             $stmt->execute($params);
             $checklists = $stmt->fetchAll();
             
+            // Adiciona contadores para admin
+            $counts = null;
+            if ($isAdmin) {
+                $countsStmt = $db->query("
+                    SELECT 
+                        SUM(CASE WHEN approval_status = 'pending_approval' THEN 1 ELSE 0 END) as pending_approval,
+                        SUM(CASE WHEN approval_status = 'approved' THEN 1 ELSE 0 END) as approved,
+                        SUM(CASE WHEN approval_status = 'rejected' THEN 1 ELSE 0 END) as rejected
+                    FROM installation_checklists
+                ");
+                $counts = $countsStmt->fetch();
+            }
+            
             jsonResponse([
                 'success' => true,
                 'data' => $checklists,
+                'is_admin' => $isAdmin,
+                'counts' => $counts,
                 'pagination' => [
                     'page' => $page,
                     'limit' => $limit,
@@ -99,20 +142,27 @@ function handleGet($db, $userData) {
                 jsonResponse(['success' => false, 'message' => 'ID obrigatório'], 400);
             }
             
-            $stmt = $db->prepare("
-                SELECT ic.*, 
-                    COUNT(ci.id) as total_tasks,
-                    SUM(CASE WHEN ci.is_completed = 1 THEN 1 ELSE 0 END) as completed_tasks
-                FROM installation_checklists ic
-                LEFT JOIN checklist_items ci ON ic.id = ci.checklist_id
-                WHERE ic.id = ? AND ic.technician_id = ?
-                GROUP BY ic.id
-            ");
-            $stmt->execute([$id, $userData['user_id']]);
+            $sql = "SELECT ic.*, 
+                           u.full_name as technician_name,
+                           approver.full_name as approved_by_name
+                    FROM installation_checklists ic
+                    LEFT JOIN users u ON ic.technician_id = u.id
+                    LEFT JOIN users approver ON ic.approved_by = approver.id
+                    WHERE ic.id = ?";
+            $params = [$id];
+            
+            // Se não for admin, só pode ver o próprio
+            if (!$isAdmin) {
+                $sql .= " AND ic.technician_id = ?";
+                $params[] = $userData['user_id'];
+            }
+            
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
             $checklist = $stmt->fetch();
             
             if (!$checklist) {
-                jsonResponse(['success' => false, 'message' => 'Checklist não encontrado'], 404);
+                jsonResponse(['success' => false, 'message' => 'Checklist não encontrado ou sem permissão'], 404);
             }
             
             // Busca itens do checklist
@@ -143,11 +193,21 @@ function handleGet($db, $userData) {
                 $item['is_completed'] = (bool)$item['is_completed'];
             }
             
+            // Busca histórico de aprovação
+            $historyStmt = $db->prepare("
+                SELECT * FROM checklist_approval_history 
+                WHERE checklist_id = ? 
+                ORDER BY created_at DESC
+            ");
+            $historyStmt->execute([$id]);
+            $history = $historyStmt->fetchAll();
+            
             jsonResponse([
                 'success' => true,
                 'data' => [
                     'checklist' => $checklist,
                     'items' => $items,
+                    'history' => $history,
                     'progress' => $checklist['total_tasks'] > 0 
                         ? round(($checklist['completed_tasks'] / $checklist['total_tasks']) * 100) 
                         : 0
@@ -186,7 +246,7 @@ function handleGet($db, $userData) {
 /**
  * POST - Cria novo checklist ou atualiza item
  */
-function handlePost($db, $userData) {
+function handlePost($db, $userData, $isAdmin) {
     $data = getRequestBody();
     $action = $data['action'] ?? 'create';
     
@@ -209,23 +269,24 @@ function handlePost($db, $userData) {
                 jsonResponse(['success' => false, 'message' => 'Cliente não encontrado'], 404);
             }
             
+            $installationType = $data['installation_type'] ?? 'new';
+            
             // Cria checklist
             $stmt = $db->prepare("
                 INSERT INTO installation_checklists 
-                (client_cpf, client_name, technician_id, technician_name, installation_type, status, started_at, notes)
-                VALUES (?, ?, ?, ?, ?, 'pending', NULL, ?)
+                (client_cpf, client_name, technician_id, technician_name, installation_type, status, approval_status, started_at, notes)
+                VALUES (?, ?, ?, ?, ?, 'pending', 'pending', NULL, ?)
             ");
             $stmt->execute([
                 $cpf,
                 $client['name'],
                 $userData['user_id'],
                 $userData['username'],
-                $data['installation_type'] ?? 'new',
+                $installationType,
                 $data['notes'] ?? null
             ]);
             
             $checklistId = $db->lastInsertId();
-            $installationType = $data['installation_type'] ?? 'new';
             
             // Cria itens do checklist baseado nos templates aplicáveis ao tipo
             $templatesStmt = $db->prepare("
@@ -253,34 +314,45 @@ function handlePost($db, $userData) {
                 ]);
             }
             
-            Logger::info('Templates aplicados', [
-                'checklist_id' => $checklistId,
-                'type' => $installationType,
-                'templates_count' => count($templates)
-            ]);
-            
             Logger::info('Checklist criado', [
                 'checklist_id' => $checklistId,
                 'client_cpf' => $cpf,
-                'technician' => $userData['username']
+                'technician' => $userData['username'],
+                'type' => $installationType
             ]);
             
             jsonResponse([
                 'success' => true,
                 'message' => 'Checklist criado com sucesso',
-                'data' => ['id' => $checklistId]
+                'data' => [
+                    'id' => $checklistId,
+                    'templates_count' => count($templates)
+                ]
             ], 201);
             
         case 'start':
             // Inicia o checklist
             $checklistId = (int)($data['checklist_id'] ?? 0);
             
+            // Verifica se é o dono do checklist
+            $checkStmt = $db->prepare("SELECT technician_id FROM installation_checklists WHERE id = ?");
+            $checkStmt->execute([$checklistId]);
+            $check = $checkStmt->fetch();
+            
+            if (!$check) {
+                jsonResponse(['success' => false, 'message' => 'Checklist não encontrado'], 404);
+            }
+            
+            if (!$isAdmin && $check['technician_id'] != $userData['user_id']) {
+                jsonResponse(['success' => false, 'message' => 'Sem permissão'], 403);
+            }
+            
             $stmt = $db->prepare("
                 UPDATE installation_checklists 
                 SET status = 'in_progress', started_at = NOW()
-                WHERE id = ? AND technician_id = ? AND status = 'pending'
+                WHERE id = ? AND status = 'pending'
             ");
-            $stmt->execute([$checklistId, $userData['user_id']]);
+            $stmt->execute([$checklistId]);
             
             if ($stmt->rowCount() === 0) {
                 jsonResponse(['success' => false, 'message' => 'Checklist não encontrado ou já iniciado'], 400);
@@ -313,15 +385,29 @@ function handlePost($db, $userData) {
 }
 
 /**
- * PUT - Atualiza checklist ou marca como completo
+ * PUT - Atualiza checklist (aprovação, rejeição, etc)
  */
-function handlePut($db, $userData) {
+function handlePut($db, $userData, $isAdmin) {
     $data = getRequestBody();
     $action = $data['action'] ?? 'update';
     
     switch ($action) {
         case 'complete':
+            // Finaliza checklist (técnico) - vai para pending_approval
             $checklistId = (int)($data['checklist_id'] ?? 0);
+            
+            // Verifica se é o dono
+            $checkStmt = $db->prepare("SELECT technician_id, approval_status FROM installation_checklists WHERE id = ?");
+            $checkStmt->execute([$checklistId]);
+            $check = $checkStmt->fetch();
+            
+            if (!$check) {
+                jsonResponse(['success' => false, 'message' => 'Checklist não encontrado'], 404);
+            }
+            
+            if (!$isAdmin && $check['technician_id'] != $userData['user_id']) {
+                jsonResponse(['success' => false, 'message' => 'Sem permissão'], 403);
+            }
             
             // Verifica se todos os itens obrigatórios estão completos
             $stmt = $db->prepare("
@@ -339,24 +425,178 @@ function handlePut($db, $userData) {
                 ], 400);
             }
             
-            // Marca como completo
+            // Atualiza para aguardando aprovação
             $stmt = $db->prepare("
                 UPDATE installation_checklists 
-                SET status = 'completed', completed_at = NOW()
-                WHERE id = ? AND technician_id = ?
+                SET status = 'completed', 
+                    approval_status = 'pending_approval',
+                    completed_at = NOW()
+                WHERE id = ?
             ");
-            $stmt->execute([$checklistId, $userData['user_id']]);
+            $stmt->execute([$checklistId]);
             
-            if ($stmt->rowCount() === 0) {
-                jsonResponse(['success' => false, 'message' => 'Checklist não encontrado'], 404);
-            }
+            // Registra no histórico
+            $historyStmt = $db->prepare("
+                INSERT INTO checklist_approval_history 
+                (checklist_id, action, action_by, action_by_name, action_by_role, notes)
+                VALUES (?, 'submitted', ?, ?, ?, ?)
+            ");
+            $historyStmt->execute([
+                $checklistId,
+                $userData['user_id'],
+                $userData['username'],
+                $isAdmin ? 'admin' : 'tecnico',
+                'Checklist finalizado e enviado para aprovação'
+            ]);
             
-            Logger::info('Checklist completado', [
+            Logger::info('Checklist finalizado (pending approval)', [
                 'checklist_id' => $checklistId,
                 'technician' => $userData['username']
             ]);
             
-            jsonResponse(['success' => true, 'message' => 'Instalação finalizada com sucesso']);
+            jsonResponse([
+                'success' => true, 
+                'message' => 'Checklist enviado para aprovação do administrador'
+            ]);
+            
+        case 'approve':
+            // Aprova checklist (apenas admin)
+            if (!$isAdmin) {
+                jsonResponse(['success' => false, 'message' => 'Apenas administradores podem aprovar'], 403);
+            }
+            
+            $checklistId = (int)($data['checklist_id'] ?? 0);
+            $approvalNotes = $data['notes'] ?? null;
+            
+            $stmt = $db->prepare("
+                UPDATE installation_checklists 
+                SET approval_status = 'approved',
+                    approved_by = ?,
+                    approved_at = NOW()
+                WHERE id = ? AND approval_status = 'pending_approval'
+            ");
+            $stmt->execute([$userData['user_id'], $checklistId]);
+            
+            if ($stmt->rowCount() === 0) {
+                jsonResponse(['success' => false, 'message' => 'Checklist não encontrado ou não está aguardando aprovação'], 404);
+            }
+            
+            // Registra no histórico
+            $historyStmt = $db->prepare("
+                INSERT INTO checklist_approval_history 
+                (checklist_id, action, action_by, action_by_name, action_by_role, notes)
+                VALUES (?, 'approved', ?, ?, ?, ?)
+            ");
+            $historyStmt->execute([
+                $checklistId,
+                $userData['user_id'],
+                $userData['username'],
+                'admin',
+                $approvalNotes
+            ]);
+            
+            Logger::info('Checklist aprovado', [
+                'checklist_id' => $checklistId,
+                'approved_by' => $userData['username']
+            ]);
+            
+            jsonResponse(['success' => true, 'message' => 'Checklist aprovado com sucesso']);
+            
+        case 'reject':
+            // Rejeita checklist (apenas admin)
+            if (!$isAdmin) {
+                jsonResponse(['success' => false, 'message' => 'Apenas administradores podem rejeitar'], 403);
+            }
+            
+            $checklistId = (int)($data['checklist_id'] ?? 0);
+            $reason = $data['reason'] ?? null;
+            $notes = $data['notes'] ?? null;
+            
+            if (!$reason) {
+                jsonResponse(['success' => false, 'message' => 'Motivo da rejeição é obrigatório'], 400);
+            }
+            
+            $stmt = $db->prepare("
+                UPDATE installation_checklists 
+                SET approval_status = 'rejected',
+                    rejection_reason = ?,
+                    rejection_notes = ?
+                WHERE id = ? AND approval_status = 'pending_approval'
+            ");
+            $stmt->execute([$reason, $notes, $checklistId]);
+            
+            if ($stmt->rowCount() === 0) {
+                jsonResponse(['success' => false, 'message' => 'Checklist não encontrado ou não está aguardando aprovação'], 404);
+            }
+            
+            // Registra no histórico
+            $historyStmt = $db->prepare("
+                INSERT INTO checklist_approval_history 
+                (checklist_id, action, action_by, action_by_name, action_by_role, notes)
+                VALUES (?, 'rejected', ?, ?, ?, ?)
+            ");
+            $historyStmt->execute([
+                $checklistId,
+                $userData['user_id'],
+                $userData['username'],
+                'admin',
+                "Motivo: $reason. $notes"
+            ]);
+            
+            Logger::info('Checklist rejeitado', [
+                'checklist_id' => $checklistId,
+                'rejected_by' => $userData['username'],
+                'reason' => $reason
+            ]);
+            
+            jsonResponse(['success' => true, 'message' => 'Checklist rejeitado. O técnico foi notificado.']);
+            
+        case 'reopen':
+            // Reabre checklist rejeitado para correção (técnico)
+            $checklistId = (int)($data['checklist_id'] ?? 0);
+            
+            // Verifica se é o dono
+            $checkStmt = $db->prepare("SELECT technician_id, approval_status FROM installation_checklists WHERE id = ?");
+            $checkStmt->execute([$checklistId]);
+            $check = $checkStmt->fetch();
+            
+            if (!$check) {
+                jsonResponse(['success' => false, 'message' => 'Checklist não encontrado'], 404);
+            }
+            
+            if (!$isAdmin && $check['technician_id'] != $userData['user_id']) {
+                jsonResponse(['success' => false, 'message' => 'Sem permissão'], 403);
+            }
+            
+            if ($check['approval_status'] !== 'rejected') {
+                jsonResponse(['success' => false, 'message' => 'Apenas checklists rejeitados podem ser reabertos'], 400);
+            }
+            
+            // Reabre o checklist
+            $stmt = $db->prepare("
+                UPDATE installation_checklists 
+                SET status = 'in_progress',
+                    approval_status = 'pending',
+                    completed_at = NULL
+                WHERE id = ?
+            ");
+            $stmt->execute([$checklistId]);
+            
+            // Registra no histórico
+            $historyStmt = $db->prepare("
+                INSERT INTO checklist_approval_history 
+                (checklist_id, action, action_by, action_by_name, action_by_role, notes)
+                VALUES (?, 'reopened', ?, ?, ?, ?)
+            ");
+            $historyStmt->execute([
+                $checklistId,
+                $userData['user_id'],
+                $userData['username'],
+                $isAdmin ? 'admin' : 'tecnico',
+                'Checklist reaberto para correção'
+            ]);
+            
+            jsonResponse(['success' => true, 'message' => 'Checklist reaberto para correção']);
             
         case 'uncheck_item':
             // Desmarca item
@@ -405,25 +645,57 @@ function handlePut($db, $userData) {
 /**
  * DELETE - Remove checklist
  */
-function handleDelete($db, $userData) {
+function handleDelete($db, $userData, $isAdmin) {
     $id = (int)($_GET['id'] ?? 0);
     
     if (!$id) {
         jsonResponse(['success' => false, 'message' => 'ID obrigatório'], 400);
     }
     
-    // Só permite deletar se estiver pending
-    $stmt = $db->prepare("
-        DELETE FROM installation_checklists 
-        WHERE id = ? AND technician_id = ? AND status = 'pending'
-    ");
-    $stmt->execute([$id, $userData['user_id']]);
+    // Verifica se é admin ou o dono do checklist (só pode deletar se estiver pendente)
+    $checkStmt = $db->prepare("SELECT technician_id, status, approval_status FROM installation_checklists WHERE id = ?");
+    $checkStmt->execute([$id]);
+    $check = $checkStmt->fetch();
     
-    if ($stmt->rowCount() === 0) {
-        jsonResponse(['success' => false, 'message' => 'Checklist não encontrado ou não pode ser removido'], 400);
+    if (!$check) {
+        jsonResponse(['success' => false, 'message' => 'Checklist não encontrado'], 404);
     }
     
-    Logger::info('Checklist deletado', ['checklist_id' => $id]);
+    // Se for admin, pode deletar qualquer um
+    // Se for técnico, só pode deletar o próprio e se estiver pendente
+    if (!$isAdmin) {
+        if ($check['technician_id'] != $userData['user_id']) {
+            jsonResponse(['success' => false, 'message' => 'Sem permissão para excluir este checklist'], 403);
+        }
+        
+        if ($check['approval_status'] === 'approved') {
+            jsonResponse(['success' => false, 'message' => 'Checklists aprovados não podem ser excluídos'], 400);
+        }
+    }
     
-    jsonResponse(['success' => true, 'message' => 'Checklist removido']);
+    // Registra no histórico antes de deletar
+    $historyStmt = $db->prepare("
+        INSERT INTO checklist_approval_history 
+        (checklist_id, action, action_by, action_by_name, action_by_role, notes)
+        VALUES (?, 'deleted', ?, ?, ?, ?)
+    ");
+    $historyStmt->execute([
+        $id,
+        $userData['user_id'],
+        $userData['username'],
+        $isAdmin ? 'admin' : 'tecnico',
+        'Checklist excluído'
+    ]);
+    
+    // Deleta o checklist (cascade deletará os itens)
+    $stmt = $db->prepare("DELETE FROM installation_checklists WHERE id = ?");
+    $stmt->execute([$id]);
+    
+    Logger::info('Checklist deletado', [
+        'checklist_id' => $id,
+        'deleted_by' => $userData['username'],
+        'is_admin' => $isAdmin
+    ]);
+    
+    jsonResponse(['success' => true, 'message' => 'Checklist removido com sucesso']);
 }
