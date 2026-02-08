@@ -3,7 +3,7 @@
  * Ondeline Tech - App do Técnico
  */
 
-const APP_VERSION = 'v8.5';
+const APP_VERSION = 'v11';
 const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
 const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
@@ -30,6 +30,7 @@ const STATIC_ASSETS = [
     '/js/feedback.js',
     '/js/utils.js',
     '/js/geolocation.js',
+    '/css/transitions.css',
     '/logo.png',
     '/icons/icon-72x72.png',
     '/icons/icon-96x96.png',
@@ -183,6 +184,14 @@ async function networkFirst(request) {
         );
     }
 }
+
+// Listener de mensagens (para skipWaiting)
+self.addEventListener('message', (event) => {
+    if (event.data === 'skipWaiting') {
+        console.log('[SW] Skip waiting e ativando nova versão...');
+        self.skipWaiting();
+    }
+});
 
 // Sincronização em background (quando voltar online)
 self.addEventListener('sync', (event) => {

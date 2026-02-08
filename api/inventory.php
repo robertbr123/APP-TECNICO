@@ -26,6 +26,14 @@ Logger::logRequest('inventory.php', $method, $_REQUEST);
 
 try {
     $db = Database::getInstance()->getConnection();
+    
+    // Verifica se as tabelas existem
+    if (!checkTablesExist($db)) {
+        jsonResponse([
+            'success' => false, 
+            'message' => 'Tabelas de estoque não configuradas. Execute o script create-inventory-tables.sql'
+        ], 500);
+    }
 
     switch ($method) {
         case 'GET':
@@ -46,10 +54,28 @@ try {
     }
 } catch (PDOException $e) {
     Logger::logException($e, ['context' => 'database']);
-    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados'], 500);
+    jsonResponse([
+        'success' => false, 
+        'message' => 'Erro no banco de dados: ' . $e->getMessage()
+    ], 500);
 } catch (Exception $e) {
     Logger::logException($e);
-    jsonResponse(['success' => false, 'message' => 'Erro interno do servidor'], 500);
+    jsonResponse([
+        'success' => false, 
+        'message' => 'Erro interno do servidor: ' . $e->getMessage()
+    ], 500);
+}
+
+/**
+ * Verifica se as tabelas de estoque existem
+ */
+function checkTablesExist($db) {
+    try {
+        $stmt = $db->query("SHOW TABLES LIKE 'equipment_inventory'");
+        return $stmt->rowCount() > 0;
+    } catch (Exception $e) {
+        return false;
+    }
 }
 
 /**
@@ -70,137 +96,175 @@ function handleGet($db, $userData) {
             $limit = isset($_GET['limit']) ? min(100, max(1, (int)$_GET['limit'])) : 50;
             $offset = ($page - 1) * $limit;
 
-            $sql = "SELECT ei.*, 
-                            c.name as client_name,
-                            u.username as current_user
-                     FROM equipment_inventory ei
-                     LEFT JOIN clients c ON ei.current_client_cpf = c.cpf
-                     LEFT JOIN users u ON ei.current_user_id = u.id
-                     WHERE 1=1";
-            $params = [];
+            try {
+                $sql = "SELECT ei.*, 
+                                c.name as client_name,
+                                u.username as current_user
+                         FROM equipment_inventory ei
+                         LEFT JOIN clients c ON ei.current_client_cpf = c.cpf
+                         LEFT JOIN users u ON ei.current_user_id = u.id
+                         WHERE 1=1";
+                $params = [];
 
-            if ($status) {
-                $sql .= " AND ei.status = ?";
-                $params[] = $status;
+                if ($status) {
+                    $sql .= " AND ei.status = ?";
+                    $params[] = $status;
+                }
+
+                if ($type) {
+                    $sql .= " AND ei.type = ?";
+                    $params[] = $type;
+                }
+
+                if ($search) {
+                    $searchTerm = "%$search%";
+                    $sql .= " AND (ei.serial_number LIKE ? OR ei.model LIKE ? OR ei.brand LIKE ?)";
+                    $params[] = $searchTerm;
+                    $params[] = $searchTerm;
+                    $params[] = $searchTerm;
+                }
+
+                // Conta total
+                $countSql = "SELECT COUNT(*) as total FROM equipment_inventory ei WHERE 1=1";
+                $countParams = [];
+                
+                if ($status) {
+                    $countSql .= " AND ei.status = ?";
+                    $countParams[] = $status;
+                }
+                if ($type) {
+                    $countSql .= " AND ei.type = ?";
+                    $countParams[] = $type;
+                }
+                if ($search) {
+                    $searchTerm = "%$search%";
+                    $countSql .= " AND (ei.serial_number LIKE ? OR ei.model LIKE ? OR ei.brand LIKE ?)";
+                    $countParams[] = $searchTerm;
+                    $countParams[] = $searchTerm;
+                    $countParams[] = $searchTerm;
+                }
+                
+                $countStmt = $db->prepare($countSql);
+                $countStmt->execute($countParams);
+                $total = $countStmt->fetch()['total'];
+
+                $sql .= " ORDER BY ei.created_at DESC LIMIT $limit OFFSET $offset";
+                $stmt = $db->prepare($sql);
+                $stmt->execute($params);
+                $equipment = $stmt->fetchAll();
+
+                Logger::logDatabase('SELECT', 'equipment_inventory', count($equipment));
+
+                jsonResponse([
+                    'success' => true,
+                    'data' => $equipment,
+                    'pagination' => [
+                        'page' => $page,
+                        'limit' => $limit,
+                        'total' => (int)$total,
+                        'pages' => ceil($total / $limit)
+                    ]
+                ]);
+            } catch (Exception $e) {
+                Logger::logException($e, ['context' => 'list_equipment']);
+                throw $e;
             }
-
-            if ($type) {
-                $sql .= " AND ei.type = ?";
-                $params[] = $type;
-            }
-
-            if ($search) {
-                $searchTerm = "%$search%";
-                $sql .= " AND (ei.serial_number LIKE ? OR ei.model LIKE ? OR ei.brand LIKE ?)";
-                $params[] = $searchTerm;
-                $params[] = $searchTerm;
-                $params[] = $searchTerm;
-            }
-
-            // Conta total
-            $countSql = str_replace("SELECT ei.*, \n                            c.name as client_name,\n                            u.username as current_user", "SELECT COUNT(*) as total", $sql);
-            $countStmt = $db->prepare($countSql);
-            $countStmt->execute($params);
-            $total = $countStmt->fetch()['total'];
-
-            $sql .= " ORDER BY ei.created_at DESC LIMIT $limit OFFSET $offset";
-            $stmt = $db->prepare($sql);
-            $stmt->execute($params);
-            $equipment = $stmt->fetchAll();
-
-            Logger::logDatabase('SELECT', 'equipment_inventory', count($equipment));
-
-            jsonResponse([
-                'success' => true,
-                'data' => $equipment,
-                'pagination' => [
-                    'page' => $page,
-                    'limit' => $limit,
-                    'total' => (int)$total,
-                    'pages' => ceil($total / $limit)
-                ]
-            ]);
 
         case 'statistics':
             // Estatísticas de estoque
-            $stmt = $db->query("
-                SELECT 
-                    status,
-                    type,
-                    COUNT(*) as count,
-                    SUM(purchase_price) as total_value
-                FROM equipment_inventory
-                GROUP BY status, type
-                ORDER BY status, type
-            ");
-            $stats = $stmt->fetchAll();
+            try {
+                $stmt = $db->query("
+                    SELECT 
+                        status,
+                        type,
+                        COUNT(*) as count,
+                        COALESCE(SUM(purchase_price), 0) as total_value
+                    FROM equipment_inventory
+                    GROUP BY status, type
+                    ORDER BY status, type
+                ");
+                $stats = $stmt->fetchAll();
 
-            $totalAvailable = 0;
-            $totalInUse = 0;
-            $totalValue = 0;
+                $totalAvailable = 0;
+                $totalInUse = 0;
+                $totalValue = 0;
 
-            foreach ($stats as $stat) {
-                if ($stat['status'] === 'available') {
-                    $totalAvailable += $stat['count'];
-                } else if ($stat['status'] === 'in_use') {
-                    $totalInUse += $stat['count'];
+                foreach ($stats as $stat) {
+                    if ($stat['status'] === 'available') {
+                        $totalAvailable += $stat['count'];
+                    } else if ($stat['status'] === 'in_use') {
+                        $totalInUse += $stat['count'];
+                    }
+                    $totalValue += $stat['total_value'];
                 }
-                $totalValue += $stat['total_value'];
-            }
 
-            jsonResponse([
-                'success' => true,
-                'data' => [
-                    'by_status_type' => $stats,
-                    'summary' => [
-                        'total_available' => $totalAvailable,
-                        'total_in_use' => $totalInUse,
-                        'total_value' => round($totalValue, 2)
+                jsonResponse([
+                    'success' => true,
+                    'data' => [
+                        'by_status_type' => $stats,
+                        'summary' => [
+                            'total_available' => $totalAvailable,
+                            'total_in_use' => $totalInUse,
+                            'total_value' => round($totalValue, 2)
+                        ]
                     ]
-                ]
-            ]);
+                ]);
+            } catch (Exception $e) {
+                Logger::logException($e, ['context' => 'statistics']);
+                throw $e;
+            }
 
         case 'movements':
             // Histórico de movimentações
-            $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-            $limit = isset($_GET['limit']) ? min(100, max(1, (int)$_GET['limit'])) : 20;
-            $offset = ($page - 1) * $limit;
+            try {
+                $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+                $limit = isset($_GET['limit']) ? min(100, max(1, (int)$_GET['limit'])) : 20;
+                $offset = ($page - 1) * $limit;
 
-            $stmt = $db->prepare("
-                SELECT m.*, 
-                       ei.serial_number, 
-                       ei.model, 
-                       ei.brand,
-                       ei.type
-                FROM inventory_movements m
-                LEFT JOIN equipment_inventory ei ON m.equipment_id = ei.id
-                ORDER BY m.created_at DESC 
-                LIMIT $limit OFFSET $offset
-            ");
-            $stmt->execute();
-            $movements = $stmt->fetchAll();
+                $stmt = $db->prepare("
+                    SELECT m.*, 
+                           ei.serial_number, 
+                           ei.model, 
+                           ei.brand,
+                           ei.type
+                    FROM inventory_movements m
+                    LEFT JOIN equipment_inventory ei ON m.equipment_id = ei.id
+                    ORDER BY m.created_at DESC 
+                    LIMIT $limit OFFSET $offset
+                ");
+                $stmt->execute();
+                $movements = $stmt->fetchAll();
 
-            jsonResponse([
-                'success' => true,
-                'data' => $movements,
-                'count' => count($movements)
-            ]);
+                jsonResponse([
+                    'success' => true,
+                    'data' => $movements,
+                    'count' => count($movements)
+                ]);
+            } catch (Exception $e) {
+                Logger::logException($e, ['context' => 'movements']);
+                throw $e;
+            }
 
         case 'alerts':
             // Alertas de estoque
-            $stmt = $db->query("
-                SELECT * FROM inventory_alerts
-                WHERE resolved = 0
-                ORDER BY severity DESC, created_at DESC
-                LIMIT 20
-            ");
-            $alerts = $stmt->fetchAll();
+            try {
+                $stmt = $db->query("
+                    SELECT * FROM inventory_alerts
+                    WHERE resolved = 0
+                    ORDER BY severity DESC, created_at DESC
+                    LIMIT 20
+                ");
+                $alerts = $stmt->fetchAll();
 
-            jsonResponse([
-                'success' => true,
-                'data' => $alerts,
-                'count' => count($alerts)
-            ]);
+                jsonResponse([
+                    'success' => true,
+                    'data' => $alerts,
+                    'count' => count($alerts)
+                ]);
+            } catch (Exception $e) {
+                Logger::logException($e, ['context' => 'alerts']);
+                throw $e;
+            }
 
         default:
             jsonResponse(['success' => false, 'message' => 'Ação inválida'], 400);

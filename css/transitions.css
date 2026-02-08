@@ -1,0 +1,181 @@
+/* Transições Suaves entre Páginas */
+
+/* Animação de fade in ao carregar página */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Animação de slide in da direita */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Animação de slide in da esquerda */
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Animação de scale in */
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Aplica animação fade in no body */
+body {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Classe para aplicar fade in */
+.fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Classe para slide in da direita */
+.slide-in-right {
+    animation: slideInRight 0.3s ease-out forwards;
+}
+
+/* Classe para slide in da esquerda */
+.slide-in-left {
+    animation: slideInLeft 0.3s ease-out forwards;
+}
+
+/* Classe para scale in */
+.scale-in {
+    animation: scaleIn 0.25s ease-out forwards;
+}
+
+/* Transições em elementos interativos */
+a, button {
+    transition: all 0.2s ease;
+}
+
+/* Efeito hover suave em cards */
+.card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Transição de página suave */
+.page-transition {
+    opacity: 0;
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Transição de conteúdo */
+.content-transition {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeIn 0.5s ease-out 0.1s forwards;
+}
+
+/* Loading spinner suave */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+    animation: spin 1s linear infinite;
+}
+
+/* Transições de navegação */
+.nav-item {
+    position: relative;
+    transition: color 0.2s ease;
+}
+
+.nav-item::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background-color: #135bec;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.nav-item:hover::after,
+.nav-item.active::after {
+    width: 100%;
+}
+
+/* Stagger animation para listas */
+.stagger-item {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0.05s; }
+.stagger-item:nth-child(2) { animation-delay: 0.1s; }
+.stagger-item:nth-child(3) { animation-delay: 0.15s; }
+.stagger-item:nth-child(4) { animation-delay: 0.2s; }
+.stagger-item:nth-child(5) { animation-delay: 0.25s; }
+.stagger-item:nth-child(6) { animation-delay: 0.3s; }
+
+/* Transição de scroll suave */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Skeleton loading animation */
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+.dark .skeleton {
+    background: linear-gradient(90deg, #2d2d2d 25%, #3d3d3d 50%, #2d2d2d 75%);
+    background-size: 200% 100%;
+}
+
+/* Previne flash branco durante navegação */
+.page-enter {
+    opacity: 0;
+}
+
+.page-enter-active {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}

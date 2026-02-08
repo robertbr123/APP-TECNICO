@@ -32,12 +32,27 @@ const App = {
                 registration.addEventListener('updatefound', () => {
                     const newWorker = registration.installing;
                     newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed') {
+                            // Nova versão disponível
+                            console.log('Nova versão disponível!');
+                            this.showToast('Nova versão disponível! Atualizando...', 'info');
+                            
+                            // Força ativação imediata
+                            if (registration.waiting) {
+                                registration.waiting.postMessage('skipWaiting');
+                            }
+                        }
                         if (newWorker.state === 'activated') {
-                            console.log('Nova versão disponível, recarregando...');
+                            console.log('Nova versão ativada, recarregando...');
                             window.location.reload();
                         }
                     });
                 });
+                
+                // Se já houver um SW waiting, ativa imediatamente
+                if (registration.waiting) {
+                    registration.waiting.postMessage('skipWaiting');
+                }
 
                 // Força verificação de atualização a cada carregamento
                 registration.update();
