@@ -23,16 +23,22 @@ const App = {
     async registerServiceWorker() {
         if ('serviceWorker' in navigator) {
             try {
-                // Primeiro, desregistra qualquer SW antigo
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (const registration of registrations) {
-                    await registration.unregister();
-                    console.log('ServiceWorker antigo removido');
-                }
-                
-                // Registra o novo SW
                 const registration = await navigator.serviceWorker.register('/sw.js');
                 console.log('ServiceWorker registrado:', registration);
+
+                // Verifica se há atualização disponível
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'activated') {
+                            console.log('Nova versão disponível, recarregando...');
+                            window.location.reload();
+                        }
+                    });
+                });
+
+                // Força verificação de atualização a cada carregamento
+                registration.update();
             } catch (error) {
                 console.log('Erro ao registrar ServiceWorker:', error);
             }

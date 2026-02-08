@@ -3,9 +3,10 @@
  * Ondeline Tech - App do Técnico
  */
 
-const CACHE_NAME = 'ondeline-tech-v3';
-const STATIC_CACHE = 'ondeline-static-v3';
-const DYNAMIC_CACHE = 'ondeline-dynamic-v3';
+const APP_VERSION = 'v4';
+const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
+const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
+const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
 
 // Arquivos estáticos para cache
 const STATIC_ASSETS = [
@@ -81,9 +82,19 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Para arquivos estáticos, tenta cache primeiro
+    // Para HTML e JS, usa Network First (sempre busca atualização)
     if (request.method === 'GET') {
-        event.respondWith(cacheFirst(request));
+        const isPageOrScript = url.pathname.endsWith('.html') ||
+                               url.pathname.endsWith('.js') ||
+                               url.pathname.endsWith('.css') ||
+                               url.pathname === '/';
+
+        if (isPageOrScript) {
+            event.respondWith(networkFirst(request));
+        } else {
+            // Para imagens, fontes etc, usa cache primeiro
+            event.respondWith(cacheFirst(request));
+        }
     }
 });
 
