@@ -494,6 +494,92 @@ const API = {
      */
     async deleteEquipment(id) {
         return this.delete('inventory.php', { id });
+    },
+
+    // ==========================================
+    // CHECKLIST DE INSTALAÇÃO
+    // ==========================================
+
+    /**
+     * Listar checklists
+     */
+    async getChecklists(params = {}) {
+        return this.get('checklist.php', { action: 'list', ...params });
+    },
+
+    /**
+     * Buscar checklist específico
+     */
+    async getChecklist(id) {
+        return this.get('checklist.php', { action: 'get', id });
+    },
+
+    /**
+     * Buscar templates de checklist
+     */
+    async getChecklistTemplates(category = null) {
+        const params = { action: 'templates' };
+        if (category) params.category = category;
+        return this.get('checklist.php', params);
+    },
+
+    /**
+     * Criar novo checklist
+     */
+    async createChecklist(data) {
+        return this.post('checklist.php', {
+            action: 'create',
+            ...data
+        });
+    },
+
+    /**
+     * Iniciar checklist
+     */
+    async startChecklist(checklistId) {
+        return this.post('checklist.php', {
+            action: 'start',
+            checklist_id: checklistId
+        });
+    },
+
+    /**
+     * Completar item do checklist
+     */
+    async completeChecklistItem(itemId, notes = '', photoUrl = null) {
+        return this.post('checklist.php', {
+            action: 'complete_item',
+            item_id: itemId,
+            notes,
+            photo_url: photoUrl
+        });
+    },
+
+    /**
+     * Desmarcar item do checklist
+     */
+    async uncheckChecklistItem(itemId) {
+        return this.put('checklist.php', {
+            action: 'uncheck_item',
+            item_id: itemId
+        });
+    },
+
+    /**
+     * Completar checklist
+     */
+    async completeChecklist(checklistId) {
+        return this.put('checklist.php', {
+            action: 'complete',
+            checklist_id: checklistId
+        });
+    },
+
+    /**
+     * Deletar checklist
+     */
+    async deleteChecklist(id) {
+        return this.delete('checklist.php', { id });
     }
 };
 

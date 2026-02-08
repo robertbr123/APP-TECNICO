@@ -209,10 +209,13 @@ const App = {
                 this.initHistoricoPage();
                 break;
             case 'mapa.html':
+                this.initMapaPage();
+                break;
             case 'ponto.html':
+                this.initPontoPage();
+                break;
             case 'estoque.html':
-                // Estas páginas têm sua própria lógica inline
-                console.log('Página com lógica própria: ' + page);
+                this.initEstoquePage();
                 break;
         }
     },
@@ -1772,6 +1775,98 @@ const App = {
     formatCPF(cpf) {
         cpf = cpf.replace(/\D/g, '');
         return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    },
+
+    /**
+     * Página de Mapa
+     * Inicializa o mapa e carrega os clientes
+     */
+    async initMapaPage() {
+        console.log('initMapaPage iniciado');
+        
+        // Verifica se a página tem função própria de inicialização
+        if (typeof window.initMap === 'function') {
+            window.initMap();
+        }
+        
+        // Configura navegação
+        this.setupBottomNavigation();
+        
+        // Atualiza foto e dados do header
+        const user = API.getUser();
+        this.updateHeaderProfile(user);
+    },
+
+    /**
+     * Página de Registro de Ponto
+     */
+    async initPontoPage() {
+        console.log('initPontoPage iniciado');
+        
+        // Configura navegação
+        this.setupBottomNavigation();
+        
+        // Atualiza foto e dados do header
+        const user = API.getUser();
+        this.updateHeaderProfile(user);
+        
+        // Verifica status do ponto atual
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const response = await API.getTimeClock({ date: today });
+            
+            if (response.success && response.data) {
+                const record = response.data;
+                const statusEl = document.getElementById('clock-status');
+                const btnEntry = document.getElementById('btn-clock-entry');
+                const btnExit = document.getElementById('btn-clock-exit');
+                
+                if (statusEl) {
+                    if (record.exit_time) {
+                        statusEl.textContent = 'Ponto completo hoje';
+                        statusEl.className = 'text-green-600 font-medium';
+                        if (btnEntry) btnEntry.disabled = true;
+                        if (btnExit) btnExit.disabled = true;
+                    } else if (record.entry_time) {
+                        statusEl.textContent = `Entrada: ${record.entry_time}`;
+                        statusEl.className = 'text-blue-600 font-medium';
+                        if (btnEntry) btnEntry.disabled = true;
+                        if (btnExit) btnExit.disabled = false;
+                    } else {
+                        statusEl.textContent = 'Aguardando entrada';
+                        statusEl.className = 'text-gray-600';
+                        if (btnEntry) btnEntry.disabled = false;
+                        if (btnExit) btnExit.disabled = true;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao verificar status do ponto:', error);
+        }
+    },
+
+    /**
+     * Página de Estoque
+     */
+    async initEstoquePage() {
+        console.log('initEstoquePage iniciado');
+        
+        // Configura navegação
+        this.setupBottomNavigation();
+        
+        // Atualiza foto e dados do header
+        const user = API.getUser();
+        this.updateHeaderProfile(user);
+        
+        // Carrega estatísticas se existir função na página
+        if (typeof window.loadInventoryStats === 'function') {
+            window.loadInventoryStats();
+        }
+        
+        // Carrega lista de equipamentos se existir função na página
+        if (typeof window.loadEquipmentList === 'function') {
+            window.loadEquipmentList();
+        }
     },
 
 };

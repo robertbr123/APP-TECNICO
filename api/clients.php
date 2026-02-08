@@ -1,13 +1,23 @@
 <?php
 /**
- * API de Clientes - CRUD Completo
+ * API de Clientes - CRUD Completo (Melhorado)
  * Ondeline Tech - App do Técnico
+ * 
+ * Melhorias:
+ * - Validação de CPF
+ * - Logs estruturados
+ * - Tratamento de erros aprimorado
  */
 
 require_once 'config.php';
+require_once 'Logger.php';
+require_once 'Validator.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
-$userData = requireAuth(); // Requer autenticação
+$userData = requireAuth();
+
+// Log da requisição
+Logger::logRequest('clients.php', $method, array_merge($_GET, ['body' => file_get_contents('php://input')]));
 
 // Busca a cidade do técnico para filtro
 $userCity = null;
@@ -18,7 +28,7 @@ if ($userData['role'] === 'tecnico') {
         $cityStmt->execute([$userData['user_id']]);
         $userCity = $cityStmt->fetch()['city'] ?? null;
     } catch (Exception $e) {
-        // Se falhar, não filtra
+        Logger::warning('Erro ao buscar cidade do técnico', ['user_id' => $userData['user_id']]);
     }
 }
 
@@ -33,16 +43,21 @@ try {
             handlePost($db, $userData);
             break;
         case 'PUT':
-            handlePut($db);
+            handlePut($db, $userData);
             break;
         case 'DELETE':
-            handleDelete($db);
+            handleDelete($db, $userData);
             break;
         default:
+            Logger::warning('Método não permitido', ['method' => $method]);
             jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
     }
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados', 'error' => $e->getMessage()], 500);
+    Logger::logException($e, ['context' => 'database']);
+    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados'], 500);
+} catch (Exception $e) {
+    Logger::logException($e);
+    jsonResponse(['success' => false, 'message' => 'Erro interno do servidor'], 500);
 }
 
 /**
@@ -51,16 +66,17 @@ try {
 function handleGet($db) {
     global $userCity;
 
-    // Verifica se foi passado um CPF específico
     $cpf = $_GET['cpf'] ?? null;
     $search = $_GET['search'] ?? null;
-    $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-    $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $limit = isset($_GET['limit']) ? min(100, max(1, (int)$_GET['limit'])) : 20;
     $offset = ($page - 1) * $limit;
 
+    // Busca por CPF específico
     if ($cpf) {
-        // Busca cliente específico (com filtro de cidade para técnicos)
-        $cleanCpf = preg_replace('/\D/', '', $cpf);
+        $cpfValidation = Validator::validateCPF($cpf);
+        $cleanCpf = $cpfValidation['valid'] ? $cpfValidation['clean'] : preg_replace('/\D/', '', $cpf);
+        
         if ($userCity) {
             $stmt = $db->prepare("SELECT * FROM clients WHERE cpf = ? AND LOWER(city) LIKE LOWER(?)");
             $stmt->execute([$cleanCpf, "%$userCity%"]);
@@ -71,18 +87,18 @@ function handleGet($db) {
         $client = $stmt->fetch();
 
         if (!$client) {
+            Logger::info('Cliente não encontrado', ['cpf' => $cleanCpf]);
             jsonResponse(['success' => false, 'message' => 'Cliente não encontrado'], 404);
         }
 
         jsonResponse(['success' => true, 'data' => $client]);
     }
 
-    // Lista de clientes com busca opcional
+    // Lista de clientes com busca e paginação
     $sql = "SELECT * FROM clients";
     $params = [];
     $conditions = [];
 
-    // Filtro por cidade do técnico (case-insensitive)
     if ($userCity) {
         $conditions[] = "LOWER(city) LIKE LOWER(?)";
         $params[] = "%$userCity%";
@@ -91,24 +107,26 @@ function handleGet($db) {
     if ($search) {
         $searchTerm = "%$search%";
         $conditions[] = "(name LIKE ? OR cpf LIKE ? OR phone LIKE ? OR city LIKE ?)";
-        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+        array_push($params, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
     }
 
     if (!empty($conditions)) {
         $sql .= " WHERE " . implode(' AND ', $conditions);
     }
 
-    // Conta total para paginação
+    // Conta total
     $countSql = str_replace("SELECT *", "SELECT COUNT(*) as total", $sql);
     $countStmt = $db->prepare($countSql);
     $countStmt->execute($params);
     $total = $countStmt->fetch()['total'];
 
-    // Adiciona ordenação e paginação (created_at é o nome correto da coluna)
+    // Busca paginada
     $sql .= " ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
     $clients = $stmt->fetchAll();
+
+    Logger::logDatabase('SELECT', 'clients', count($clients));
 
     jsonResponse([
         'success' => true,
@@ -116,8 +134,10 @@ function handleGet($db) {
         'pagination' => [
             'page' => $page,
             'limit' => $limit,
-            'total' => $total,
-            'pages' => ceil($total / $limit)
+            'total' => (int)$total,
+            'pages' => ceil($total / $limit),
+            'has_next' => ($page * $limit) < $total,
+            'has_prev' => $page > 1
         ]
     ]);
 }
@@ -128,31 +148,53 @@ function handleGet($db) {
 function handlePost($db, $userData) {
     $data = getRequestBody();
 
-    // Log dos dados recebidos para debug
-    error_log("Dados recebidos: " . json_encode($data));
+    Logger::info('Dados recebidos para cadastro', ['data' => $data]);
 
-    // Campos obrigatórios (mínimo necessário)
-    $required = ['cpf', 'name'];
-    foreach ($required as $field) {
-        if (empty($data[$field])) {
-            jsonResponse(['success' => false, 'message' => "Campo obrigatório: $field"], 400);
+    // Validação de campos obrigatórios
+    $requiredValidation = Validator::validateRequired($data, ['cpf', 'name']);
+    if (!$requiredValidation['valid']) {
+        Logger::warning('Campos obrigatórios faltando', ['errors' => $requiredValidation['errors']]);
+        jsonResponse([
+            'success' => false, 
+            'message' => $requiredValidation['message'],
+            'errors' => $requiredValidation['errors']
+        ], 400);
+    }
+
+    // ===== VALIDAÇÃO DE CPF =====
+    $cpfValidation = Validator::validateCPF($data['cpf']);
+    if (!$cpfValidation['valid']) {
+        Logger::warning('CPF inválido', ['cpf' => $data['cpf'], 'error' => $cpfValidation['message']]);
+        jsonResponse([
+            'success' => false, 
+            'message' => $cpfValidation['message']
+        ], 400);
+    }
+
+    $cpf = $cpfValidation['clean'];
+
+    // Validação de telefone (se fornecido)
+    if (!empty($data['phone'])) {
+        $phoneValidation = Validator::validatePhone($data['phone']);
+        if (!$phoneValidation['valid']) {
+            Logger::warning('Telefone inválido', ['phone' => $data['phone']]);
         }
     }
 
-    // Limpa o CPF (remove formatação)
-    $cpf = preg_replace('/\D/', '', $data['cpf']);
-
-    // Verifica se o CPF já existe
+    // Verifica se CPF já existe
     $stmt = $db->prepare("SELECT cpf FROM clients WHERE cpf = ?");
     $stmt->execute([$cpf]);
     if ($stmt->fetch()) {
+        Logger::warning('CPF já cadastrado', ['cpf' => $cpf]);
         jsonResponse(['success' => false, 'message' => 'CPF já cadastrado'], 409);
     }
 
-    // Prepara os dados com valores padrão
     $installer = $data['installer'] ?? $userData['username'];
+    
+    // Sanitiza nome
+    $name = Validator::sanitizeString($data['name'], ['maxLength' => 150]);
 
-    // Insere o cliente com os nomes corretos das colunas do banco
+    // Insere o cliente
     $stmt = $db->prepare("
         INSERT INTO clients (cpf, name, phone, birthDate, cep, city, address, number, complement, planId, pppoe, password, dueDay, observation, installer, status, active, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
@@ -160,7 +202,7 @@ function handlePost($db, $userData) {
 
     $stmt->execute([
         $cpf,
-        $data['name'],
+        $name,
         $data['phone'] ?? null,
         $data['birthDate'] ?? null,
         $data['cep'] ?? null,
@@ -178,6 +220,9 @@ function handlePost($db, $userData) {
         $data['active'] ?? 1
     ]);
 
+    Logger::logDatabase('INSERT', 'clients', 1);
+    Logger::info('Cliente cadastrado', ['cpf' => $cpf, 'name' => $name]);
+
     jsonResponse([
         'success' => true,
         'message' => 'Cliente cadastrado com sucesso',
@@ -188,29 +233,35 @@ function handlePost($db, $userData) {
 /**
  * PUT - Atualizar cliente
  */
-function handlePut($db) {
+function handlePut($db, $userData) {
     $data = getRequestBody();
 
     if (empty($data['cpf'])) {
         jsonResponse(['success' => false, 'message' => 'CPF é obrigatório para atualização'], 400);
     }
 
-    $cpf = preg_replace('/\D/', '', $data['cpf']);
+    $cpfValidation = Validator::validateCPF($data['cpf']);
+    $cpf = $cpfValidation['valid'] ? $cpfValidation['clean'] : preg_replace('/\D/', '', $data['cpf']);
 
     // Verifica se o cliente existe
     $stmt = $db->prepare("SELECT cpf FROM clients WHERE cpf = ?");
     $stmt->execute([$cpf]);
     if (!$stmt->fetch()) {
+        Logger::warning('Cliente não encontrado para atualização', ['cpf' => $cpf]);
         jsonResponse(['success' => false, 'message' => 'Cliente não encontrado'], 404);
     }
 
-    // Monta a query de atualização dinamicamente
+    // Monta a query de atualização
     $updateFields = [];
     $params = [];
     $allowedFields = ['name', 'birthDate', 'phone', 'cep', 'address', 'number', 'complement', 'city', 'planId', 'pppoe', 'password', 'dueDay', 'installer', 'observation', 'status', 'active', 'serial', 'phone_number', 'contrato'];
 
     foreach ($allowedFields as $field) {
         if (isset($data[$field])) {
+            // Sanitiza nome se estiver sendo atualizado
+            if ($field === 'name') {
+                $data[$field] = Validator::sanitizeString($data[$field], ['maxLength' => 150]);
+            }
             $updateFields[] = "$field = ?";
             $params[] = $data[$field];
         }
@@ -225,27 +276,35 @@ function handlePut($db) {
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
 
+    Logger::logDatabase('UPDATE', 'clients', $stmt->rowCount());
+    Logger::info('Cliente atualizado', ['cpf' => $cpf, 'fields' => array_keys($data)]);
+
     jsonResponse(['success' => true, 'message' => 'Cliente atualizado com sucesso']);
 }
 
 /**
  * DELETE - Excluir cliente
  */
-function handleDelete($db) {
+function handleDelete($db, $userData) {
     $cpf = $_GET['cpf'] ?? null;
 
     if (!$cpf) {
         jsonResponse(['success' => false, 'message' => 'CPF é obrigatório para exclusão'], 400);
     }
 
-    $cpf = preg_replace('/\D/', '', $cpf);
+    $cpfValidation = Validator::validateCPF($cpf);
+    $cpf = $cpfValidation['valid'] ? $cpfValidation['clean'] : preg_replace('/\D/', '', $cpf);
 
     $stmt = $db->prepare("DELETE FROM clients WHERE cpf = ?");
     $stmt->execute([$cpf]);
 
     if ($stmt->rowCount() === 0) {
+        Logger::warning('Cliente não encontrado para exclusão', ['cpf' => $cpf]);
         jsonResponse(['success' => false, 'message' => 'Cliente não encontrado'], 404);
     }
+
+    Logger::logDatabase('DELETE', 'clients', 1);
+    Logger::info('Cliente excluído', ['cpf' => $cpf, 'deleted_by' => $userData['username']]);
 
     jsonResponse(['success' => true, 'message' => 'Cliente excluído com sucesso']);
 }

@@ -1,8 +1,12 @@
 <?php
 /**
- * API de Gestão de Estoque de Equipamentos
+ * API de Gestão de Estoque de Equipamentos - Melhorada
  * Controle completo de entrada/saída de equipamentos
  */
+
+require_once 'config.php';
+require_once 'Logger.php';
+require_once 'Validator.php';
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
@@ -15,10 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once 'config.php';
-
 $method = $_SERVER['REQUEST_METHOD'];
 $userData = requireAuth();
+
+Logger::logRequest('inventory.php', $method, $_REQUEST);
 
 try {
     $db = Database::getInstance()->getConnection();
@@ -37,11 +41,15 @@ try {
             handleDelete($db, $userData);
             break;
         default:
+            Logger::warning('Método não permitido', ['method' => $method]);
             jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
     }
 } catch (PDOException $e) {
-    error_log('Erro PDO em inventory.php: ' . $e->getMessage());
+    Logger::logException($e, ['context' => 'database']);
     jsonResponse(['success' => false, 'message' => 'Erro no banco de dados'], 500);
+} catch (Exception $e) {
+    Logger::logException($e);
+    jsonResponse(['success' => false, 'message' => 'Erro interno do servidor'], 500);
 }
 
 /**
@@ -58,8 +66,9 @@ function handleGet($db, $userData) {
             $status = $_GET['status'] ?? null;
             $type = $_GET['type'] ?? null;
             $search = $_GET['search'] ?? null;
-            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
-            $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+            $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+            $limit = isset($_GET['limit']) ? min(100, max(1, (int)$_GET['limit'])) : 50;
+            $offset = ($page - 1) * $limit;
 
             $sql = "SELECT ei.*, 
                             c.name as client_name,
@@ -88,16 +97,28 @@ function handleGet($db, $userData) {
                 $params[] = $searchTerm;
             }
 
-            $sql .= " ORDER BY ei.created_at DESC LIMIT $limit OFFSET $offset";
+            // Conta total
+            $countSql = str_replace("SELECT ei.*, \n                            c.name as client_name,\n                            u.username as current_user", "SELECT COUNT(*) as total", $sql);
+            $countStmt = $db->prepare($countSql);
+            $countStmt->execute($params);
+            $total = $countStmt->fetch()['total'];
 
+            $sql .= " ORDER BY ei.created_at DESC LIMIT $limit OFFSET $offset";
             $stmt = $db->prepare($sql);
             $stmt->execute($params);
             $equipment = $stmt->fetchAll();
 
+            Logger::logDatabase('SELECT', 'equipment_inventory', count($equipment));
+
             jsonResponse([
                 'success' => true,
                 'data' => $equipment,
-                'count' => count($equipment)
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => (int)$total,
+                    'pages' => ceil($total / $limit)
+                ]
             ]);
 
         case 'statistics':
@@ -107,7 +128,7 @@ function handleGet($db, $userData) {
                     status,
                     type,
                     COUNT(*) as count,
-                    COUNT(*) * AVG(purchase_price) as total_value
+                    SUM(purchase_price) as total_value
                 FROM equipment_inventory
                 GROUP BY status, type
                 ORDER BY status, type
@@ -141,8 +162,9 @@ function handleGet($db, $userData) {
 
         case 'movements':
             // Histórico de movimentações
-            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
-            $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+            $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+            $limit = isset($_GET['limit']) ? min(100, max(1, (int)$_GET['limit'])) : 20;
+            $offset = ($page - 1) * $limit;
 
             $stmt = $db->prepare("
                 SELECT m.*, 
@@ -262,6 +284,11 @@ function handlePost($db, $userData) {
 
             // Registra auditoria
             logAudit($db, $userData, 'inventory_add', "Equipamento adicionado: $serialNumber", 'equipment', $equipmentId, "$brand $model");
+            
+            Logger::info('Equipamento adicionado', [
+                'equipment_id' => $equipmentId,
+                'serial' => $serialNumber
+            ]);
 
             jsonResponse([
                 'success' => true,
@@ -283,6 +310,14 @@ function handlePost($db, $userData) {
             if (empty($clientCpf)) {
                 jsonResponse(['success' => false, 'message' => 'CPF do cliente é obrigatório'], 400);
             }
+
+            // Valida CPF
+            $cpfValidation = Validator::validateCPF($clientCpf);
+            if (!$cpfValidation['valid']) {
+                jsonResponse(['success' => false, 'message' => $cpfValidation['message']], 400);
+            }
+
+            $clientCpf = $cpfValidation['clean'];
 
             // Busca equipamento
             $stmt = $db->prepare("SELECT * FROM equipment_inventory WHERE id = ?");
@@ -336,6 +371,11 @@ function handlePost($db, $userData) {
 
             // Registra auditoria
             logAudit($db, $userData, 'inventory_checkout', "Equipamento entregue: {$equipment['serial_number']}", 'equipment', $equipmentId, "{$equipment['brand']} {$equipment['model']}");
+            
+            Logger::info('Equipamento entregue', [
+                'equipment_id' => $equipmentId,
+                'client_cpf' => $clientCpf
+            ]);
 
             jsonResponse([
                 'success' => true,
@@ -490,12 +530,14 @@ function handleDelete($db, $userData) {
         jsonResponse(['success' => false, 'message' => 'Equipamento não encontrado'], 404);
     }
 
-    // Deleta equipamento (CASCADE deletará movimentações)
+    // Deleta equipamento
     $stmt = $db->prepare("DELETE FROM equipment_inventory WHERE id = ?");
     $stmt->execute([$equipmentId]);
 
     // Registra auditoria
     logAudit($db, $userData, 'inventory_delete', "Equipamento removido: {$equipment['serial_number']}", 'equipment', $equipmentId, "{$equipment['brand']} {$equipment['model']}");
+    
+    Logger::info('Equipamento deletado', ['equipment_id' => $equipmentId]);
 
     jsonResponse([
         'success' => true,
@@ -525,6 +567,6 @@ function logAudit($db, $userData, $actionType, $description, $entityType, $entit
             $_SERVER['HTTP_USER_AGENT'] ?? null
         ]);
     } catch (Exception $e) {
-        error_log('Erro ao registrar auditoria: ' . $e->getMessage());
+        Logger::logException($e, ['context' => 'audit']);
     }
 }

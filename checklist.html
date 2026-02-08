@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+    <title>Checklist de Instalação - Ondeline</title>
+    <meta name="theme-color" content="#135bec"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+    <meta name="apple-mobile-web-app-title" content="Ondeline Tech"/>
+    <link rel="manifest" href="manifest.json"/>
+    <link rel="icon" type="image/png" href="logo.png"/>
+    <link rel="apple-touch-icon" href="logo.png"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .checkbox-checked {
+            background-color: #135bec;
+            border-color: #135bec;
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .category-header {
+            transition: all 0.2s ease;
+        }
+        .task-item {
+            transition: all 0.2s ease;
+        }
+        .task-item:hover {
+            background-color: rgba(19, 91, 236, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+    <div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark">
+        <!-- Header -->
+        <div class="flex items-center bg-white dark:bg-gray-900 p-4 pb-2 justify-between border-b border-gray-100 dark:border-gray-800 sticky top-0 z-30">
+            <div class="text-[#111318] dark:text-white flex size-12 shrink-0 items-center cursor-pointer" onclick="window.history.back()">
+                <span class="material-symbols-outlined">arrow_back_ios</span>
+            </div>
+            <h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Checklist</h2>
+            <div class="size-12"></div>
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <div class="flex flex-col gap-4 p-4 pb-32">
+            <!-- Seleção de Cliente -->
+            <div id="client-selection" class="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm">
+                <h3 class="text-[#111318] dark:text-white text-base font-semibold mb-3">Selecionar Cliente</h3>
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        id="client-search" 
+                        class="w-full h-12 px-4 pr-12 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#111318] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        placeholder="Buscar por nome ou CPF..."
+                        autocomplete="off"
+                    />
+                    <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                </div>
+                <div id="search-results" class="hidden mt-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto"></div>
+                
+                <!-- Cliente Selecionado -->
+                <div id="selected-client" class="hidden mt-4 p-3 bg-primary/10 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="size-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold">
+                            <span class="material-symbols-outlined">person</span>
+                        </div>
+                        <div class="flex-1">
+                            <p id="selected-name" class="text-[#111318] dark:text-white font-medium"></p>
+                            <p id="selected-cpf" class="text-sm text-gray-600 dark:text-gray-400"></p>
+                        </div>
+                        <button id="btn-change-client" class="text-primary text-sm font-medium">Trocar</button>
+                    </div>
+                </div>
+
+                <!-- Tipo de Instalação -->
+                <div class="mt-4">
+                    <label class="text-sm text-gray-600 dark:text-gray-400 block mb-2">Tipo de Instalação</label>
+                    <select id="installation-type" class="w-full h-12 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#111318] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50">
+                        <option value="new">Nova Instalação</option>
+                        <option value="migration">Migração</option>
+                        <option value="repair">Reparo</option>
+                        <option value="maintenance">Manutenção</option>
+                    </select>
+                </div>
+
+                <button id="btn-start-checklist" class="w-full mt-4 h-12 bg-primary text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Iniciar Checklist
+                </button>
+            </div>
+
+            <!-- Checklist em Andamento -->
+            <div id="checklist-active" class="hidden">
+                <!-- Progresso -->
+                <div class="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[#111318] dark:text-white font-semibold">Progresso</span>
+                        <span id="progress-text" class="text-primary font-bold">0%</span>
+                    </div>
+                    <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="h-full bg-primary progress-bar" style="width: 0%"></div>
+                    </div>
+                    <p id="progress-detail" class="text-sm text-gray-600 dark:text-gray-400 mt-2">0 de 0 tarefas concluídas</p>
+                </div>
+
+                <!-- Tarefas por Categoria -->
+                <div id="tasks-container" class="mt-4 space-y-4">
+                    <!-- As tarefas serão inseridas aqui dinamicamente -->
+                </div>
+
+                <!-- Ações -->
+                <div class="mt-6 space-y-3">
+                    <button id="btn-complete" class="w-full h-12 bg-green-500 text-white rounded-lg font-semibold disabled:opacity-50" disabled>
+                        Finalizar Instalação
+                    </button>
+                    <button id="btn-cancel" class="w-full h-12 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Checklists Anteriores -->
+            <div id="checklists-list" class="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm">
+                <h3 class="text-[#111318] dark:text-white text-base font-semibold mb-3">Checklists Recentes</h3>
+                <div id="checklists-container" class="space-y-3">
+                    <p class="text-gray-500 text-center py-4">Nenhum checklist encontrado</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navegação Inferior -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 px-6 py-2 flex justify-around items-center z-50">
+            <a href="dashboard.html" class="flex flex-col items-center gap-1 text-gray-400 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined">home</span>
+                <span class="text-xs">Início</span>
+            </a>
+            <a href="consultar.html" class="flex flex-col items-center gap-1 text-gray-400 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined">people</span>
+                <span class="text-xs">Clientes</span>
+            </a>
+            <a href="checklist.html" class="flex flex-col items-center gap-1 text-primary">
+                <span class="material-symbols-outlined">checklist</span>
+                <span class="text-xs font-medium">Checklist</span>
+            </a>
+            <a href="ajustes.html" class="flex flex-col items-center gap-1 text-gray-400 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="text-xs">Ajustes</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Modal de Foto -->
+    <div id="photo-modal" class="fixed inset-0 bg-black/90 z-50 hidden flex-col items-center justify-center p-4">
+        <div class="absolute top-4 right-4">
+            <button id="btn-close-photo" class="text-white p-2">
+                <span class="material-symbols-outlined text-3xl">close</span>
+            </button>
+        </div>
+        <video id="camera-video" class="max-w-full max-h-[70vh] rounded-lg" autoplay playsinline></video>
+        <canvas id="camera-canvas" class="hidden"></canvas>
+        <div class="mt-4 flex gap-4">
+            <button id="btn-capture" class="size-16 rounded-full bg-white flex items-center justify-center">
+                <div class="size-12 rounded-full border-4 border-primary"></div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-xl shadow-lg z-50 hidden"></div>
+
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/feedback.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // Estado
+        let selectedClient = null;
+        let currentChecklist = null;
+        let tasks = [];
+        let currentTaskId = null;
+
+        // Categorias
+        const categories = {
+            'pre_installation': 'Pré-instalação',
+            'installation': 'Instalação',
+            'configuration': 'Configuração',
+            'testing': 'Testes',
+            'documentation': 'Documentação'
+        };
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            initEventListeners();
+            loadRecentChecklists();
+        });
+
+        function initEventListeners() {
+            // Busca de cliente
+            const searchInput = document.getElementById('client-search');
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim();
+                
+                if (query.length < 2) {
+                    document.getElementById('search-results').classList.add('hidden');
+                    return;
+                }
+
+                searchTimeout = setTimeout(() => searchClients(query), 300);
+            });
+
+            // Trocar cliente
+            document.getElementById('btn-change-client').addEventListener('click', () => {
+                selectedClient = null;
+                document.getElementById('selected-client').classList.add('hidden');
+                document.getElementById('client-search').disabled = false;
+                document.getElementById('client-search').value = '';
+                document.getElementById('client-search').focus();
+                updateStartButton();
+            });
+
+            // Iniciar checklist
+            document.getElementById('btn-start-checklist').addEventListener('click', startChecklist);
+
+            // Finalizar instalação
+            document.getElementById('btn-complete').addEventListener('click', completeChecklist);
+
+            // Cancelar
+            document.getElementById('btn-cancel').addEventListener('click', () => {
+                if (confirm('Tem certeza que deseja cancelar? O progresso será perdido.')) {
+                    location.reload();
+                }
+            });
+
+            // Fechar modal de foto
+            document.getElementById('btn-close-photo').addEventListener('click', closePhotoModal);
+            document.getElementById('btn-capture').addEventListener('click', capturePhoto);
+        }
+
+        // Busca clientes
+        async function searchClients(query) {
+            try {
+                const response = await API.getClients({ search: query, limit: 10 });
+                if (response.success) {
+                    renderSearchResults(response.data);
+                }
+            } catch (error) {
+                console.error('Erro ao buscar clientes:', error);
+            }
+        }
+
+        // Renderiza resultados da busca
+        function renderSearchResults(clients) {
+            const container = document.getElementById('search-results');
+            
+            if (clients.length === 0) {
+                container.innerHTML = '<div class="p-3 text-gray-500 text-center">Nenhum cliente encontrado</div>';
+            } else {
+                container.innerHTML = clients.map(client => `
+                    <div class="client-result p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-0" 
+                         data-cpf="${client.cpf}" 
+                         data-name="${client.name}">
+                        <p class="text-[#111318] dark:text-white font-medium">${client.name}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">CPF: ${formatCPF(client.cpf)}</p>
+                    </div>
+                `).join('');
+
+                container.querySelectorAll('.client-result').forEach(el => {
+                    el.addEventListener('click', () => selectClient(el.dataset.cpf, el.dataset.name));
+                });
+            }
+            
+            container.classList.remove('hidden');
+        }
+
+        // Seleciona cliente
+        function selectClient(cpf, name) {
+            selectedClient = { cpf, name };
+            document.getElementById('selected-name').textContent = name;
+            document.getElementById('selected-cpf').textContent = formatCPF(cpf);
+            document.getElementById('selected-client').classList.remove('hidden');
+            document.getElementById('search-results').classList.add('hidden');
+            document.getElementById('client-search').disabled = true;
+            updateStartButton();
+        }
+
+        // Atualiza botão de iniciar
+        function updateStartButton() {
+            document.getElementById('btn-start-checklist').disabled = !selectedClient;
+        }
+
+        // Inicia checklist
+        async function startChecklist() {
+            if (!selectedClient) return;
+
+            try {
+                const type = document.getElementById('installation-type').value;
+                
+                const response = await API.createChecklist({
+                    client_cpf: selectedClient.cpf,
+                    installation_type: type
+                });
+
+                if (response.success) {
+                    currentChecklist = response.data.id;
+                    showChecklist();
+                    loadTasks();
+                } else {
+                    showToast(response.message, 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao criar checklist:', error);
+                showToast('Erro ao iniciar checklist', 'error');
+            }
+        }
+
+        // Mostra tela de checklist
+        function showChecklist() {
+            document.getElementById('client-selection').classList.add('hidden');
+            document.getElementById('checklists-list').classList.add('hidden');
+            document.getElementById('checklist-active').classList.remove('hidden');
+        }
+
+        // Carrega tarefas
+        async function loadTasks() {
+            try {
+                const response = await API.getChecklist(currentChecklist);
+                if (response.success) {
+                    tasks = response.data.items;
+                    renderTasks();
+                    updateProgress();
+                }
+            } catch (error) {
+                console.error('Erro ao carregar tarefas:', error);
+            }
+        }
+
+        // Renderiza tarefas
+        function renderTasks() {
+            const container = document.getElementById('tasks-container');
+            
+            // Agrupa por categoria
+            const grouped = {};
+            tasks.forEach(task => {
+                if (!grouped[task.task_category]) {
+                    grouped[task.task_category] = [];
+                }
+                grouped[task.task_category].push(task);
+            });
+
+            container.innerHTML = Object.entries(categories).map(([key, label]) => {
+                const categoryTasks = grouped[key] || [];
+                if (categoryTasks.length === 0) return '';
+
+                const completedCount = categoryTasks.filter(t => t.is_completed).length;
+                const expanded = completedCount < categoryTasks.length;
+
+                return `
+                    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-sm overflow-hidden">
+                        <div class="category-header p-4 flex items-center justify-between cursor-pointer" 
+                             onclick="toggleCategory('${key}')">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-primary">
+                                    ${getCategoryIcon(key)}
+                                </span>
+                                <div>
+                                    <h4 class="text-[#111318] dark:text-white font-semibold">${label}</h4>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                        ${completedCount}/${categoryTasks.length} concluídas
+                                    </p>
+                                </div>
+                            </div>
+                            <span class="material-symbols-outlined text-gray-400 category-arrow" id="arrow-${key}">
+                                ${expanded ? 'expand_less' : 'expand_more'}
+                            </span>
+                        </div>
+                        <div class="category-tasks ${expanded ? '' : 'hidden'}" id="tasks-${key}">
+                            ${categoryTasks.map(task => `
+                                <div class="task-item p-4 border-t border-gray-100 dark:border-gray-800 flex items-start gap-3">
+                                    <div class="flex-shrink-0 mt-0.5">
+                                        <input type="checkbox" 
+                                               class="w-6 h-6 rounded border-2 border-gray-300 dark:border-gray-600 cursor-pointer appearance-none checked:bg-primary checked:border-primary checked:bg-[url('data:image/svg+xml,%3csvg viewBox=%220 0 16 16%22 fill=%22white%22 xmlns=%22http://www.w3.org/2000/svg%22%3e%3cpath d=%22M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%22/%3e%3c/svg%3e')]"
+                                               ${task.is_completed ? 'checked' : ''}
+                                               onchange="toggleTask(${task.id}, this.checked)">
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-[#111318] dark:text-white ${task.is_completed ? 'line-through text-gray-500' : ''}">
+                                            ${task.task_name}
+                                            ${task.is_required ? '<span class="text-red-500">*</span>' : ''}
+                                        </p>
+                                        ${task.notes ? `<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${task.notes}</p>` : ''}
+                                    </div>
+                                    <button onclick="openPhotoModal(${task.id})" 
+                                            class="flex-shrink-0 p-2 text-gray-400 hover:text-primary transition-colors">
+                                        <span class="material-symbols-outlined">photo_camera</span>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Toggle categoria
+        function toggleCategory(key) {
+            const tasksEl = document.getElementById(`tasks-${key}`);
+            const arrowEl = document.getElementById(`arrow-${key}`);
+            tasksEl.classList.toggle('hidden');
+            arrowEl.textContent = tasksEl.classList.contains('hidden') ? 'expand_more' : 'expand_less';
+        }
+
+        // Get ícone da categoria
+        function getCategoryIcon(category) {
+            const icons = {
+                'pre_installation': 'inventory_2',
+                'installation': 'build',
+                'configuration': 'settings',
+                'testing': 'speed',
+                'documentation': 'description'
+            };
+            return icons[category] || 'check_circle';
+        }
+
+        // Toggle tarefa
+        async function toggleTask(taskId, completed) {
+            try {
+                if (completed) {
+                    await API.completeChecklistItem(taskId);
+                } else {
+                    await API.uncheckChecklistItem(taskId);
+                }
+                
+                // Atualiza local
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.is_completed = completed;
+                }
+                
+                renderTasks();
+                updateProgress();
+            } catch (error) {
+                console.error('Erro ao atualizar tarefa:', error);
+                showToast('Erro ao atualizar tarefa', 'error');
+            }
+        }
+
+        // Atualiza progresso
+        function updateProgress() {
+            const total = tasks.length;
+            const completed = tasks.filter(t => t.is_completed).length;
+            const required = tasks.filter(t => t.is_required);
+            const requiredCompleted = required.filter(t => t.is_completed).length;
+            
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            document.getElementById('progress-text').textContent = `${percent}%`;
+            document.getElementById('progress-detail').textContent = 
+                `${completed} de ${total} tarefas concluídas (${requiredCompleted}/${required.length} obrigatórias)`;
+            
+            // Habilita botão de finalizar se todas obrigatórias estiverem completas
+            const allRequiredDone = required.length === requiredCompleted;
+            document.getElementById('btn-complete').disabled = !allRequiredDone;
+        }
+
+        // Abre modal de foto
+        function openPhotoModal(taskId) {
+            currentTaskId = taskId;
+            document.getElementById('photo-modal').classList.remove('hidden');
+            document.getElementById('photo-modal').classList.add('flex');
+            initCamera();
+        }
+
+        // Fecha modal de foto
+        function closePhotoModal() {
+            document.getElementById('photo-modal').classList.add('hidden');
+            document.getElementById('photo-modal').classList.remove('flex');
+            stopCamera();
+        }
+
+        // Inicializa câmera
+        let stream = null;
+        async function initCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                document.getElementById('camera-video').srcObject = stream;
+            } catch (error) {
+                console.error('Erro ao acessar câmera:', error);
+                showToast('Erro ao acessar câmera', 'error');
+            }
+        }
+
+        // Para câmera
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+
+        // Captura foto
+        async function capturePhoto() {
+            const video = document.getElementById('camera-video');
+            const canvas = document.getElementById('camera-canvas');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            const base64 = canvas.toDataURL('image/jpeg', 0.8);
+            
+            try {
+                // Aqui você enviaria a foto para o servidor
+                // await API.uploadPhoto(...)
+                
+                closePhotoModal();
+                showToast('Foto anexada com sucesso!', 'success');
+            } catch (error) {
+                console.error('Erro ao salvar foto:', error);
+                showToast('Erro ao salvar foto', 'error');
+            }
+        }
+
+        // Finaliza checklist
+        async function completeChecklist() {
+            try {
+                const response = await API.completeChecklist(currentChecklist);
+                if (response.success) {
+                    showToast('Instalação finalizada com sucesso!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(response.message, 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao finalizar:', error);
+                showToast('Erro ao finalizar instalação', 'error');
+            }
+        }
+
+        // Carrega checklists recentes
+        async function loadRecentChecklists() {
+            try {
+                const response = await API.getChecklists({ limit: 5 });
+                if (response.success && response.data.length > 0) {
+                    renderChecklistsList(response.data);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar checklists:', error);
+            }
+        }
+
+        // Renderiza lista de checklists
+        function renderChecklistsList(checklists) {
+            const container = document.getElementById('checklists-container');
+            
+            container.innerHTML = checklists.map(checklist => {
+                const statusColors = {
+                    'pending': 'bg-yellow-100 text-yellow-700',
+                    'in_progress': 'bg-blue-100 text-blue-700',
+                    'completed': 'bg-green-100 text-green-700',
+                    'cancelled': 'bg-red-100 text-red-700'
+                };
+                
+                const statusLabels = {
+                    'pending': 'Pendente',
+                    'in_progress': 'Em andamento',
+                    'completed': 'Concluído',
+                    'cancelled': 'Cancelado'
+                };
+
+                return `
+                    <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex items-center justify-between">
+                        <div>
+                            <p class="text-[#111318] dark:text-white font-medium">${checklist.client_name}</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                ${new Date(checklist.created_at).toLocaleDateString('pt-BR')}
+                            </p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium ${statusColors[checklist.status]}">
+                            ${statusLabels[checklist.status]}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Formata CPF
+        function formatCPF(cpf) {
+            cpf = cpf.replace(/\D/g, '');
+            return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+
+        // Toast
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `fixed top-20 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-lg z-50 ${
+                type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-gray-800'
+            } text-white`;
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

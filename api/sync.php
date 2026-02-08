@@ -16,9 +16,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'config.php';
+require_once 'Logger.php';
+require_once 'Validator.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $userData = requireAuth();
+
+Logger::logRequest('sync.php', $method, $_REQUEST);
 
 try {
     $db = Database::getInstance()->getConnection();
@@ -36,7 +40,11 @@ try {
             jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
     }
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados', 'error' => $e->getMessage()], 500);
+    Logger::logException($e, ['context' => 'database']);
+    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados'], 500);
+} catch (Exception $e) {
+    Logger::logException($e);
+    jsonResponse(['success' => false, 'message' => 'Erro interno do servidor'], 500);
 }
 
 /**
@@ -173,7 +181,13 @@ function handlePost($db, $userData) {
  * Sincroniza criação de cliente
  */
 function syncCreateClient($db, $data, $userData) {
-    $cpf = preg_replace('/\D/', '', $data['cpf']);
+    // Valida CPF
+    $cpfValidation = Validator::validateCPF($data['cpf'] ?? '');
+    if (!$cpfValidation['valid']) {
+        throw new Exception($cpfValidation['message']);
+    }
+    
+    $cpf = $cpfValidation['clean'];
     
     // Verifica se já existe
     $stmt = $db->prepare("SELECT cpf FROM clients WHERE cpf = ?");
@@ -373,6 +387,6 @@ function logAudit($db, $userData, $actionType, $description, $entityType, $entit
             $_SERVER['HTTP_USER_AGENT'] ?? null
         ]);
     } catch (Exception $e) {
-        error_log('Erro ao registrar auditoria: ' . $e->getMessage());
+        Logger::logException($e, ['context' => 'audit']);
     }
 }
