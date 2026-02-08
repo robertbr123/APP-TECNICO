@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html class="light" lang="pt-BR">
-<head>
+<html class="light" lang="pt-BR"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
 <title>Gestão de Estoque - Ondeline</title>
+<!-- PWA Meta Tags -->
 <meta name="theme-color" content="#135bec"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -14,32 +14,86 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#F2F2F7",
+                        "background-dark": "#000000",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#1C1C1E"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "ios": "12px",
+                        "ios-lg": "16px",
+                        "ios-xl": "20px"
+                    }
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-background-light dark:bg-background-dark font-display text-[#000000] dark:text-white antialiased;
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .safe-top {
+            padding-top: env(safe-area-inset-top);
+        }
+    </style>
 <style>
     .material-symbols-outlined {
         font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
     body {
-        min-height: 100dvh;
+      min-height: max(884px, 100dvh);
     }
-</style>
-</head>
-<body class="bg-background-light dark:bg-background-dark font-display">
-<!-- Header -->
-<div class="flex items-center bg-white dark:bg-background-dark p-4 pb-2 justify-between border-b border-gray-100 dark:border-gray-800 sticky top-0 z-30">
+  </style>
+  </head>
+<body class="min-h-screen">
+<header class="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top">
+<div class="flex items-center justify-between px-4 h-16">
 <div class="flex items-center gap-3">
-<div class="text-[#111318] dark:text-white flex items-center cursor-pointer" onclick="window.history.back()">
-<span class="material-symbols-outlined">arrow_back_ios</span>
+<div class="relative">
+<div id="user-avatar" class="size-10 rounded-full border border-gray-100 dark:border-gray-800 bg-center bg-cover bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xl">person</span>
 </div>
-<h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Estoque</h2>
+<div class="absolute bottom-0 right-0 size-3 bg-green-500 border-2 border-white dark:border-black rounded-full"></div>
 </div>
-<button id="btn-add" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-medium">
-<span class="material-symbols-outlined">add</span>
-<span>Adicionar</span>
+<div class="flex flex-col">
+<span id="header-user-name" class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white leading-none">Ondeline</span>
+<span id="header-user-role" class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tecnico de Campo</span>
+</div>
+</div>
+<button class="flex items-center justify-center size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
 </button>
 </div>
+</header>
+
+<main class="px-4 pb-32">
+<section class="py-6">
+<h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Gestão de Estoque</h1>
+<p class="text-[15px] text-gray-500 dark:text-gray-400 mt-1.5">Controle de equipamentos e materiais</p>
+</section>
 
 <!-- Tabs -->
-<div class="bg-white dark:bg-background-dark px-4 py-3 border-b border-gray-100 dark:border-gray-800 overflow-x-auto">
+<div class="bg-white dark:bg-card-dark px-4 py-3 rounded-ios-xl shadow-sm border border-gray-100 dark:border-white/5 mb-6 overflow-x-auto">
 <div class="flex gap-2 min-w-max">
 <button class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white" data-tab="list">Lista</button>
 <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-tab="stats">Estatísticas</button>
@@ -48,14 +102,12 @@
 </div>
 </div>
 
-<!-- Conteúdo -->
-<div class="p-4 pb-32">
 <!-- Tab: Lista -->
 <div id="tab-list" class="tab-content">
 <!-- Filtros -->
-<div class="bg-white dark:bg-background-dark rounded-xl border border-gray-100 dark:border-gray-800 p-4 mb-4">
+<div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm border border-gray-100 dark:border-white/5 mb-4">
 <div class="grid grid-cols-2 gap-3 mb-3">
-<select id="filter-type" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm">
+<select id="filter-type" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-[#000000] dark:text-white">
 <option value="">Todos os tipos</option>
 <option value="router">Roteador</option>
 <option value="modem">Modem</option>
@@ -64,7 +116,7 @@
 <option value="antenna">Antena</option>
 <option value="other">Outro</option>
 </select>
-<select id="filter-status" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm">
+<select id="filter-status" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-[#000000] dark:text-white">
 <option value="">Todos os status</option>
 <option value="available">Disponível</option>
 <option value="in_use">Em uso</option>
@@ -75,57 +127,63 @@
 </div>
 <div class="relative">
 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-<input id="search-input" class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm" placeholder="Buscar por serial, modelo ou marca">
+<input id="search-input" class="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-[#000000] dark:text-white" placeholder="Buscar por serial, modelo ou marca">
 </div>
 </div>
 
+<!-- Botão Adicionar -->
+<button id="btn-add" class="w-full h-[50px] bg-primary hover:bg-blue-600 active:scale-[0.98] transition-all text-white rounded-ios-xl flex items-center justify-center gap-2 font-semibold text-base shadow-lg shadow-primary/25 mb-4">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                Adicionar Equipamento
+            </button>
+
 <!-- Lista de equipamentos -->
 <div id="equipment-list" class="space-y-3">
-<p class="text-gray-500 text-center py-8">Carregando equipamentos...</p>
+<p class="text-gray-500 dark:text-gray-400 text-center py-8">Carregando equipamentos...</p>
 </div>
 </div>
 
 <!-- Tab: Estatísticas -->
 <div id="tab-stats" class="tab-content hidden">
-<div class="bg-gradient-to-r from-primary to-blue-600 rounded-xl p-6 text-white mb-4">
+<div class="bg-gradient-to-r from-primary to-blue-600 rounded-ios-xl p-6 text-white mb-4 shadow-lg shadow-primary/25">
 <p class="text-sm opacity-80 mb-1">Valor Total do Estoque</p>
 <p class="text-3xl font-bold" id="total-value">R$ 0,00</p>
 </div>
 
 <div class="grid grid-cols-2 gap-4 mb-4">
-<div class="bg-green-50 dark:bg-green-500/10 rounded-xl p-4">
-<p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Disponíveis</p>
+<div class="bg-green-50 dark:bg-green-500/10 rounded-ios-xl p-4">
+<p class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Disponíveis</p>
 <p class="text-2xl font-bold text-green-600 dark:text-green-400" id="stat-available">0</p>
 </div>
-<div class="bg-blue-50 dark:bg-blue-500/10 rounded-xl p-4">
-<p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Em Uso</p>
+<div class="bg-blue-50 dark:bg-blue-500/10 rounded-ios-xl p-4">
+<p class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Em Uso</p>
 <p class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="stat-in-use">0</p>
 </div>
 </div>
 
 <div id="stats-by-type" class="space-y-3">
-<p class="text-gray-500 text-center py-4">Carregando estatísticas...</p>
+<p class="text-gray-500 dark:text-gray-400 text-center py-4">Carregando estatísticas...</p>
 </div>
 </div>
 
 <!-- Tab: Movimentações -->
 <div id="tab-movements" class="tab-content hidden">
 <div id="movements-list" class="space-y-3">
-<p class="text-gray-500 text-center py-8">Carregando movimentações...</p>
+<p class="text-gray-500 dark:text-gray-400 text-center py-8">Carregando movimentações...</p>
 </div>
 </div>
 
 <!-- Tab: Alertas -->
 <div id="tab-alerts" class="tab-content hidden">
 <div id="alerts-list" class="space-y-3">
-<p class="text-gray-500 text-center py-8">Nenhum alerta encontrado</p>
+<p class="text-gray-500 dark:text-gray-400 text-center py-8">Nenhum alerta encontrado</p>
 </div>
 </div>
-</div>
+</main>
 
 <!-- Modal Adicionar Equipamento -->
 <div id="modal-add" class="fixed inset-0 bg-black/50 flex items-end justify-center z-50 hidden">
-<div class="bg-white dark:bg-background-dark w-full max-w-[600px] rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto">
+<div class="bg-white dark:bg-card-dark w-full max-w-[600px] rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto">
 <div class="flex items-center justify-between mb-6">
 <h3 class="text-xl font-bold text-[#111318] dark:text-white">Adicionar Equipamento</h3>
 <button id="btn-close-modal" class="size-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
@@ -136,22 +194,22 @@
 <form id="form-add" class="space-y-4">
 <div>
 <label class="block text-sm font-semibold text-[#111318] dark:text-gray-300 mb-2">Número de Série *</label>
-<input type="text" id="input-serial" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" placeholder="SN123456789" required uppercase>
+<input type="text" id="input-serial" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#000000] dark:text-white" placeholder="SN123456789" required uppercase>
 </div>
 
 <div>
 <label class="block text-sm font-semibold text-[#111318] dark:text-gray-300 mb-2">Modelo *</label>
-<input type="text" id="input-model" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" placeholder="Ex: Archer C6" required>
+<input type="text" id="input-model" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#000000] dark:text-white" placeholder="Ex: Archer C6" required>
 </div>
 
 <div>
 <label class="block text-sm font-semibold text-[#111318] dark:text-gray-300 mb-2">Marca</label>
-<input type="text" id="input-brand" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" placeholder="Ex: TP-Link">
+<input type="text" id="input-brand" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#000000] dark:text-white" placeholder="Ex: TP-Link">
 </div>
 
 <div>
 <label class="block text-sm font-semibold text-[#111318] dark:text-gray-300 mb-2">Tipo</label>
-<select id="input-type" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+<select id="input-type" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#000000] dark:text-white">
 <option value="router">Roteador</option>
 <option value="modem">Modem</option>
 <option value="onu">ONU</option>
@@ -163,26 +221,26 @@
 
 <div>
 <label class="block text-sm font-semibold text-[#111318] dark:text-gray-300 mb-2">Localização</label>
-<input type="text" id="input-location" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" placeholder="Ex: Estoque Principal">
+<input type="text" id="input-location" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#000000] dark:text-white" placeholder="Ex: Estoque Principal">
 </div>
 
 <div class="grid grid-cols-2 gap-4">
 <div>
 <label class="block text-sm font-semibold text-[#111318] dark:text-gray-300 mb-2">Data de Compra</label>
-<input type="date" id="input-purchase-date" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+<input type="date" id="input-purchase-date" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#000000] dark:text-white">
 </div>
 <div>
 <label class="block text-sm font-semibold text-[#111318] dark:text-gray-300 mb-2">Preço (R$)</label>
-<input type="number" id="input-price" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" placeholder="0.00" step="0.01">
+<input type="number" id="input-price" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#000000] dark:text-white" placeholder="0.00" step="0.01">
 </div>
 </div>
 
 <div>
 <label class="block text-sm font-semibold text-[#111318] dark:text-gray-300 mb-2">Observações</label>
-<textarea id="input-notes" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-h-[100px]" placeholder="Observações sobre o equipamento"></textarea>
+<textarea id="input-notes" class="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-h-[100px] text-[#000000] dark:text-white" placeholder="Observações sobre o equipamento"></textarea>
 </div>
 
-<button type="submit" class="w-full py-4 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold flex items-center justify-center gap-2">
+<button type="submit" class="w-full py-4 rounded-ios-xl bg-primary hover:bg-primary/90 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25">
 <span class="material-symbols-outlined">add</span>
 Adicionar Equipamento
 </button>
@@ -190,9 +248,35 @@ Adicionar Equipamento
 </div>
 </div>
 
-<!-- Scripts -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-black/80 ios-blur border-t border-gray-200 dark:border-white/10 safe-bottom z-50">
+<div class="flex justify-around items-center h-16">
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="dashboard.html">
+<span class="material-symbols-outlined text-[26px]">home</span>
+<span class="text-[10px] font-medium">Início</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="mapa.html">
+<span class="material-symbols-outlined text-[26px]">map</span>
+<span class="text-[10px] font-medium">Rotas</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="ponto.html">
+<span class="material-symbols-outlined text-[26px]">punch_clock</span>
+<span class="text-[10px] font-medium">Ponto</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="consultar.html">
+<span class="material-symbols-outlined text-[26px]">groups</span>
+<span class="text-[10px] font-medium">Clientes</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-primary" href="estoque.html">
+<span class="material-symbols-outlined text-[26px]" style="font-variation-settings: 'FILL' 1">inventory_2</span>
+<span class="text-[10px] font-semibold">Estoque</span>
+</a>
+</div>
+</nav>
+
+<!-- Scripts do App -->
 <script src="js/api.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/app.js"></script>
 <script src="js/feedback.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
@@ -251,15 +335,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             const response = await API.inventory(data);
             if (response.success) {
-                showSuccess('Equipamento adicionado com sucesso!');
+                App.showToast('Equipamento adicionado com sucesso!', 'success');
                 document.getElementById('modal-add').classList.add('hidden');
                 document.getElementById('form-add').reset();
                 loadEquipmentList();
             } else {
-                showError('Erro: ' + response.message);
+                App.showToast('Erro: ' + response.message, 'error');
             }
         } catch (error) {
-            showError('Erro ao adicionar: ' + error.message);
+            App.showToast('Erro ao adicionar: ' + error.message, 'error');
         } finally {
             this.querySelector('button[type="submit"]').disabled = false;
             this.querySelector('button[type="submit"]').innerHTML = '<span class="material-symbols-outlined">add</span> Adicionar Equipamento';
@@ -286,7 +370,7 @@ async function loadEquipmentList() {
     const status = document.getElementById('filter-status').value;
     const search = document.getElementById('search-input').value;
 
-    container.innerHTML = '<p class="text-gray-500 text-center py-8"><span class="material-symbols-outlined animate-spin">sync</span> Carregando...</p>';
+    container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8"><span class="material-symbols-outlined animate-spin">sync</span> Carregando...</p>';
 
     try {
         const response = await fetch(`/api/inventory.php?action=list&status=${status}&type=${type}&search=${search}`, {
@@ -316,33 +400,33 @@ async function loadEquipmentList() {
                 const statusLabel = statusLabels[equip.status] || equip.status;
 
                 return `
-                    <div class="bg-white dark:bg-background-dark rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+                    <div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm border border-gray-100 dark:border-white/5">
                         <div class="flex items-start justify-between mb-2">
                             <div>
                                 <h4 class="font-bold text-[#111318] dark:text-white">${equip.serial_number}</h4>
-                                <p class="text-sm text-gray-500">${equip.brand} ${equip.model}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">${equip.brand} ${equip.model}</p>
                             </div>
                             <span class="px-3 py-1 rounded-full text-xs font-medium ${statusClass}">${statusLabel}</span>
                         </div>
-                        <div class="text-xs text-gray-500 space-y-1">
+                        <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
                             <p><span class="material-symbols-outlined text-sm align-middle">category</span> ${equip.type}</p>
                             <p><span class="material-symbols-outlined text-sm align-middle">location_on</span> ${equip.location}</p>
                             ${equip.client_name ? `<p><span class="material-symbols-outlined text-sm align-middle">person</span> ${equip.client_name}</p>` : ''}
                         </div>
                         <div class="flex gap-2 mt-3">
                             ${equip.status === 'available' ? `
-                                <button onclick="checkoutEquipment(${equip.id}, '${equip.serial_number}')" class="flex-1 py-2 rounded-lg bg-green-500 text-white text-sm font-medium">
+                                <button onclick="checkoutEquipment(${equip.id}, '${equip.serial_number}')" class="flex-1 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium active:scale-[0.98]">
                                     <span class="material-symbols-outlined">output</span>
                                     Entregar
                                 </button>
                             ` : ''}
                             ${equip.status === 'in_use' ? `
-                                <button onclick="returnEquipment(${equip.id}, '${equip.serial_number}')" class="flex-1 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium">
+                                <button onclick="returnEquipment(${equip.id}, '${equip.serial_number}')" class="flex-1 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium active:scale-[0.98]">
                                     <span class="material-symbols-outlined">input</span>
                                     Retornar
                                 </button>
                             ` : ''}
-                            <button onclick="editEquipment(${equip.id})" class="flex-1 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium">
+                            <button onclick="editEquipment(${equip.id})" class="flex-1 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium active:scale-[0.98]">
                                 <span class="material-symbols-outlined">edit</span>
                                 Editar
                             </button>
@@ -351,7 +435,7 @@ async function loadEquipmentList() {
                 `;
             }).join('');
         } else {
-            container.innerHTML = '<p class="text-gray-500 text-center py-8">Nenhum equipamento encontrado</p>';
+            container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">Nenhum equipamento encontrado</p>';
         }
     } catch (error) {
         container.innerHTML = '<p class="text-red-500 text-center py-8">Erro ao carregar: ' + error.message + '</p>';
@@ -374,15 +458,15 @@ async function loadStatistics() {
 
             const container = document.getElementById('stats-by-type');
             container.innerHTML = result.data.by_status_type.map(stat => `
-                <div class="bg-white dark:bg-background-dark rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+                <div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm border border-gray-100 dark:border-white/5">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="font-medium text-[#111318] dark:text-white capitalize">${stat.type}</p>
-                            <p class="text-sm text-gray-500">${stat.status}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${stat.status}</p>
                         </div>
                         <div class="text-right">
                             <p class="text-2xl font-bold text-primary">${stat.count}</p>
-                            <p class="text-sm text-gray-500">${Utils.formatCurrency(stat.total_value)}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${Utils.formatCurrency(stat.total_value)}</p>
                         </div>
                     </div>
                 </div>
@@ -395,7 +479,7 @@ async function loadStatistics() {
 
 async function loadMovements() {
     const container = document.getElementById('movements-list');
-    container.innerHTML = '<p class="text-gray-500 text-center py-8"><span class="material-symbols-outlined animate-spin">sync</span> Carregando...</p>';
+    container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8"><span class="material-symbols-outlined animate-spin">sync</span> Carregando...</p>';
 
     try {
         const response = await fetch('/api/inventory.php?action=movements&limit=20', {
@@ -425,12 +509,12 @@ async function loadMovements() {
                 };
 
                 return `
-                    <div class="bg-white dark:bg-background-dark rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+                    <div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm border border-gray-100 dark:border-white/5">
                         <div class="flex items-start justify-between">
                             <div class="flex-1">
                                 <p class="font-semibold text-[#111318] dark:text-white">${mov.serial_number}</p>
-                                <p class="text-sm text-gray-500">${mov.brand} ${mov.model}</p>
-                                <div class="text-xs text-gray-500 mt-2">
+                                <p class="text-sm text-gray-500 dark:text-gray-400">${mov.brand} ${mov.model}</p>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
                                     <p><span class="material-symbols-outlined text-sm align-middle">person</span> ${mov.username}</p>
                                     <p><span class="material-symbols-outlined text-sm align-middle">schedule</span> ${new Date(mov.created_at).toLocaleString('pt-BR')}</p>
                                 </div>
@@ -441,7 +525,7 @@ async function loadMovements() {
                 `;
             }).join('');
         } else {
-            container.innerHTML = '<p class="text-gray-500 text-center py-8">Nenhuma movimentação encontrada</p>';
+            container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">Nenhuma movimentação encontrada</p>';
         }
     } catch (error) {
         console.error('Erro ao carregar movimentações:', error);
@@ -450,7 +534,7 @@ async function loadMovements() {
 
 async function loadAlerts() {
     const container = document.getElementById('alerts-list');
-    container.innerHTML = '<p class="text-gray-500 text-center py-8"><span class="material-symbols-outlined animate-spin">sync</span> Carregando...</p>';
+    container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8"><span class="material-symbols-outlined animate-spin">sync</span> Carregando...</p>';
 
     try {
         const response = await fetch('/api/inventory.php?action=alerts', {
@@ -476,16 +560,16 @@ async function loadAlerts() {
                 const severityLabel = severityLabels[alert.severity] || alert.severity;
 
                 return `
-                    <div class="bg-white dark:bg-background-dark rounded-xl border border-gray-100 dark:border-gray-800 p-4">
+                    <div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm border border-gray-100 dark:border-white/5">
                         <div class="flex items-start gap-3">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="px-3 py-1 rounded-full text-xs font-medium ${severityClass}">${severityLabel}</span>
-                                    <span class="text-xs text-gray-500">${new Date(alert.created_at).toLocaleString('pt-BR')}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">${new Date(alert.created_at).toLocaleString('pt-BR')}</span>
                                 </div>
                                 <p class="text-sm text-[#111318] dark:text-white">${alert.message}</p>
                             </div>
-                            <button onclick="resolveAlert(${alert.id})" class="px-3 py-1 rounded-lg bg-green-500 text-white text-sm font-medium">
+                            <button onclick="resolveAlert(${alert.id})" class="px-3 py-1 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium active:scale-[0.98]">
                                 Resolver
                             </button>
                         </div>
@@ -493,7 +577,7 @@ async function loadAlerts() {
                 `;
             }).join('');
         } else {
-            container.innerHTML = '<p class="text-gray-500 text-center py-8">Nenhum alerta encontrado</p>';
+            container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">Nenhum alerta encontrado</p>';
         }
     } catch (error) {
         console.error('Erro ao carregar alertas:', error);
@@ -507,7 +591,7 @@ async function checkoutEquipment(id, serial) {
     const notes = prompt('Observações (opcional):', '');
 
     try {
-        showLoading(true);
+        App.showLoading(true);
         const response = await fetch('/api/inventory.php', {
             method: 'POST',
             headers: {
@@ -524,15 +608,15 @@ async function checkoutEquipment(id, serial) {
 
         const result = await response.json();
         if (result.success) {
-            showSuccess('Equipamento entregue ao cliente!');
+            App.showToast('Equipamento entregue ao cliente!', 'success');
             loadEquipmentList();
         } else {
-            showError('Erro: ' + result.message);
+            App.showToast('Erro: ' + result.message, 'error');
         }
     } catch (error) {
-        showError('Erro ao entregar: ' + error.message);
+        App.showToast('Erro ao entregar: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        App.showLoading(false);
     }
 }
 
@@ -549,7 +633,7 @@ async function returnEquipment(id, serial) {
     const notes = prompt('Observações (opcional):', '');
 
     try {
-        showLoading(true);
+        App.showLoading(true);
         const response = await fetch('/api/inventory.php', {
             method: 'PUT',
             headers: {
@@ -567,20 +651,20 @@ async function returnEquipment(id, serial) {
 
         const result = await response.json();
         if (result.success) {
-            showSuccess('Equipamento retornado ao estoque!');
+            App.showToast('Equipamento retornado ao estoque!', 'success');
             loadEquipmentList();
         } else {
-            showError('Erro: ' + result.message);
+            App.showToast('Erro: ' + result.message, 'error');
         }
     } catch (error) {
-        showError('Erro ao retornar: ' + error.message);
+        App.showToast('Erro ao retornar: ' + error.message, 'error');
     } finally {
-        showLoading(false);
+        App.showLoading(false);
     }
 }
 
 function editEquipment(id) {
-    showInfo('Funcionalidade de edição em desenvolvimento');
+    App.showToast('Funcionalidade de edição em desenvolvimento', 'info');
 }
 
 async function resolveAlert(alertId) {
@@ -599,13 +683,13 @@ async function resolveAlert(alertId) {
 
         const result = await response.json();
         if (result.success) {
-            showSuccess('Alerta resolvido!');
+            App.showToast('Alerta resolvido!', 'success');
             loadAlerts();
         } else {
-            showError('Erro: ' + result.message);
+            App.showToast('Erro: ' + result.message, 'error');
         }
     } catch (error) {
-        showError('Erro ao resolver: ' + error.message);
+        App.showToast('Erro ao resolver: ' + error.message, 'error');
     }
 }
 
@@ -622,5 +706,4 @@ API.inventory = async function(data) {
     return await response.json();
 };
 </script>
-</body>
-</html>
+</body></html>

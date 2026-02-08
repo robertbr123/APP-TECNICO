@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html class="light" lang="pt-BR">
-<head>
+<html class="light" lang="pt-BR"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
 <title>Mapa de Clientes - Ondeline</title>
+<!-- PWA Meta Tags -->
 <meta name="theme-color" content="#135bec"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -16,12 +16,54 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#F2F2F7",
+                        "background-dark": "#000000",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#1C1C1E"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "ios": "12px",
+                        "ios-lg": "16px",
+                        "ios-xl": "20px"
+                    }
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-background-light dark:bg-background-dark font-display text-[#000000] dark:text-white antialiased;
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .safe-top {
+            padding-top: env(safe-area-inset-top);
+        }
+    </style>
 <style>
     .material-symbols-outlined {
         font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
     body {
-        min-height: 100dvh;
+      min-height: max(884px, 100dvh);
     }
     #map {
         height: calc(100dvh - 140px);
@@ -49,25 +91,32 @@
     .marker-inactive {
         background: #ef4444;
     }
-</style>
-</head>
-<body class="bg-background-light dark:bg-background-dark font-display">
-<!-- Header -->
-<div class="flex items-center bg-white dark:bg-background-dark p-4 pb-2 justify-between border-b border-gray-100 dark:border-gray-800">
+  </style>
+  </head>
+<body class="min-h-screen">
+<header class="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top">
+<div class="flex items-center justify-between px-4 h-16">
 <div class="flex items-center gap-3">
-<div class="text-[#111318] dark:text-white flex items-center cursor-pointer" onclick="window.history.back()">
-<span class="material-symbols-outlined">arrow_back_ios</span>
+<div class="relative">
+<div id="user-avatar" class="size-10 rounded-full border border-gray-100 dark:border-gray-800 bg-center bg-cover bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xl">person</span>
 </div>
-<h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Mapa de Clientes</h2>
+<div class="absolute bottom-0 right-0 size-3 bg-green-500 border-2 border-white dark:border-black rounded-full"></div>
 </div>
-<button id="btn-route" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-medium">
-<span class="material-symbols-outlined">route</span>
-<span>Calcular Rota</span>
+<div class="flex flex-col">
+<span id="header-user-name" class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white leading-none">Ondeline</span>
+<span id="header-user-role" class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tecnico de Campo</span>
+</div>
+</div>
+<button class="flex items-center justify-center size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
 </button>
 </div>
+</header>
 
+<main class="pb-32">
 <!-- Filtros -->
-<div class="bg-white dark:bg-background-dark px-4 py-3 border-b border-gray-100 dark:border-gray-800 overflow-x-auto">
+<div class="bg-white dark:bg-card-dark px-4 py-3 border-b border-gray-100 dark:border-white/5 overflow-x-auto">
 <div class="flex gap-2 min-w-max">
 <button class="filter-btn active px-3 py-1.5 rounded-full text-sm font-medium bg-primary text-white" data-filter="all">Todos</button>
 <button class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="active">Ativos</button>
@@ -80,10 +129,10 @@
 <div id="map"></div>
 
 <!-- Estatísticas -->
-<div class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-background-dark/80 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 p-4 z-40">
+<div class="fixed bottom-16 left-0 right-0 bg-white/90 dark:bg-card-dark/80 backdrop-blur-md border-t border-gray-100 dark:border-white/5 p-4 z-30">
 <div class="flex items-center justify-around">
 <div class="text-center">
-<p class="text-2xl font-bold text-[#111318] dark:text-white" id="stat-total">0</p>
+<p class="text-2xl font-bold text-[#000000] dark:text-white" id="stat-total">0</p>
 <p class="text-xs text-gray-500 dark:text-gray-400">Total</p>
 </div>
 <div class="text-center">
@@ -100,10 +149,37 @@
 </div>
 </div>
 </div>
+</main>
 
-<!-- Scripts -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-black/80 ios-blur border-t border-gray-200 dark:border-white/10 safe-bottom z-50">
+<div class="flex justify-around items-center h-16">
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="dashboard.html">
+<span class="material-symbols-outlined text-[26px]">home</span>
+<span class="text-[10px] font-medium">Início</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-primary" href="mapa.html">
+<span class="material-symbols-outlined text-[26px]" style="font-variation-settings: 'FILL' 1">map</span>
+<span class="text-[10px] font-semibold">Rotas</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="ponto.html">
+<span class="material-symbols-outlined text-[26px]">punch_clock</span>
+<span class="text-[10px] font-medium">Ponto</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="consultar.html">
+<span class="material-symbols-outlined text-[26px]">groups</span>
+<span class="text-[10px] font-medium">Clientes</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="ajustes.html">
+<span class="material-symbols-outlined text-[26px]">settings</span>
+<span class="text-[10px] font-medium">Ajustes</span>
+</a>
+</div>
+</nav>
+
+<!-- Scripts do App -->
 <script src="js/api.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/app.js"></script>
 <script src="js/feedback.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
@@ -248,8 +324,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // Calcular rota otimizada
-    document.getElementById('btn-route').addEventListener('click', calculateRoute);
-
     function calculateRoute() {
         const clientsWithLocation = clients.filter(c => c.latitude && c.longitude);
         
@@ -343,5 +417,4 @@ document.addEventListener('DOMContentLoaded', async function() {
     loadClients();
 });
 </script>
-</body>
-</html>
+</body></html>
