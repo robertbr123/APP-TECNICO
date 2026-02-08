@@ -297,10 +297,22 @@ const API = {
     },
 
     /**
-     * Upload de foto de perfil
+     * Upload de foto de perfil (FormData - arquivo direto)
      */
-    async uploadProfilePhoto(base64Image) {
-        return this.post('user.php', { photo: base64Image });
+    async uploadProfilePhoto(file) {
+        const formData = new FormData();
+        formData.append('photo', file);
+
+        const url = `${this.baseUrl}/user.php`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.getToken()}`
+            },
+            body: formData
+        });
+
+        return response.json();
     }
 };
 

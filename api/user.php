@@ -99,31 +99,33 @@ function handlePut($db, $userData) {
 }
 
 /**
- * POST - Upload de foto de perfil
+ * POST - Upload de foto de perfil via FormData (arquivo direto)
  */
 function handlePhotoUpload($db, $userData) {
-    $data = getRequestBody();
-    $base64 = $data['photo'] ?? null;
-
-    if (!$base64) {
-        jsonResponse(['success' => false, 'message' => 'Foto é obrigatória'], 400);
+    if (!isset($_FILES['photo'])) {
+        jsonResponse(['success' => false, 'message' => 'Foto e obrigatoria'], 400);
     }
 
-    // Remove prefixo data:image/...;base64,
-    if (preg_match('/^data:image\/(\w+);base64,/', $base64, $matches)) {
-        $extension = $matches[1];
-        $base64 = substr($base64, strpos($base64, ',') + 1);
-    } else {
-        $extension = 'jpg';
+    $file = $_FILES['photo'];
+
+    // Valida erro de upload
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        jsonResponse(['success' => false, 'message' => 'Erro no upload do arquivo'], 400);
     }
 
-    $imageData = base64_decode($base64);
-    if ($imageData === false) {
-        jsonResponse(['success' => false, 'message' => 'Imagem inválida'], 400);
+    // Valida tamanho
+    if ($file['size'] > PROFILE_MAX_SIZE) {
+        jsonResponse(['success' => false, 'message' => 'Imagem muito grande (max 5MB)'], 400);
     }
 
-    if (strlen($imageData) > PROFILE_MAX_SIZE) {
-        jsonResponse(['success' => false, 'message' => 'Imagem muito grande (máx 5MB)'], 400);
+    // Valida tipo
+    $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+
+    if (!in_array($mimeType, $allowedTypes)) {
+        jsonResponse(['success' => false, 'message' => 'Tipo de arquivo nao permitido'], 400);
     }
 
     // Remove foto anterior se existir
@@ -139,10 +141,11 @@ function handlePhotoUpload($db, $userData) {
     }
 
     // Salva nova foto
+    $extension = pathinfo($file['name'], PATHINFO_EXTENSION) ?: 'jpg';
     $filename = 'profile_' . $userData['user_id'] . '_' . time() . '.' . $extension;
     $filepath = PROFILE_UPLOAD_DIR . $filename;
 
-    if (file_put_contents($filepath, $imageData) === false) {
+    if (!move_uploaded_file($file['tmp_name'], $filepath)) {
         jsonResponse(['success' => false, 'message' => 'Erro ao salvar imagem'], 500);
     }
 

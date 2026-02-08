@@ -1287,28 +1287,23 @@ const App = {
                     return;
                 }
 
-                const reader = new FileReader();
-                reader.onload = async (ev) => {
-                    this.showLoading(true);
-                    try {
-                        const response = await API.uploadProfilePhoto(ev.target.result);
-                        if (response.success) {
-                            const avatarEl = document.getElementById('profile-avatar');
-                            if (avatarEl) avatarEl.style.backgroundImage = `url("${response.data.photo}")`;
-                            // Atualiza dados locais
-                            const currentUser = API.getUser();
-                            API.setUser({ ...currentUser, photo: response.data.photo });
-                            this.showToast('Foto atualizada!', 'success');
-                        } else {
-                            this.showToast(response.message || 'Erro ao enviar foto', 'error');
-                        }
-                    } catch (error) {
-                        this.showToast('Erro ao enviar foto', 'error');
-                    } finally {
-                        this.showLoading(false);
+                this.showLoading(true);
+                try {
+                    const response = await API.uploadProfilePhoto(file);
+                    if (response.success) {
+                        const avatarEl = document.getElementById('profile-avatar');
+                        if (avatarEl) avatarEl.style.backgroundImage = `url("${response.data.photo}")`;
+                        const currentUser = API.getUser();
+                        API.setUser({ ...currentUser, photo: response.data.photo });
+                        this.showToast('Foto atualizada!', 'success');
+                    } else {
+                        this.showToast(response.message || 'Erro ao enviar foto', 'error');
                     }
-                };
-                reader.readAsDataURL(file);
+                } catch (error) {
+                    this.showToast('Erro ao enviar foto', 'error');
+                } finally {
+                    this.showLoading(false);
+                }
             });
         }
 
