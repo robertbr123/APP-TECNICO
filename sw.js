@@ -246,3 +246,14 @@ self.addEventListener('notificationclick', (event) => {
         );
     }
 });
+
+// Responder mensagens do cliente (ex: obter versão)
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'GET_VERSION') {
+        event.ports[0].postMessage({ version: APP_VERSION });
+    }
+    
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+});
