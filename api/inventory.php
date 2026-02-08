@@ -97,12 +97,9 @@ function handleGet($db, $userData) {
             $offset = ($page - 1) * $limit;
 
             try {
-                $sql = "SELECT ei.*, 
-                                c.name as client_name,
-                                u.username as current_user
+                // Query simplificada para evitar problemas com JOINs
+                $sql = "SELECT ei.* 
                          FROM equipment_inventory ei
-                         LEFT JOIN clients c ON ei.current_client_cpf = c.cpf
-                         LEFT JOIN users u ON ei.current_user_id = u.id
                          WHERE 1=1";
                 $params = [];
 

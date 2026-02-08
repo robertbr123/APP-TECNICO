@@ -444,6 +444,9 @@ async function loadEquipmentList() {
 }
 
 async function loadStatistics() {
+    const container = document.getElementById('stats-by-type');
+    if (!container) return; // Se não estiver na página, não faz nada
+    
     try {
         const response = await fetch('/api/inventory.php?action=statistics', {
             headers: {
@@ -453,11 +456,15 @@ async function loadStatistics() {
         const result = await response.json();
 
         if (result.success) {
-            document.getElementById('total-value').textContent = Utils.formatCurrency(result.data.summary.total_value);
-            document.getElementById('stat-available').textContent = result.data.summary.total_available;
-            document.getElementById('stat-in-use').textContent = result.data.summary.total_in_use;
+            // Atualiza elementos se existirem
+            const totalValueEl = document.getElementById('total-value');
+            const statAvailableEl = document.getElementById('stat-available');
+            const statInUseEl = document.getElementById('stat-in-use');
+            
+            if (totalValueEl) totalValueEl.textContent = Utils.formatCurrency(result.data.summary.total_value);
+            if (statAvailableEl) statAvailableEl.textContent = result.data.summary.total_available;
+            if (statInUseEl) statInUseEl.textContent = result.data.summary.total_in_use;
 
-            const container = document.getElementById('stats-by-type');
             container.innerHTML = result.data.by_status_type.map(stat => `
                 <div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm border border-gray-100 dark:border-white/5">
                     <div class="flex items-center justify-between">
@@ -472,9 +479,42 @@ async function loadStatistics() {
                     </div>
                 </div>
             `).join('');
+        } else {
+            container.innerHTML = '<p class="text-red-500 text-center py-8">' + (result.message || 'Erro ao carregar estatísticas') + '</p>';
+            
+            // Se as tabelas não existirem, mostra botão para setup
+            if (result.message && result.message.includes('Tabelas de estoque não configuradas')) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-gray-500 mb-4">Tabelas de estoque não configuradas</p>
+                        <button onclick="setupInventory()" class="px-4 py-2 bg-primary text-white rounded-lg">
+                            Configurar Estoque
+                        </button>
+                    </div>
+                `;
+            }
         }
     } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
+        container.innerHTML = '<p class="text-red-500 text-center py-8">Erro ao carregar: ' + error.message + '</p>';
+    }
+}
+
+// Função para configurar estoque
+async function setupInventory() {
+    try {
+        const response = await fetch('/api/setup-inventory.php');
+        const result = await response.json();
+        
+        if (result.success) {
+            App.showToast('Estoque configurado com sucesso!', 'success');
+            loadEquipmentList();
+            loadStatistics();
+        } else {
+            App.showToast('Erro: ' + result.message, 'error');
+        }
+    } catch (error) {
+        App.showToast('Erro ao configurar: ' + error.message, 'error');
     }
 }
 
@@ -706,6 +746,21 @@ API.inventory = async function(data) {
     });
     return await response.json();
 };
+
+// Função de estatísticas para o app.js
+async function loadInventoryStats() {
+    console.log('loadInventoryStats chamado');
+    // Carrega dados básicos
+    try {
+        await loadEquipmentList();
+        // Carrega estatísticas se a aba stats existir
+        if (document.getElementById('tab-stats')) {
+            await loadStatistics();
+        }
+    } catch (error) {
+        console.error('Erro em loadInventoryStats:', error);
+    }
+}
 
 // Expõe funções globalmente para o app.js
 window.loadEquipmentList = loadEquipmentList;

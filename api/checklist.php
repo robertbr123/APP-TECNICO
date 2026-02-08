@@ -157,9 +157,14 @@ function handleGet($db, $userData) {
         case 'templates':
             // Busca templates disponíveis
             $category = $_GET['category'] ?? null;
+            $installationType = $_GET['installation_type'] ?? 'new';
             
             $sql = "SELECT * FROM checklist_templates WHERE is_active = 1";
             $params = [];
+            
+            // Filtra por tipo de instalação
+            $sql .= " AND (applicable_types LIKE ? OR applicable_types = 'all')";
+            $params[] = "%$installationType%";
             
             if ($category) {
                 $sql .= " AND task_category = ?";
@@ -171,7 +176,7 @@ function handleGet($db, $userData) {
             $stmt->execute($params);
             $templates = $stmt->fetchAll();
             
-            jsonResponse(['success' => true, 'data' => $templates]);
+            jsonResponse(['success' => true, 'data' => $templates, 'filter' => $installationType]);
             
         default:
             jsonResponse(['success' => false, 'message' => 'Ação inválida'], 400);
@@ -220,9 +225,16 @@ function handlePost($db, $userData) {
             ]);
             
             $checklistId = $db->lastInsertId();
+            $installationType = $data['installation_type'] ?? 'new';
             
-            // Cria itens do checklist baseado nos templates
-            $templatesStmt = $db->query("SELECT * FROM checklist_templates WHERE is_active = 1 ORDER BY order_index");
+            // Cria itens do checklist baseado nos templates aplicáveis ao tipo
+            $templatesStmt = $db->prepare("
+                SELECT * FROM checklist_templates 
+                WHERE is_active = 1 
+                AND (applicable_types LIKE ? OR applicable_types = 'all')
+                ORDER BY order_index
+            ");
+            $templatesStmt->execute(["%$installationType%"]);
             $templates = $templatesStmt->fetchAll();
             
             $itemStmt = $db->prepare("
@@ -240,6 +252,12 @@ function handlePost($db, $userData) {
                     $template['order_index']
                 ]);
             }
+            
+            Logger::info('Templates aplicados', [
+                'checklist_id' => $checklistId,
+                'type' => $installationType,
+                'templates_count' => count($templates)
+            ]);
             
             Logger::info('Checklist criado', [
                 'checklist_id' => $checklistId,

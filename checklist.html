@@ -342,6 +342,11 @@
                     loadTasks();
                 } else {
                     showToast(response.message, 'error');
+                    
+                    // Se as tabelas não existirem
+                    if (response.message && (response.message.includes('tabela') || response.message.includes('table') || response.message.includes('não configuradas'))) {
+                        showSetupButton();
+                    }
                 }
             } catch (error) {
                 console.error('Erro ao criar checklist:', error);
@@ -724,6 +729,39 @@
                 modal.classList.remove('flex');
             }
         }
+        
+        // Mostra botão de configuração se tabelas não existirem
+        function showSetupButton() {
+            const container = document.getElementById('checklists-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-8 bg-white dark:bg-gray-900 rounded-xl p-4">
+                        <span class="material-symbols-outlined text-4xl text-gray-400 mb-2">build</span>
+                        <p class="text-gray-500 mb-4">Tabelas de checklist não configuradas</p>
+                        <button onclick="setupChecklistTables()" class="px-4 py-2 bg-primary text-white rounded-lg">
+                            Configurar Checklist
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Configura checklist - exposta globalmente
+        window.setupChecklistTables = async function() {
+            try {
+                const response = await fetch('/api/setup-checklist.php');
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('Checklist configurado! ' + result.templates_count + ' templates criados', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Erro: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao configurar: ' + error.message, 'error');
+            }
+        }
 
         // Verifica se API está disponível
         function checkAPI() {
@@ -751,6 +789,9 @@
                 const response = await API.getChecklists({ limit: 5 });
                 if (response.success && response.data.length > 0) {
                     renderChecklistsList(response.data);
+                } else if (!response.success && response.message && 
+                          (response.message.includes('tabela') || response.message.includes('não configuradas'))) {
+                    showSetupButton();
                 }
             } catch (error) {
                 console.error('Erro ao carregar checklists:', error);

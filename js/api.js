@@ -401,6 +401,20 @@ const API = {
         });
     },
 
+    /**
+     * Alias para registrar entrada (compatibilidade)
+     */
+    async clockIn(photo, latitude, longitude, accuracy, notes = '') {
+        return this.clockEntry(photo, latitude, longitude, accuracy, notes);
+    },
+
+    /**
+     * Alias para registrar saída (compatibilidade)
+     */
+    async clockOut(photo, latitude, longitude, accuracy, notes = '') {
+        return this.clockExit(photo, latitude, longitude, accuracy, notes);
+    },
+
     // ==========================================
     // GESTÃO DE ESTOQUE
     // ==========================================
