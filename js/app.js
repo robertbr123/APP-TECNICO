@@ -215,7 +215,7 @@ const App = {
                 this.initPontoPage();
                 break;
             case 'estoque.html':
-                this.initEstoquePage();
+                // A página estoque.html tem sua própria lógica inline
                 break;
         }
     },
@@ -1775,6 +1775,30 @@ const App = {
     formatCPF(cpf) {
         cpf = cpf.replace(/\D/g, '');
         return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    },
+
+    /**
+     * Página de Mapa
+     */
+    initMapaPage() {
+        // A página mapa.html tem sua própria lógica inline com Leaflet
+        console.log('initMapaPage iniciado');
+    },
+
+    /**
+     * Página de Ponto
+     */
+    initPontoPage() {
+        // A página ponto.html tem sua própria lógica inline
+        console.log('initPontoPage iniciado');
+    },
+
+    /**
+     * Página de Estoque
+     */
+    initEstoquePage() {
+        // A página estoque.html tem sua própria lógica inline
+        console.log('initEstoquePage iniciado');
     }
 };
 

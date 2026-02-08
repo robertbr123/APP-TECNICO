@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="light" lang="pt-br"><head>
+<html class="light" lang="pt-BR"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
 <title>Consultar Clientes - Ondeline</title>
@@ -12,209 +12,263 @@
 <link rel="icon" type="image/png" href="logo.png"/>
 <link rel="apple-touch-icon" href="logo.png"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
         tailwind.config = {
-          darkMode: "class",
-          theme: {
-            extend: {
-              colors: {
-                "primary": "#135bec",
-                "background-light": "#f6f6f8",
-                "background-dark": "#101622",
-              },
-              fontFamily: {
-                "display": ["Inter", "sans-serif"]
-              },
-              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#F2F2F7",
+                        "background-dark": "#000000",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#1C1C1E"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "ios": "12px",
+                        "ios-lg": "16px",
+                        "ios-xl": "20px"
+                    }
+                },
             },
-          },
         }
     </script>
-<style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-background-light dark:bg-background-dark font-display text-[#000000] dark:text-white antialiased;
+                -webkit-tap-highlight-color: transparent;
+            }
         }
-        body {
-            min-height: max(884px, 100dvh);
-            -webkit-tap-highlight-color: transparent;
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
         }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
         }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        .safe-top {
+            padding-top: env(safe-area-inset-top);
         }
     </style>
 <style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
     body {
       min-height: max(884px, 100dvh);
     }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
   </style>
   </head>
-<body class="bg-background-light dark:bg-background-dark font-display">
-<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden">
-<div class="flex items-center bg-white dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10 border-b border-gray-100 dark:border-gray-800">
-<div class="text-primary flex size-12 shrink-0 items-center justify-start cursor-pointer">
-<span class="material-symbols-outlined">arrow_back_ios</span>
+<body class="min-h-screen">
+<header class="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top">
+<div class="flex items-center justify-between px-4 h-16">
+<a href="dashboard.html" class="flex items-center gap-2">
+<span class="material-symbols-outlined text-gray-600 dark:text-gray-300">arrow_back_ios</span>
+</a>
+<h1 class="text-lg font-bold text-gray-900 dark:text-white flex-1 text-center">Consultar Clientes</h1>
+<div class="size-8"></div>
 </div>
-<h2 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">Consultar Clientes</h2>
+</header>
+
+<main class="px-4 pb-32">
+<!-- Busca -->
+<div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm border border-gray-100 dark:border-white/5 mb-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+<input id="search-input" class="w-full pl-12 pr-4 py-3 rounded-ios-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-[#000000] dark:text-white" placeholder="Buscar por nome ou CPF" autocomplete="off">
 </div>
-<div class="px-4 py-4 bg-white dark:bg-background-dark">
-<label class="flex flex-col min-w-40 h-12 w-full">
-<div class="flex w-full flex-1 items-stretch rounded-xl h-full shadow-sm">
-<div class="text-[#616f89] flex border-none bg-[#f0f2f4] dark:bg-gray-800 items-center justify-center pl-4 rounded-l-xl border-r-0">
-<span class="material-symbols-outlined">search</span>
 </div>
-<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-xl text-[#111318] dark:text-white focus:outline-0 focus:ring-0 border-none bg-[#f0f2f4] dark:bg-gray-800 focus:border-none h-full placeholder:text-[#616f89] px-4 pl-2 text-base font-normal leading-normal" placeholder="Buscar por nome ou CPF" value=""/>
+
+<!-- Filtros -->
+<div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
+<button class="filter-btn active px-4 py-2 rounded-full text-sm font-medium bg-primary text-white" data-filter="all">Todos</button>
+<button class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="active">Ativos</button>
+<button class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="inactive">Inativos</button>
 </div>
-</label>
+
+<!-- Resultados -->
+<div class="mb-4">
+<p id="result-count" class="text-sm text-gray-500 dark:text-gray-400">Carregando clientes...</p>
 </div>
-<div class="flex gap-3 p-4 overflow-x-auto no-scrollbar bg-white dark:bg-background-dark border-b border-gray-100 dark:border-gray-800">
-<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary px-5">
-<p class="text-white text-sm font-semibold leading-normal">Todos</p>
-</button>
-<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-[#f0f2f4] dark:bg-gray-800 px-5">
-<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Ativos</p>
-</button>
-<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-[#f0f2f4] dark:bg-gray-800 px-5">
-<p class="text-[#111318] dark:text-gray-300 text-sm font-medium leading-normal">Inativos</p>
-</button>
-</div>
-<div class="px-4 pt-6 pb-2">
-<h3 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Resultados da Busca</h3>
-<p class="text-sm text-[#616f89] dark:text-gray-400">Carregando clientes...</p>
-</div>
-<div class="flex flex-col gap-3 p-4" id="clients-container">
-<!-- Os clientes serão carregados dinamicamente aqui -->
+
+<!-- Lista de clientes -->
+<div id="clients-container" class="space-y-3">
 <div class="text-center py-10">
-    <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-    <p class="text-gray-500 mt-4">Carregando clientes...</p>
+<div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+<p class="text-gray-500 mt-4">Carregando clientes...</p>
 </div>
 </div>
-<div class="fixed bottom-8 right-6">
-<button class="flex size-16 items-center justify-center rounded-full bg-primary text-white shadow-2xl active:scale-95 transition-transform">
+</main>
+
+<!-- Botão Flutuante -->
+<a href="novo-cadastro.html" class="fixed bottom-20 right-6 flex size-16 items-center justify-center rounded-full bg-primary text-white shadow-2xl active:scale-95 transition-transform z-40">
 <span class="material-symbols-outlined text-[32px]">person_add</span>
-</button>
+</a>
+
+<nav class="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-black/80 ios-blur border-t border-gray-200 dark:border-white/10 safe-bottom z-50">
+<div class="flex justify-around items-center h-16">
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="dashboard.html">
+<span class="material-symbols-outlined text-[26px]">home</span>
+<span class="text-[10px] font-medium">Início</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="mapa.html">
+<span class="material-symbols-outlined text-[26px]">map</span>
+<span class="text-[10px] font-medium">Rotas</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="ponto.html">
+<span class="material-symbols-outlined text-[26px]">punch_clock</span>
+<span class="text-[10px] font-medium">Ponto</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-primary" href="consultar.html">
+<span class="material-symbols-outlined text-[26px]" style="font-variation-settings: 'FILL' 1">groups</span>
+<span class="text-[10px] font-semibold">Clientes</span>
+</a>
+<a class="flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="ajustes.html">
+<span class="material-symbols-outlined text-[26px]">settings</span>
+<span class="text-[10px] font-medium">Ajustes</span>
+</a>
 </div>
-<div class="h-28"></div>
-</div>
+</nav>
 
 <!-- Scripts do App -->
 <script src="js/api.js"></script>
+<script src="js/utils.js"></script>
 <script src="js/app.js"></script>
+<script src="js/feedback.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var searchInput = document.querySelector('input[placeholder*="Buscar"]');
-        var container = document.getElementById('clients-container');
-        var resultCount = document.querySelector('.text-sm.text-\\[\\#616f89\\]');
-        var searchTimeout;
-        
-        // Botão voltar
-        document.querySelector('.material-symbols-outlined').parentElement.onclick = function() {
-            window.history.back();
-        };
-        
-        // Botão adicionar cliente
-        document.querySelector('button.bg-primary.size-16').onclick = function() {
-            window.location.href = 'novo-cadastro.html';
-        };
-        
-        // Carrega clientes iniciais
-        loadClients('');
-        
-        // Busca
-        if (searchInput) {
-            searchInput.addEventListener('input', function(e) {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(function() {
-                    loadClients(e.target.value.trim());
-                }, 400);
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const container = document.getElementById('clients-container');
+    const resultCount = document.getElementById('result-count');
+    let searchTimeout;
+    let currentFilter = 'all';
+    
+    // Filtros
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove classe ativa de todos
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.classList.remove('active', 'bg-primary', 'text-white');
+                b.classList.add('bg-gray-100', 'text-gray-600');
             });
-        }
+
+            // Adiciona classe ativa ao clicado
+            btn.classList.add('active', 'bg-primary', 'text-white');
+            btn.classList.remove('bg-gray-100', 'text-gray-600');
+
+            currentFilter = btn.dataset.filter;
+            loadClients(searchInput.value.trim());
+        });
+    });
+    
+    // Carrega clientes iniciais
+    loadClients('');
+    
+    // Busca
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+                loadClients(e.target.value.trim());
+            }, 400);
+        });
+    }
+    
+    async function loadClients(query) {
+        container.innerHTML = '<div class="text-center py-10">' +
+            '<div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>' +
+            '<p class="text-gray-500 mt-4">Buscando...</p>' +
+        '</div>';
         
-        async function loadClients(query) {
-            container.innerHTML = '<div class="text-center py-10">' +
-                '<div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>' +
-                '<p class="text-gray-500 mt-4">Buscando...</p>' +
-            '</div>';
+        try {
+            // Obtém o token do localStorage
+            const token = localStorage.getItem('auth_token');
             
-            try {
-                var url = '/api/search-clients.php?limit=50';
-                if (query) {
-                    url += '&search=' + encodeURIComponent(query);
-                }
+            let url = '/api/search-clients.php?limit=50';
+            if (query) {
+                url += '&search=' + encodeURIComponent(query);
+            }
+            if (currentFilter !== 'all') {
+                url += '&status=' + currentFilter;
+            }
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+            
+            const response = await fetch(url, { headers });
+            const result = await response.json();
+            
+            console.log('Clientes:', result);
+            
+            if (result.success && result.data && result.data.length > 0) {
+                resultCount.textContent = result.data.length + ' cliente(s) encontrado(s)';
                 
-                var response = await fetch(url);
-                var result = await response.json();
-                
-                console.log('Clientes:', result);
-                
-                if (result.success && result.data && result.data.length > 0) {
-                    if (resultCount) {
-                        resultCount.textContent = result.data.length + ' cliente(s) encontrado(s)';
-                    }
+                container.innerHTML = result.data.map(function(client) {
+                    const cpfFormatado = Utils.formatCPF(client.cpf);
+                    const isActive = client.active == 1 || client.status === 'ativo';
+                    const statusClass = isActive 
+                        ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' 
+                        : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+                    const statusText = isActive ? 'Ativo' : 'Inativo';
                     
-                    container.innerHTML = result.data.map(function(client) {
-                        var cpfFormatado = formatCPF(client.cpf);
-                        var statusClass = client.status === 'ativo' 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-                        var statusText = client.status === 'ativo' ? 'Ativo' : 'Inadimplente';
-                        
-                        return '<div class="client-card bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer active:scale-[0.98] transition-transform" data-cpf="' + client.cpf + '">' +
-                            '<div class="flex items-center gap-3">' +
-                                '<div class="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">' +
-                                    '<span class="material-symbols-outlined">person</span>' +
-                                '</div>' +
-                                '<div class="flex-1 min-w-0">' +
-                                    '<div class="flex items-center gap-2">' +
-                                        '<p class="font-semibold text-[#111318] dark:text-white truncate">' + (client.name || 'Sem nome') + '</p>' +
-                                        '<span class="' + statusClass + ' text-[10px] font-bold px-2 py-0.5 rounded-full uppercase shrink-0">' + statusText + '</span>' +
-                                    '</div>' +
-                                    '<p class="text-xs text-[#616f89] dark:text-gray-400">' + cpfFormatado + '</p>' +
-                                    '<p class="text-xs text-[#616f89] dark:text-gray-400 truncate">' + (client.city || '') + '</p>' +
-                                '</div>' +
-                                '<span class="material-symbols-outlined text-gray-400">chevron_right</span>' +
+                    return '<div class="client-card bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm border border-gray-100 dark:border-white/5 cursor-pointer active:scale-[0.98] transition-transform" data-cpf="' + client.cpf + '">' +
+                        '<div class="flex items-center gap-3">' +
+                            '<div class="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">' +
+                                '<span class="material-symbols-outlined">person</span>' +
                             '</div>' +
-                        '</div>';
-                    }).join('');
-                    
-                    // Adiciona eventos de clique
-                    container.querySelectorAll('.client-card').forEach(function(card) {
-                        card.onclick = function() {
-                            window.location.href = 'detalher.html?cpf=' + card.dataset.cpf;
-                        };
-                    });
-                } else {
-                    if (resultCount) {
-                        resultCount.textContent = '0 clientes encontrados';
-                    }
-                    container.innerHTML = '<div class="text-center py-10">' +
-                        '<span class="material-symbols-outlined text-4xl text-gray-300">search_off</span>' +
-                        '<p class="text-gray-500 mt-4">Nenhum cliente encontrado</p>' +
+                            '<div class="flex-1 min-w-0">' +
+                                '<div class="flex items-center gap-2">' +
+                                    '<p class="font-semibold text-[#000000] dark:text-white truncate">' + (client.name || 'Sem nome') + '</p>' +
+                                    '<span class="' + statusClass + ' text-[10px] font-bold px-2 py-0.5 rounded-full uppercase shrink-0">' + statusText + '</span>' +
+                                '</div>' +
+                                '<p class="text-xs text-gray-500 dark:text-gray-400">' + cpfFormatado + '</p>' +
+                                '<p class="text-xs text-gray-500 dark:text-gray-400 truncate">' + (client.city || '') + '</p>' +
+                            '</div>' +
+                            '<span class="material-symbols-outlined text-gray-400">chevron_right</span>' +
+                        '</div>' +
                     '</div>';
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                if (resultCount) {
-                    resultCount.textContent = 'Erro ao buscar';
-                }
+                }).join('');
+                
+                // Adiciona eventos de clique
+                container.querySelectorAll('.client-card').forEach(function(card) {
+                    card.addEventListener('click', function() {
+                        window.location.href = 'detalher.html?cpf=' + card.dataset.cpf;
+                    });
+                });
+            } else {
+                resultCount.textContent = '0 clientes encontrados';
                 container.innerHTML = '<div class="text-center py-10">' +
-                    '<span class="material-symbols-outlined text-4xl text-red-300">error</span>' +
-                    '<p class="text-red-500 mt-4">Erro ao carregar clientes</p>' +
+                    '<span class="material-symbols-outlined text-4xl text-gray-300">search_off</span>' +
+                    '<p class="text-gray-500 mt-4">Nenhum cliente encontrado</p>' +
                 '</div>';
             }
+        } catch (error) {
+            console.error('Erro:', error);
+            resultCount.textContent = 'Erro ao buscar';
+            container.innerHTML = '<div class="text-center py-10">' +
+                '<span class="material-symbols-outlined text-4xl text-red-300">error</span>' +
+                '<p class="text-red-500 mt-4">Erro ao carregar clientes</p>' +
+            '</div>';
         }
-        
-        function formatCPF(cpf) {
-            if (!cpf) return '';
-            cpf = cpf.toString().replace(/\D/g, '');
-            if (cpf.length !== 11) return cpf;
-            return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-        }
-    });
+    }
+});
 </script>
 </body></html>

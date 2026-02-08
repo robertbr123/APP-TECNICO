@@ -1,6 +1,6 @@
 <?php
 /**
- * API de Cadastro de Clientes - Simplificada para teste
+ * API de Cadastro de Clientes
  * Ondeline Tech
  */
 
@@ -102,20 +102,14 @@ try {
         // Insere o cliente
         $installer = $userData ? $userData['username'] : 'app';
         
-        // Prepara os valores garantindo que campos NOT NULL tenham valor
-        // planId deve ser um dos IDs válidos: 6, 7, 8, 9
-        $validPlanIds = [6, 7, 8, 9];
+        // Prepara os valores
         $planId = (int)($data['planId'] ?? 6);
-        if (!in_array($planId, $validPlanIds)) {
-            $planId = 6; // Plano básico como padrão
-        }
-        
         $pppoe = !empty($data['pppoe']) ? $data['pppoe'] : $cpf . '@ondeline';
         $password = !empty($data['password']) ? $data['password'] : '123';
         $address = !empty($data['address']) ? $data['address'] : (!empty($data['city']) ? $data['city'] : 'Não informado');
         $dueDay = in_array((int)($data['dueDay'] ?? 10), [10, 20, 30]) ? (int)$data['dueDay'] : 10;
         
-        // Trata birthDate - se vazio ou inválido, usa NULL
+        // Trata birthDate
         $birthDate = null;
         if (!empty($data['birthDate']) && $data['birthDate'] !== '0000-00-00') {
             $birthDate = $data['birthDate'];
@@ -126,9 +120,17 @@ try {
         $longitude = isset($data['longitude']) ? (float)$data['longitude'] : null;
         $locationAccuracy = isset($data['accuracy']) ? (float)$data['accuracy'] : null;
         
+        // SQL corrigido - usa as colunas corretas da tabela
         $stmt = $db->prepare("
-            INSERT INTO clients (cpf, name, phone, birthDate, city, address, number, complement, planId, pppoe, password, dueDay, observation, latitude, longitude, location_accuracy, installer, status, active, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            INSERT INTO clients (
+                cpf, name, phone, birthDate, city, address, number, complement, 
+                planId, pppoe, password, dueDay, observation, 
+                latitude, longitude, location_accuracy, installer, status, active, created_at
+            ) VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, 
+                ?, ?, ?, ?, ?, 
+                ?, ?, ?, ?, ?, ?, NOW()
+            )
         ");
         
         $stmt->execute([
@@ -177,7 +179,7 @@ try {
                 $_SERVER['HTTP_USER_AGENT'] ?? null
             ]);
         } catch (Exception $e) {
-            // Não falha o cadastro se o auditoria falhar
+            // Não falha o cadastro se a auditoria falhar
             error_log('Erro ao registrar auditoria: ' . $e->getMessage());
         }
         
@@ -193,5 +195,8 @@ try {
     
 } catch (PDOException $e) {
     error_log("Erro no cadastro: " . $e->getMessage());
-    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados', 'error' => $e->getMessage()], 500);
+    jsonResponse([
+        'success' => false, 
+        'message' => 'Erro no banco de dados: ' . $e->getMessage()
+    ], 500);
 }
