@@ -279,6 +279,45 @@ const API = {
     },
 
     // ==========================================
+    // ADMIN - USUÁRIOS
+    // ==========================================
+
+    /**
+     * Listar usuários (admin)
+     */
+    async getUsers() {
+        return this.get('users.php');
+    },
+
+    /**
+     * Buscar usuário específico (admin)
+     */
+    async getUserById(id) {
+        return this.get('users.php', { id });
+    },
+
+    /**
+     * Criar usuário (admin)
+     */
+    async createUser(data) {
+        return this.post('users.php', data);
+    },
+
+    /**
+     * Atualizar usuário (admin)
+     */
+    async updateUser(id, data) {
+        return this.put('users.php', { id, ...data });
+    },
+
+    /**
+     * Desativar usuário (admin)
+     */
+    async deleteUser(id) {
+        return this.delete('users.php', { id });
+    },
+
+    // ==========================================
     // PERFIL DO USUÁRIO
     // ==========================================
 
