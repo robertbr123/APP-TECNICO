@@ -424,21 +424,7 @@ function handlePut($db, $userData, $isAdmin) {
                 jsonResponse(['success' => false, 'message' => 'Sem permissão'], 403);
             }
             
-            // Verifica se todos os itens obrigatórios estão completos
-            $stmt = $db->prepare("
-                SELECT COUNT(*) as pending_required
-                FROM checklist_items
-                WHERE checklist_id = ? AND is_required = 1 AND is_completed = 0
-            ");
-            $stmt->execute([$checklistId]);
-            $pending = $stmt->fetch()['pending_required'];
-            
-            if ($pending > 0) {
-                jsonResponse([
-                    'success' => false, 
-                    'message' => "Ainda há {$pending} item(s) obrigatório(s) pendente(s)"
-                ], 400);
-            }
+            // NOTA: Verificação de itens obrigatórios removida - todos os itens são opcionais
             
             // Atualiza para aguardando aprovação
             $stmt = $db->prepare("
