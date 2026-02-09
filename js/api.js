@@ -648,6 +648,41 @@ const API = {
             action: 'reopen',
             checklist_id: checklistId
         });
+    },
+
+    // ==========================================
+    // ADMIN - TEMPLATES
+    // ==========================================
+
+    /**
+     * Criar template de checklist (admin)
+     */
+    async createTemplate(data) {
+        return this.post('checklist.php', {
+            action: 'create_template',
+            ...data
+        });
+    },
+
+    /**
+     * Atualizar template (admin)
+     */
+    async updateTemplate(templateId, data) {
+        return this.post('checklist.php', {
+            action: 'update_template',
+            template_id: templateId,
+            ...data
+        });
+    },
+
+    /**
+     * Excluir template (admin)
+     */
+    async deleteTemplate(templateId) {
+        return this.post('checklist.php', {
+            action: 'delete_template',
+            template_id: templateId
+        });
     }
 };
 

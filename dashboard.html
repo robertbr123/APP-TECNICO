@@ -201,8 +201,20 @@
 <span class="material-symbols-outlined text-[26px]">settings</span>
 <span class="text-[10px] font-medium">Ajustes</span>
 </a>
+<a id="nav-admin" class="hidden flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="admin.html">
+<span class="material-symbols-outlined text-[26px]">admin_panel_settings</span>
+<span class="text-[10px] font-medium">Admin</span>
+</a>
 </div>
 </nav>
+
+<script>
+// Mostra link de admin se for administrador
+const currentUser = JSON.parse(localStorage.getItem('user_data') || '{}');
+if (currentUser.role === 'admin') {
+    document.getElementById('nav-admin').classList.remove('hidden');
+}
+</script>
 
 <!-- Scripts do App -->
 <script src="js/api.js"></script>

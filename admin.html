@@ -61,7 +61,9 @@
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-semibold text-gray-900 dark:text-white">Templates do Checklist</h3>
-                    <button onclick="runSetup()" class="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm">🔄 Reconfigurar</button>
+                    <button onclick="openTemplateModal()" class="px-3 py-2 bg-green-500 text-white rounded-lg text-sm flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">add</span> Novo
+                    </button>
                 </div>
                 <div id="templates-list" class="space-y-2">
                     <p class="text-gray-500 text-center py-4">Carregando...</p>
@@ -117,6 +119,43 @@
 
     </div>
 
+    <!-- Modal Template -->
+    <div id="modal-template" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl max-w-sm w-full p-4">
+            <h3 class="font-bold text-lg mb-4" id="tmpl-title">Novo Template</h3>
+            <input type="hidden" id="tmpl-id">
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-gray-500">Nome da Tarefa</label>
+                    <input type="text" id="tmpl-name" class="w-full px-3 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Categoria</label>
+                    <select id="tmpl-category" class="w-full px-3 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600">
+                        <option value="pre_installation">Pré-instalação</option>
+                        <option value="installation">Instalação</option>
+                        <option value="configuration">Configuração</option>
+                        <option value="testing">Testes</option>
+                        <option value="documentation">Documentação</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500">Aplica-se a:</label>
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        <label class="flex items-center gap-1 text-sm"><input type="checkbox" class="tmpl-type" value="new" checked> Nova</label>
+                        <label class="flex items-center gap-1 text-sm"><input type="checkbox" class="tmpl-type" value="migration" checked> Migração</label>
+                        <label class="flex items-center gap-1 text-sm"><input type="checkbox" class="tmpl-type" value="repair" checked> Reparo</label>
+                        <label class="flex items-center gap-1 text-sm"><input type="checkbox" class="tmpl-type" value="maintenance" checked> Manutenção</label>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeTemplateModal()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg">Cancelar</button>
+                <button onclick="saveTemplate()" class="flex-1 py-2 bg-green-500 text-white rounded-lg">Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Bottom Nav -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t px-6 py-2 flex justify-around z-50">
         <a href="dashboard.html" class="flex flex-col items-center text-gray-400">
@@ -156,29 +195,126 @@
             if (tab === 'checklists') loadChecklists();
         }
 
+        let templatesData = [];
+        
         async function loadTemplates() {
             try {
                 const res = await fetch('/api/checklist.php?action=templates');
                 const data = await res.json();
                 if (data.success) {
-                    const cats = {
-                        'pre_installation': 'Pré-instalação',
-                        'installation': 'Instalação',
-                        'configuration': 'Configuração',
-                        'testing': 'Testes',
-                        'documentation': 'Documentação'
-                    };
-                    document.getElementById('templates-list').innerHTML = data.data.map(t => `
-                        <div class="flex justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                            <div>
-                                <p class="text-sm font-medium">${t.task_name}</p>
-                                <p class="text-xs text-gray-500">${cats[t.task_category]} • ${t.applicable_types}</p>
-                            </div>
-                        </div>
-                    `).join('');
+                    templatesData = data.data;
+                    renderTemplates();
                 }
             } catch (e) {
                 console.error(e);
+            }
+        }
+        
+        function renderTemplates() {
+            const cats = {
+                'pre_installation': 'Pré-instalação',
+                'installation': 'Instalação',
+                'configuration': 'Configuração',
+                'testing': 'Testes',
+                'documentation': 'Documentação'
+            };
+            document.getElementById('templates-list').innerHTML = templatesData.map(t => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">${t.task_name}</p>
+                        <p class="text-xs text-gray-500">${cats[t.task_category]} • ${t.applicable_types}</p>
+                    </div>
+                    <div class="flex gap-1">
+                        <button onclick="editTemplate(${t.id})" class="p-2 text-blue-500 hover:bg-blue-100 rounded-lg">
+                            <span class="material-symbols-outlined text-sm">edit</span>
+                        </button>
+                        <button onclick="deleteTemplate(${t.id})" class="p-2 text-red-500 hover:bg-red-100 rounded-lg">
+                            <span class="material-symbols-outlined text-sm">delete</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function openTemplateModal(id = null) {
+            document.getElementById('modal-template').classList.remove('hidden');
+            if (id) {
+                const t = templatesData.find(x => x.id === id);
+                document.getElementById('tmpl-title').textContent = 'Editar Template';
+                document.getElementById('tmpl-id').value = t.id;
+                document.getElementById('tmpl-name').value = t.task_name;
+                document.getElementById('tmpl-category').value = t.task_category;
+                document.querySelectorAll('.tmpl-type').forEach(cb => {
+                    cb.checked = t.applicable_types.includes(cb.value);
+                });
+            } else {
+                document.getElementById('tmpl-title').textContent = 'Novo Template';
+                document.getElementById('tmpl-id').value = '';
+                document.getElementById('tmpl-name').value = '';
+                document.querySelectorAll('.tmpl-type').forEach(cb => cb.checked = true);
+            }
+        }
+        
+        function closeTemplateModal() {
+            document.getElementById('modal-template').classList.add('hidden');
+        }
+        
+        async function saveTemplate() {
+            const id = document.getElementById('tmpl-id').value;
+            const name = document.getElementById('tmpl-name').value;
+            const category = document.getElementById('tmpl-category').value;
+            const types = Array.from(document.querySelectorAll('.tmpl-type:checked')).map(cb => cb.value).join(',');
+            
+            if (!name) {
+                alert('Nome é obrigatório');
+                return;
+            }
+            
+            try {
+                let res;
+                if (id) {
+                    res = await API.updateTemplate(id, {
+                        task_name: name,
+                        task_category: category,
+                        applicable_types: types
+                    });
+                } else {
+                    res = await API.createTemplate({
+                        task_name: name,
+                        task_category: category,
+                        applicable_types: types,
+                        is_required: 0
+                    });
+                }
+                
+                if (res.success) {
+                    alert('Template salvo!');
+                    closeTemplateModal();
+                    loadTemplates();
+                } else {
+                    alert('Erro: ' + res.message);
+                }
+            } catch (e) {
+                alert('Erro ao salvar');
+            }
+        }
+        
+        async function editTemplate(id) {
+            openTemplateModal(id);
+        }
+        
+        async function deleteTemplate(id) {
+            if (!confirm('Excluir este template?')) return;
+            try {
+                const res = await API.deleteTemplate(id);
+                if (res.success) {
+                    alert('Template excluído!');
+                    loadTemplates();
+                } else {
+                    alert('Erro: ' + res.message);
+                }
+            } catch (e) {
+                alert('Erro ao excluir');
             }
         }
 

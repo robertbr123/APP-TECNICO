@@ -394,6 +394,121 @@ function handlePost($db, $userData, $isAdmin) {
             
             jsonResponse(['success' => true, 'message' => 'Item marcado como completo']);
             
+        case 'create_template':
+            // Cria novo template (apenas admin)
+            if (!$isAdmin) {
+                jsonResponse(['success' => false, 'message' => 'Apenas administradores podem criar templates'], 403);
+            }
+            
+            $taskName = $data['task_name'] ?? null;
+            $taskCategory = $data['task_category'] ?? 'installation';
+            $isRequired = $data['is_required'] ?? 0;
+            $orderIndex = $data['order_index'] ?? 0;
+            $applicableTypes = $data['applicable_types'] ?? 'new,migration,repair,maintenance';
+            
+            if (!$taskName) {
+                jsonResponse(['success' => false, 'message' => 'Nome da tarefa é obrigatório'], 400);
+            }
+            
+            $stmt = $db->prepare("
+                INSERT INTO checklist_templates 
+                (task_name, task_category, is_required, order_index, applicable_types, is_active)
+                VALUES (?, ?, ?, ?, ?, 1)
+            ");
+            $stmt->execute([$taskName, $taskCategory, $isRequired, $orderIndex, $applicableTypes]);
+            
+            $templateId = $db->lastInsertId();
+            
+            Logger::info('Template criado', [
+                'template_id' => $templateId,
+                'task_name' => $taskName,
+                'by' => $userData['username']
+            ]);
+            
+            jsonResponse([
+                'success' => true,
+                'message' => 'Template criado com sucesso',
+                'data' => ['id' => $templateId]
+            ], 201);
+            
+        case 'update_template':
+            // Atualiza template (apenas admin)
+            if (!$isAdmin) {
+                jsonResponse(['success' => false, 'message' => 'Apenas administradores podem editar templates'], 403);
+            }
+            
+            $templateId = (int)($data['template_id'] ?? 0);
+            
+            if (!$templateId) {
+                jsonResponse(['success' => false, 'message' => 'ID do template é obrigatório'], 400);
+            }
+            
+            $updates = [];
+            $params = [];
+            
+            if (isset($data['task_name'])) {
+                $updates[] = 'task_name = ?';
+                $params[] = $data['task_name'];
+            }
+            if (isset($data['task_category'])) {
+                $updates[] = 'task_category = ?';
+                $params[] = $data['task_category'];
+            }
+            if (isset($data['is_required'])) {
+                $updates[] = 'is_required = ?';
+                $params[] = $data['is_required'];
+            }
+            if (isset($data['order_index'])) {
+                $updates[] = 'order_index = ?';
+                $params[] = $data['order_index'];
+            }
+            if (isset($data['applicable_types'])) {
+                $updates[] = 'applicable_types = ?';
+                $params[] = $data['applicable_types'];
+            }
+            if (isset($data['is_active'])) {
+                $updates[] = 'is_active = ?';
+                $params[] = $data['is_active'];
+            }
+            
+            if (empty($updates)) {
+                jsonResponse(['success' => false, 'message' => 'Nenhum campo para atualizar'], 400);
+            }
+            
+            $params[] = $templateId;
+            
+            $stmt = $db->prepare("UPDATE checklist_templates SET " . implode(', ', $updates) . " WHERE id = ?");
+            $stmt->execute($params);
+            
+            Logger::info('Template atualizado', [
+                'template_id' => $templateId,
+                'by' => $userData['username']
+            ]);
+            
+            jsonResponse(['success' => true, 'message' => 'Template atualizado com sucesso']);
+            
+        case 'delete_template':
+            // Exclui template (apenas admin) - soft delete
+            if (!$isAdmin) {
+                jsonResponse(['success' => false, 'message' => 'Apenas administradores podem excluir templates'], 403);
+            }
+            
+            $templateId = (int)($data['template_id'] ?? 0);
+            
+            if (!$templateId) {
+                jsonResponse(['success' => false, 'message' => 'ID do template é obrigatório'], 400);
+            }
+            
+            $stmt = $db->prepare("UPDATE checklist_templates SET is_active = 0 WHERE id = ?");
+            $stmt->execute([$templateId]);
+            
+            Logger::info('Template excluído', [
+                'template_id' => $templateId,
+                'by' => $userData['username']
+            ]);
+            
+            jsonResponse(['success' => true, 'message' => 'Template excluído com sucesso']);
+            
         default:
             jsonResponse(['success' => false, 'message' => 'Ação inválida'], 400);
     }
