@@ -366,16 +366,31 @@ function handlePost($db, $userData, $isAdmin) {
             $notes = $data['notes'] ?? null;
             $photoUrl = $data['photo_url'] ?? null;
             
+            Logger::info('Checklist complete_item chamado', [
+                'item_id' => $itemId,
+                'user_id' => $userData['user_id']
+            ]);
+            
+            if (!$itemId) {
+                jsonResponse(['success' => false, 'message' => 'ID do item é obrigatório'], 400);
+            }
+            
+            // Verifica se o item existe
+            $checkStmt = $db->prepare("SELECT id FROM checklist_items WHERE id = ?");
+            $checkStmt->execute([$itemId]);
+            if (!$checkStmt->fetch()) {
+                Logger::error('Item não encontrado', ['item_id' => $itemId]);
+                jsonResponse(['success' => false, 'message' => 'Item não encontrado: ' . $itemId], 404);
+            }
+            
             $stmt = $db->prepare("
                 UPDATE checklist_items 
                 SET is_completed = 1, completed_at = NOW(), completed_by = ?, notes = ?, photo_url = ?
                 WHERE id = ?
             ");
-            $stmt->execute([$userData['user_id'], $notes, $photoUrl, $itemId]);
+            $result = $stmt->execute([$userData['user_id'], $notes, $photoUrl, $itemId]);
             
-            if ($stmt->rowCount() === 0) {
-                jsonResponse(['success' => false, 'message' => 'Item não encontrado'], 404);
-            }
+            Logger::info('Item marcado como completo', ['item_id' => $itemId, 'result' => $result]);
             
             jsonResponse(['success' => true, 'message' => 'Item marcado como completo']);
             
@@ -601,6 +616,17 @@ function handlePut($db, $userData, $isAdmin) {
         case 'uncheck_item':
             // Desmarca item
             $itemId = (int)($data['item_id'] ?? 0);
+            
+            if (!$itemId) {
+                jsonResponse(['success' => false, 'message' => 'ID do item é obrigatório'], 400);
+            }
+            
+            // Verifica se o item existe
+            $checkStmt = $db->prepare("SELECT id FROM checklist_items WHERE id = ?");
+            $checkStmt->execute([$itemId]);
+            if (!$checkStmt->fetch()) {
+                jsonResponse(['success' => false, 'message' => 'Item não encontrado: ' . $itemId], 404);
+            }
             
             $stmt = $db->prepare("
                 UPDATE checklist_items 

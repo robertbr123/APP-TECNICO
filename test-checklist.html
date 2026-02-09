@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Checklist API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; font-size: 12px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e9; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        input { padding: 10px; margin: 5px; width: 300px; }
+    </style>
+</head>
+<body>
+    <h1>Teste do Checklist API</h1>
+    
+    <h2>1. Configuração</h2>
+    <button onclick="setupChecklist()">Configurar Checklist (Criar Tabelas)</button>
+    <div id="setup-log" class="log"></div>
+    
+    <h2>2. Criar Checklist de Teste</h2>
+    <input type="text" id="test-cpf" placeholder="CPF do cliente (somente números)" maxlength="11">
+    <select id="test-type">
+        <option value="new">Nova Instalação</option>
+        <option value="migration">Migração</option>
+        <option value="repair">Reparo</option>
+        <option value="maintenance">Manutenção</option>
+    </select>
+    <button onclick="createTestChecklist()">Criar Checklist</button>
+    <div id="create-log" class="log"></div>
+    
+    <h2>3. Testar Marcar Item</h2>
+    <input type="number" id="test-item-id" placeholder="ID do item">
+    <button onclick="testCompleteItem()">Marcar Item como Completo</button>
+    <div id="item-log" class="log"></div>
+    
+    <h2>4. Testar Finalizar Checklist</h2>
+    <input type="number" id="test-checklist-id" placeholder="ID do checklist">
+    <button onclick="testCompleteChecklist()">Finalizar Checklist</button>
+    <div id="complete-log" class="log"></div>
+    
+    <h2>Logs Gerais</h2>
+    <div id="general-log" class="log"></div>
+
+    <script src="js/api.js"></script>
+    <script>
+        function log(elementId, message, isError = false) {
+            const el = document.getElementById(elementId);
+            const div = document.createElement('div');
+            div.className = isError ? 'error' : 'success';
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            el.appendChild(div);
+        }
+        
+        function logGeneral(message, isError = false) {
+            log('general-log', message, isError);
+        }
+        
+        async function setupChecklist() {
+            try {
+                log('setup-log', 'Configurando checklist...');
+                const response = await fetch('/api/setup-checklist.php');
+                const data = await response.json();
+                log('setup-log', 'Resposta: ' + JSON.stringify(data), !data.success);
+            } catch (error) {
+                log('setup-log', 'Erro: ' + error.message, true);
+            }
+        }
+        
+        let createdChecklistId = null;
+        
+        async function createTestChecklist() {
+            const cpf = document.getElementById('test-cpf').value;
+            const type = document.getElementById('test-type').value;
+            
+            if (!cpf || cpf.length !== 11) {
+                log('create-log', 'CPF inválido. Digite 11 números.', true);
+                return;
+            }
+            
+            try {
+                log('create-log', `Criando checklist para CPF ${cpf}, tipo ${type}...`);
+                const response = await API.createChecklist({
+                    client_cpf: cpf,
+                    installation_type: type
+                });
+                log('create-log', 'Resposta: ' + JSON.stringify(response), !response.success);
+                
+                if (response.success) {
+                    createdChecklistId = response.data.id;
+                    document.getElementById('test-checklist-id').value = createdChecklistId;
+                    
+                    // Carrega itens do checklist
+                    const checklistResponse = await API.getChecklist(createdChecklistId);
+                    log('create-log', 'Itens do checklist: ' + JSON.stringify(checklistResponse.data?.items?.map(i => ({id: i.id, name: i.task_name}))));
+                    
+                    if (checklistResponse.data?.items?.length > 0) {
+                        document.getElementById('test-item-id').value = checklistResponse.data.items[0].id;
+                    }
+                }
+            } catch (error) {
+                log('create-log', 'Erro: ' + error.message, true);
+            }
+        }
+        
+        async function testCompleteItem() {
+            const itemId = parseInt(document.getElementById('test-item-id').value);
+            
+            if (!itemId) {
+                log('item-log', 'ID do item é obrigatório', true);
+                return;
+            }
+            
+            try {
+                log('item-log', `Marcando item ${itemId} como completo...`);
+                const response = await API.completeChecklistItem(itemId);
+                log('item-log', 'Resposta: ' + JSON.stringify(response), !response.success);
+            } catch (error) {
+                log('item-log', 'Erro: ' + error.message, true);
+            }
+        }
+        
+        async function testCompleteChecklist() {
+            const checklistId = parseInt(document.getElementById('test-checklist-id').value);
+            
+            if (!checklistId) {
+                log('complete-log', 'ID do checklist é obrigatório', true);
+                return;
+            }
+            
+            try {
+                log('complete-log', `Finalizando checklist ${checklistId}...`);
+                const response = await API.completeChecklist(checklistId);
+                log('complete-log', 'Resposta: ' + JSON.stringify(response), !response.success);
+            } catch (error) {
+                log('complete-log', 'Erro: ' + error.message, true);
+            }
+        }
+        
+        // Verifica se está logado
+        if (!API.isAuthenticated()) {
+            logGeneral('Você não está logado! Faça login primeiro.', true);
+        } else {
+            logGeneral('Usuário logado: ' + API.getUser()?.username);
+        }
+    </script>
+</body>
+</html>

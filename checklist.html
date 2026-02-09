@@ -356,19 +356,26 @@
                 return;
             }
 
+            console.log('[Checklist] Iniciando checklist para cliente:', selectedClient.cpf);
+            
             try {
                 const type = document.getElementById('installation-type').value;
+                console.log('[Checklist] Tipo de instalação:', type);
                 
                 const response = await API.createChecklist({
                     client_cpf: selectedClient.cpf,
                     installation_type: type
                 });
+                
+                console.log('[Checklist] Resposta createChecklist:', response);
 
                 if (response.success) {
                     currentChecklist = response.data.id;
+                    console.log('[Checklist] Checklist criado com ID:', currentChecklist);
                     showChecklist();
-                    loadTasks();
+                    await loadTasks();
                 } else {
+                    console.error('[Checklist] Erro ao criar:', response.message);
                     showToast(response.message, 'error');
                     
                     // Se as tabelas não existirem
@@ -377,8 +384,8 @@
                     }
                 }
             } catch (error) {
-                console.error('Erro ao criar checklist:', error);
-                showToast('Erro ao iniciar checklist', 'error');
+                console.error('[Checklist] Erro ao criar checklist:', error);
+                showToast('Erro ao iniciar checklist: ' + error.message, 'error');
             }
         }
 
@@ -392,30 +399,44 @@
         // Carrega tarefas
         async function loadTasks() {
             try {
+                console.log('[Checklist] Carregando tarefas para checklist:', currentChecklist);
                 const response = await API.getChecklist(currentChecklist);
-                console.log('Response getChecklist:', response);
+                console.log('[Checklist] Response getChecklist:', response);
                 
                 if (response.success && response.data) {
                     tasks = response.data.items || [];
-                    console.log('Tasks carregadas:', tasks.length, 'itens');
-                    console.log('Itens obrigatórios:', tasks.filter(t => t.is_required).length);
-                    console.log('Itens concluídos:', tasks.filter(t => t.is_completed).length);
+                    console.log('[Checklist] Tasks carregadas:', tasks.length, 'itens');
+                    console.log('[Checklist] Primeira task:', tasks[0]);
+                    
+                    // Verifica se os IDs são válidos
+                    const invalidTasks = tasks.filter(t => !t.id);
+                    if (invalidTasks.length > 0) {
+                        console.error('[Checklist] Tasks sem ID:', invalidTasks);
+                    }
+                    
+                    console.log('[Checklist] Itens obrigatórios:', tasks.filter(t => t.is_required).length);
+                    console.log('[Checklist] Itens concluídos:', tasks.filter(t => t.is_completed).length);
                     
                     renderTasks();
                     updateProgress();
                 } else {
-                    console.error('Erro na resposta:', response.message);
+                    console.error('[Checklist] Erro na resposta:', response.message);
                     showToast('Erro ao carregar tarefas: ' + (response.message || 'Resposta inválida'), 'error');
                 }
             } catch (error) {
-                console.error('Erro ao carregar tarefas:', error);
-                showToast('Erro ao carregar tarefas', 'error');
+                console.error('[Checklist] Erro ao carregar tarefas:', error);
+                showToast('Erro ao carregar tarefas: ' + error.message, 'error');
             }
         }
 
         // Renderiza tarefas
         function renderTasks() {
             const container = document.getElementById('tasks-container');
+            
+            if (!tasks || tasks.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-4">Nenhuma tarefa encontrada</p>';
+                return;
+            }
 
             // Agrupa por categoria
             const grouped = {};
@@ -453,26 +474,30 @@
                             </span>
                         </div>
                         <div class="category-tasks ${expanded ? '' : 'hidden'}" id="tasks-${key}">
-                            ${categoryTasks.map(task => `
-                                <div class="task-item p-4 border-t border-gray-100 dark:border-gray-800 flex items-start gap-3">
+                            ${categoryTasks.map(task => {
+                                const taskId = parseInt(task.id);
+                                const taskName = String(task.task_name || '').replace(/"/g, '&quot;');
+                                return `
+                                <div class="task-item p-4 border-t border-gray-100 dark:border-gray-800 flex items-start gap-3" data-task-id="${taskId}">
                                     <div class="flex-shrink-0 mt-0.5">
                                         <input type="checkbox"
+                                               id="task-${taskId}"
                                                class="w-6 h-6 rounded border-2 border-gray-300 dark:border-gray-600 cursor-pointer appearance-none checked:bg-primary checked:border-primary checked:bg-[url('data:image/svg+xml,%3csvg viewBox=%220 0 16 16%22 fill=%22white%22 xmlns=%22http://www.w3.org/2000/svg%22%3e%3cpath d=%22M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%22/%3e%3c/svg%3e')]"
                                                ${task.is_completed ? 'checked' : ''}
-                                               onchange="toggleTask(${task.id}, this.checked)">
+                                               onchange="toggleTask(${taskId}, this.checked)">
                                     </div>
                                     <div class="flex-1">
                                         <p class="text-[#111318] dark:text-white ${task.is_completed ? 'line-through text-gray-500' : ''}">
-                                            ${task.task_name}
+                                            ${taskName}
                                         </p>
                                         ${task.notes ? `<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${task.notes}</p>` : ''}
                                     </div>
-                                    <button onclick="openPhotoModal(${task.id})"
+                                    <button onclick="openPhotoModal(${taskId})"
                                             class="flex-shrink-0 p-2 text-gray-400 hover:text-primary transition-colors">
                                         <span class="material-symbols-outlined">photo_camera</span>
                                     </button>
                                 </div>
-                            `).join('')}
+                            `}).join('')}
                         </div>
                     </div>
                 `;
@@ -501,30 +526,55 @@
 
         // Toggle tarefa (atualização otimista)
         async function toggleTask(taskId, completed) {
+            // Converte taskId para número inteiro
+            taskId = parseInt(taskId);
+            console.log('[Checklist] Toggle task:', taskId, 'completed:', completed);
+            
+            if (!taskId || isNaN(taskId)) {
+                console.error('[Checklist] ID da tarefa inválido:', taskId);
+                showToast('Erro: ID da tarefa inválido', 'error');
+                return;
+            }
+            
             // Atualiza local primeiro (resposta imediata)
-            const task = tasks.find(t => t.id === taskId);
+            const task = tasks.find(t => parseInt(t.id) === taskId);
             if (task) {
                 task.is_completed = completed;
+            } else {
+                console.error('[Checklist] Tarefa não encontrada:', taskId);
+                showToast('Erro: Tarefa não encontrada', 'error');
+                return;
             }
             renderTasks();
             updateProgress();
 
             // Sincroniza com servidor
             try {
+                let response;
                 if (completed) {
-                    await API.completeChecklistItem(taskId);
+                    console.log('[Checklist] Chamando API.completeChecklistItem:', taskId);
+                    response = await API.completeChecklistItem(taskId);
                 } else {
-                    await API.uncheckChecklistItem(taskId);
+                    console.log('[Checklist] Chamando API.uncheckChecklistItem:', taskId);
+                    response = await API.uncheckChecklistItem(taskId);
                 }
+                
+                console.log('[Checklist] Resposta da API:', response);
+                
+                if (!response || !response.success) {
+                    throw new Error(response?.message || 'Erro desconhecido');
+                }
+                
+                showToast(completed ? 'Item marcado!' : 'Item desmarcado!', 'success');
             } catch (error) {
-                console.error('Erro ao atualizar tarefa:', error);
+                console.error('[Checklist] Erro ao atualizar tarefa:', error);
                 // Reverte em caso de erro
                 if (task) {
                     task.is_completed = !completed;
                 }
                 renderTasks();
                 updateProgress();
-                showToast('Erro ao atualizar tarefa', 'error');
+                showToast('Erro: ' + (error.message || 'Falha ao atualizar'), 'error');
             }
         }
         
@@ -635,26 +685,53 @@
 
         // Finaliza checklist
         async function completeChecklist() {
+            console.log('[Checklist] Finalizando checklist:', currentChecklist);
+            
+            if (!currentChecklist) {
+                showToast('Erro: Nenhum checklist ativo', 'error');
+                return;
+            }
+            
             // Confirmação final
             if (!confirm('Tem certeza que deseja finalizar esta instalação?\n\nVerifique se todos os itens foram concluídos corretamente.')) {
                 return;
             }
             
+            // Mostra loading
+            const btnComplete = document.getElementById('btn-complete');
+            const originalText = btnComplete.textContent;
+            btnComplete.disabled = true;
+            btnComplete.textContent = 'Finalizando...';
+            
             try {
+                console.log('[Checklist] Chamando API.completeChecklist:', currentChecklist);
                 const response = await API.completeChecklist(currentChecklist);
+                console.log('[Checklist] Resposta:', response);
+                
                 if (response.success) {
-                    showToast('✓ Checklist enviado para aprovação do administrador!', 'success');
-                    // Mostra mensagem mais detalhada
+                    showToast('✓ Checklist enviado para aprovação!', 'success');
                     setTimeout(() => {
                         alert('Seu checklist foi enviado para aprovação do administrador.\n\nVocê receberá uma notificação quando for aprovado ou caso precise de correções.');
                         location.reload();
                     }, 500);
                 } else {
-                    showToast(response.message, 'error');
+                    btnComplete.disabled = false;
+                    btnComplete.textContent = originalText;
+                    showToast(response.message || 'Erro ao finalizar', 'error');
+                    
+                    // Se tem itens pendentes obrigatórios
+                    if (response.message && response.message.includes('obrigatório')) {
+                        const pendingItems = tasks.filter(t => t.is_required && !t.is_completed);
+                        if (pendingItems.length > 0) {
+                            showPendingItemsModal(pendingItems);
+                        }
+                    }
                 }
             } catch (error) {
-                console.error('Erro ao finalizar:', error);
-                showToast('Erro ao finalizar instalação', 'error');
+                console.error('[Checklist] Erro ao finalizar:', error);
+                btnComplete.disabled = false;
+                btnComplete.textContent = originalText;
+                showToast('Erro: ' + (error.message || 'Falha ao finalizar'), 'error');
             }
         }
         

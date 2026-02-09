@@ -21,6 +21,11 @@ try {
             `technician_name` VARCHAR(100) NOT NULL,
             `installation_type` ENUM('new', 'migration', 'repair', 'maintenance') DEFAULT 'new',
             `status` ENUM('pending', 'in_progress', 'completed', 'cancelled') DEFAULT 'pending',
+            `approval_status` ENUM('pending', 'pending_approval', 'approved', 'rejected') DEFAULT 'pending',
+            `approved_by` INT NULL,
+            `approved_at` TIMESTAMP NULL,
+            `rejection_reason` TEXT NULL,
+            `rejection_notes` TEXT NULL,
             `started_at` TIMESTAMP NULL,
             `completed_at` TIMESTAMP NULL,
             `notes` TEXT,
@@ -28,7 +33,9 @@ try {
             `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX `idx_client_cpf` (`client_cpf`),
             INDEX `idx_technician` (`technician_id`),
-            INDEX `idx_status` (`status`)
+            INDEX `idx_status` (`status`),
+            INDEX `idx_approval_status` (`approval_status`),
+            INDEX `idx_approved_by` (`approved_by`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
     
@@ -68,6 +75,47 @@ try {
             INDEX `idx_active` (`is_active`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+    
+    // Cria tabela de histórico de aprovações
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS `checklist_approval_history` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `checklist_id` INT NOT NULL,
+            `action` ENUM('submitted', 'approved', 'rejected', 'deleted', 'reopened') NOT NULL,
+            `action_by` INT NOT NULL,
+            `action_by_name` VARCHAR(100) NOT NULL,
+            `action_by_role` ENUM('admin', 'tecnico') NOT NULL,
+            `notes` TEXT,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX `idx_checklist` (`checklist_id`),
+            INDEX `idx_action` (`action`),
+            INDEX `idx_created` (`created_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+    
+    // Verifica se a coluna applicable_types existe
+    try {
+        $db->query("SELECT applicable_types FROM checklist_templates LIMIT 1");
+    } catch (Exception $e) {
+        // Coluna não existe, adiciona
+        $db->exec("ALTER TABLE checklist_templates ADD COLUMN applicable_types VARCHAR(100) DEFAULT 'new,migration,repair,maintenance'");
+    }
+    
+    // Verifica se as colunas de aprovação existem
+    try {
+        $db->query("SELECT approval_status FROM installation_checklists LIMIT 1");
+    } catch (Exception $e) {
+        $db->exec("
+            ALTER TABLE installation_checklists 
+            ADD COLUMN approval_status ENUM('pending', 'pending_approval', 'approved', 'rejected') DEFAULT 'pending',
+            ADD COLUMN approved_by INT NULL,
+            ADD COLUMN approved_at TIMESTAMP NULL,
+            ADD COLUMN rejection_reason TEXT NULL,
+            ADD COLUMN rejection_notes TEXT NULL,
+            ADD INDEX idx_approval_status (approval_status),
+            ADD INDEX idx_approved_by (approved_by)
+        ");
+    }
     
     // Insere templates padrão
     $templates = [
