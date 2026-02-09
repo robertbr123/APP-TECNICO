@@ -72,11 +72,18 @@
         <!-- Filtros -->
         <div class="px-4 py-4 bg-white dark:bg-background-dark border-b border-gray-100 dark:border-gray-800">
             <div class="flex flex-col gap-3">
-                <!-- Busca por usuário -->
+                <!-- Filtro por usuário -->
                 <div class="flex gap-2">
                     <div class="flex-1 relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">person</span>
+                        <select id="filter-user"
+                            class="w-full h-11 pl-11 pr-4 rounded-xl bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none">
+                            <option value="">Todos os usuários</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 relative">
                         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                        <input type="text" id="search-user" placeholder="Buscar por técnico..." 
+                        <input type="text" id="search-user" placeholder="Buscar por técnico..."
                             class="w-full h-11 pl-11 pr-4 rounded-xl bg-gray-100 dark:bg-gray-800 text-[#111318] dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
                     </div>
                 </div>
@@ -159,6 +166,7 @@
     <script>
         var currentFilters = {
             username: '',
+            user_id: '',
             action_type: '',
             start_date: '',
             end_date: ''
@@ -183,7 +191,14 @@
         });
 
         function setupEventListeners() {
-            // Busca por usuário
+            // Filtro por usuário (dropdown)
+            var filterUser = document.getElementById('filter-user');
+            filterUser.addEventListener('change', function(e) {
+                currentFilters.user_id = e.target.value;
+                loadAuditLogs();
+            });
+
+            // Busca por usuário (texto)
             var searchInput = document.getElementById('search-user');
             var searchTimeout;
             searchInput.addEventListener('input', function(e) {
@@ -227,13 +242,15 @@
             document.getElementById('clear-filters').addEventListener('click', function() {
                 currentFilters = {
                     username: '',
+                    user_id: '',
                     action_type: '',
                     start_date: '',
                     end_date: ''
                 };
-                
+
                 // Resetar campos
                 document.getElementById('search-user').value = '';
+                document.getElementById('filter-user').value = '';
                 document.getElementById('start-date').value = '';
                 document.getElementById('end-date').value = '';
                 
@@ -276,6 +293,9 @@
                 if (currentFilters.action_type) {
                     url += '&action_type=' + encodeURIComponent(currentFilters.action_type);
                 }
+                if (currentFilters.user_id) {
+                    url += '&user_id=' + encodeURIComponent(currentFilters.user_id);
+                }
                 if (currentFilters.username) {
                     url += '&username=' + encodeURIComponent(currentFilters.username);
                 }
@@ -294,6 +314,11 @@
                 if (result.success) {
                     // Atualizar contador
                     countEl.textContent = result.total + ' registro(s)';
+
+                    // Popula dropdown de usuários (apenas na primeira carga sem filtro de user)
+                    if (result.data && result.data.length > 0 && !currentFilters.user_id) {
+                        populateUserDropdown(result.data);
+                    }
 
                     if (result.data && result.data.length > 0) {
                         container.innerHTML = result.data.map(function(log) {
@@ -324,6 +349,37 @@
                 isLoading = false;
                 refreshBtn.disabled = false;
             }
+        }
+
+        function populateUserDropdown(logs) {
+            var select = document.getElementById('filter-user');
+            var currentValue = select.value;
+            var usersMap = {};
+
+            logs.forEach(function(log) {
+                var userId = log.user_id;
+                if (userId && !usersMap[userId]) {
+                    usersMap[userId] = log.user_full_name || log.username || 'Usuário ' + userId;
+                }
+            });
+
+            // Só repopula se tiver novos usuários
+            var existingCount = select.options.length;
+            var newUsers = Object.keys(usersMap);
+            if (newUsers.length + 1 === existingCount) return;
+
+            select.innerHTML = '<option value="">Todos os usuários</option>';
+            newUsers.sort(function(a, b) {
+                return usersMap[a].localeCompare(usersMap[b]);
+            }).forEach(function(userId) {
+                var option = document.createElement('option');
+                option.value = userId;
+                option.textContent = usersMap[userId];
+                select.appendChild(option);
+            });
+
+            // Restaura valor selecionado
+            if (currentValue) select.value = currentValue;
         }
 
         function renderLogCard(log) {

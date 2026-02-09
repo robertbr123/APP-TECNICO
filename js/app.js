@@ -1374,8 +1374,12 @@ const App = {
             nameEl.textContent = user.full_name || user.username;
         }
         if (roleEl) {
-            const roleLabels = { admin: 'Administrador', tecnico: 'Tecnico de Campo' };
-            roleEl.textContent = roleLabels[user.role] || user.role;
+            if (user.cargo) {
+                roleEl.textContent = user.cargo;
+            } else {
+                const roleLabels = { admin: 'Administrador', tecnico: 'Tecnico de Campo' };
+                roleEl.textContent = roleLabels[user.role] || user.role || 'Tecnico';
+            }
         }
     },
 
@@ -1410,8 +1414,12 @@ const App = {
                 if (nameEl) nameEl.textContent = profile.full_name || profile.username;
                 if (emailEl) emailEl.textContent = profile.email || 'Sem email';
                 if (roleEl) {
-                    const roleLabels = { admin: 'Administrador', tecnico: 'Tecnico de Campo' };
-                    roleEl.textContent = roleLabels[profile.role] || profile.role;
+                    if (profile.cargo) {
+                        roleEl.textContent = profile.cargo;
+                    } else {
+                        const roleLabels = { admin: 'Administrador', tecnico: 'Tecnico de Campo' };
+                        roleEl.textContent = roleLabels[profile.role] || profile.role || 'Tecnico';
+                    }
                 }
                 if (cityEl) cityEl.textContent = profile.city || 'Nao definida';
 
@@ -1419,9 +1427,11 @@ const App = {
                 const editName = document.getElementById('edit-name');
                 const editEmail = document.getElementById('edit-email');
                 const editCity = document.getElementById('edit-city');
+                const editCargo = document.getElementById('edit-cargo');
                 if (editName) editName.value = profile.full_name || '';
                 if (editEmail) editEmail.value = profile.email || '';
                 if (editCity) editCity.value = profile.city || '';
+                if (editCargo) editCargo.value = profile.cargo || '';
             }
         } catch (error) {
             console.error('Erro ao carregar perfil:', error);
@@ -1475,7 +1485,8 @@ const App = {
                 const data = {
                     full_name: document.getElementById('edit-name')?.value?.trim(),
                     email: document.getElementById('edit-email')?.value?.trim(),
-                    city: document.getElementById('edit-city')?.value?.trim()
+                    city: document.getElementById('edit-city')?.value?.trim(),
+                    cargo: document.getElementById('edit-cargo')?.value?.trim()
                 };
 
                 this.showLoading(true);
