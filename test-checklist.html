@@ -134,6 +134,11 @@
                 log('complete-log', `Finalizando checklist ${checklistId}...`);
                 const response = await API.completeChecklist(checklistId);
                 log('complete-log', 'Resposta: ' + JSON.stringify(response), !response.success);
+                
+                if (!response.success && response.message && response.message.includes('obrigatório')) {
+                    log('complete-log', 'ℹ️ Você precisa marcar todos os itens obrigatórios antes de finalizar.', false);
+                    log('complete-log', 'Dica: Marque vários itens no passo 3 antes de tentar finalizar.', false);
+                }
             } catch (error) {
                 log('complete-log', 'Erro: ' + error.message, true);
             }
