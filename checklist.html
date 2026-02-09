@@ -114,6 +114,20 @@
 
             <!-- Checklist em Andamento -->
             <div id="checklist-active" class="hidden">
+                <!-- Info do Cliente e Tipo -->
+                <div class="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm mb-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Cliente</p>
+                            <p id="active-client-name" class="text-[#111318] dark:text-white font-semibold">-</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Tipo</p>
+                            <p id="active-installation-type" class="text-primary font-semibold">-</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Progresso -->
                 <div class="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm">
                     <div class="flex items-center justify-between mb-2">
@@ -129,6 +143,18 @@
                 <!-- Tarefas por Categoria -->
                 <div id="tasks-container" class="mt-4 space-y-4">
                     <!-- As tarefas serão inseridas aqui dinamicamente -->
+                </div>
+
+                <!-- Observações -->
+                <div class="mt-4 bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm">
+                    <label class="text-sm text-gray-600 dark:text-gray-400 block mb-2">
+                        <span class="material-symbols-outlined text-sm align-middle">edit_note</span>
+                        Observações
+                    </label>
+                    <textarea 
+                        id="checklist-notes" 
+                        class="w-full h-24 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-[#111318] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                        placeholder="Adicione observações sobre a instalação..."></textarea>
                 </div>
 
                 <!-- Ações -->
@@ -218,6 +244,8 @@
     <!-- Toast -->
     <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-xl shadow-lg z-50 hidden"></div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="js/api.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/feedback.js"></script>
@@ -231,6 +259,7 @@
         // Estado
         let selectedClient = null;
         let currentChecklist = null;
+        let currentInstallationType = 'new';
         let tasks = [];
         let currentTaskId = null;
 
@@ -243,12 +272,46 @@
             'documentation': 'Documentação'
         };
 
+        // Labels dos tipos de instalação
+        const installationTypeLabels = {
+            'new': 'Nova Instalação',
+            'migration': 'Migração',
+            'repair': 'Reparo',
+            'maintenance': 'Manutenção'
+        };
+
+        // Mapeamento de quais categorias mostrar por tipo
+        const categoryFilterByType = {
+            'new': ['pre_installation', 'installation', 'configuration', 'testing', 'documentation'],
+            'migration': ['pre_installation', 'installation', 'configuration', 'testing', 'documentation'],
+            'repair': ['pre_installation', 'installation', 'configuration', 'testing', 'documentation'],
+            'maintenance': ['pre_installation', 'configuration', 'testing', 'documentation']
+        };
+
         // Inicialização
         document.addEventListener('DOMContentLoaded', async () => {
             await loadUserData();
             initEventListeners();
             loadRecentChecklists();
+            
+            // Verifica se veio de cadastro de cliente
+            checkUrlParams();
         });
+        
+        // Verifica parâmetros da URL (redirecionamento do cadastro)
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const clientCpf = urlParams.get('client_cpf');
+            const clientName = urlParams.get('client_name');
+            
+            if (clientCpf && clientName) {
+                console.log('[Checklist] Redirecionado do cadastro:', clientCpf, clientName);
+                selectClient(clientCpf, decodeURIComponent(clientName));
+                
+                // Limpa os parâmetros da URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
 
         function initEventListeners() {
             // Busca de cliente
@@ -359,12 +422,12 @@
             console.log('[Checklist] Iniciando checklist para cliente:', selectedClient.cpf);
             
             try {
-                const type = document.getElementById('installation-type').value;
-                console.log('[Checklist] Tipo de instalação:', type);
+                currentInstallationType = document.getElementById('installation-type').value;
+                console.log('[Checklist] Tipo de instalação:', currentInstallationType);
                 
                 const response = await API.createChecklist({
                     client_cpf: selectedClient.cpf,
-                    installation_type: type
+                    installation_type: currentInstallationType
                 });
                 
                 console.log('[Checklist] Resposta createChecklist:', response);
@@ -372,7 +435,7 @@
                 if (response.success) {
                     currentChecklist = response.data.id;
                     console.log('[Checklist] Checklist criado com ID:', currentChecklist);
-                    showChecklist();
+                    showChecklist(selectedClient.name, currentInstallationType);
                     await loadTasks();
                 } else {
                     console.error('[Checklist] Erro ao criar:', response.message);
@@ -390,10 +453,18 @@
         }
 
         // Mostra tela de checklist
-        function showChecklist() {
+        function showChecklist(clientName = null, installType = null) {
             document.getElementById('client-selection').classList.add('hidden');
             document.getElementById('checklists-list').classList.add('hidden');
             document.getElementById('checklist-active').classList.remove('hidden');
+            
+            // Atualiza info do cliente
+            if (clientName) {
+                document.getElementById('active-client-name').textContent = clientName;
+            }
+            if (installType) {
+                document.getElementById('active-installation-type').textContent = installationTypeLabels[installType] || installType;
+            }
         }
 
         // Carrega tarefas
@@ -447,12 +518,23 @@
                 grouped[task.task_category].push(task);
             });
 
+            // Filtra categorias baseado no tipo de instalação
+            const allowedCategories = categoryFilterByType[currentInstallationType] || Object.keys(categories);
+            
+            // Define a primeira categoria como expandida, o resto colapsado
+            let isFirstCategory = true;
+
             container.innerHTML = Object.entries(categories).map(([key, label]) => {
+                // Só mostra categorias permitidas para este tipo
+                if (!allowedCategories.includes(key)) return '';
+                
                 const categoryTasks = grouped[key] || [];
                 if (categoryTasks.length === 0) return '';
 
                 const completedCount = categoryTasks.filter(t => t.is_completed).length;
-                const expanded = completedCount < categoryTasks.length;
+                // Apenas a primeira categoria começa expandida
+                const expanded = isFirstCategory;
+                isFirstCategory = false;
 
                 return `
                     <div class="bg-white dark:bg-gray-900 rounded-xl shadow-sm overflow-hidden">
@@ -964,6 +1046,12 @@
                 if (isAdmin && isPendingApproval) {
                     adminActions = `
                         <div class="flex gap-2 mt-2">
+                            <button onclick="event.stopPropagation(); viewChecklistReport(${checklist.id})"
+                                    class="flex-1 py-2 px-3 bg-blue-500 text-white rounded-lg text-sm font-bold shadow-sm">
+                                📄 Ver Relatório
+                            </button>
+                        </div>
+                        <div class="flex gap-2 mt-2">
                             <button onclick="event.stopPropagation(); approveChecklist(${checklist.id})"
                                     class="flex-1 py-2 px-3 bg-green-500 text-white rounded-lg text-sm font-bold shadow-sm">
                                 ✓ Aprovar
@@ -983,6 +1071,10 @@
                 } else if (isAdmin) {
                     adminActions = `
                         <div class="flex gap-2 mt-2">
+                            <button onclick="event.stopPropagation(); viewChecklistReport(${checklist.id})"
+                                    class="flex-1 py-2 px-3 bg-blue-500 text-white rounded-lg text-sm font-medium shadow-sm">
+                                📄 Ver Relatório
+                            </button>
                             <button onclick="event.stopPropagation(); deleteChecklist(${checklist.id})"
                                     class="py-1.5 px-3 text-red-600 hover:bg-red-50 rounded-lg text-sm">
                                 Excluir
@@ -1125,6 +1217,316 @@
         function formatCPF(cpf) {
             cpf = cpf.replace(/\D/g, '');
             return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+
+        // Variável para armazenar dados do relatório atual
+        let currentReportData = null;
+
+        // Visualiza relatório do checklist (admin)
+        async function viewChecklistReport(checklistId) {
+            try {
+                showToast('Carregando relatório...', 'info');
+                const response = await API.getChecklist(checklistId);
+                
+                if (!response.success) {
+                    showToast('Erro ao carregar relatório', 'error');
+                    return;
+                }
+                
+                currentReportData = response.data;
+                renderReportModal(currentReportData);
+            } catch (error) {
+                console.error('Erro ao carregar relatório:', error);
+                showToast('Erro ao carregar relatório', 'error');
+            }
+        }
+
+        // Renderiza modal do relatório
+        function renderReportModal(data) {
+            const checklist = data.checklist;
+            const items = data.items || [];
+            const history = data.history || [];
+            
+            // Remove modal anterior se existir
+            let existingModal = document.getElementById('report-modal');
+            if (existingModal) existingModal.remove();
+            
+            // Cria modal
+            const modal = document.createElement('div');
+            modal.id = 'report-modal';
+            modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto';
+            
+            // Agrupa itens por categoria
+            const grouped = {};
+            items.forEach(item => {
+                if (!grouped[item.task_category]) grouped[item.task_category] = [];
+                grouped[item.task_category].push(item);
+            });
+            
+            // Calcula estatísticas
+            const totalItems = items.length;
+            const completedItems = items.filter(i => i.is_completed).length;
+            const completionRate = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+            
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+                    <!-- Header -->
+                    <div class="bg-primary text-white p-4 flex items-center justify-between sticky top-0">
+                        <div>
+                            <h2 class="text-xl font-bold">📋 Relatório de Checklist</h2>
+                            <p class="text-sm opacity-90">#${checklist.id} - ${new Date(checklist.created_at).toLocaleDateString('pt-BR')}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="generatePDF()" class="px-4 py-2 bg-white text-primary rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors">
+                                ⬇️ Baixar PDF
+                            </button>
+                            <button onclick="closeReportModal()" class="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div id="report-content" class="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+                        <!-- Info Geral -->
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Cliente</p>
+                                <p class="text-lg font-semibold text-[#111318] dark:text-white">${checklist.client_name}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">CPF: ${formatCPF(checklist.client_cpf)}</p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Técnico</p>
+                                <p class="text-lg font-semibold text-[#111318] dark:text-white">${checklist.technician_name}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">${installationTypeLabels[checklist.installation_type] || checklist.installation_type}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Progresso -->
+                        <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-6">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-[#111318] dark:text-white">Progresso</span>
+                                <span class="text-primary font-bold">${completionRate}%</span>
+                            </div>
+                            <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div class="h-full bg-primary rounded-full" style="width: ${completionRate}%"></div>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">${completedItems} de ${totalItems} itens concluídos</p>
+                        </div>
+                        
+                        <!-- Itens por Categoria -->
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-bold text-[#111318] dark:text-white border-b pb-2">Itens do Checklist</h3>
+                            ${Object.entries(categories).map(([key, label]) => {
+                                const catItems = grouped[key] || [];
+                                if (catItems.length === 0) return '';
+                                return `
+                                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                        <div class="bg-gray-100 dark:bg-gray-800 px-4 py-2 font-semibold text-[#111318] dark:text-white">
+                                            ${label} (${catItems.filter(i => i.is_completed).length}/${catItems.length})
+                                        </div>
+                                        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                                            ${catItems.map(item => `
+                                                <div class="px-4 py-3 flex items-start gap-3 ${item.is_completed ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/10'}">
+                                                    <span class="material-symbols-outlined ${item.is_completed ? 'text-green-500' : 'text-red-400'}">
+                                                        ${item.is_completed ? 'check_circle' : 'radio_button_unchecked'}
+                                                    </span>
+                                                    <div class="flex-1">
+                                                        <p class="text-[#111318] dark:text-white ${item.is_completed ? '' : 'text-gray-500'}">${item.task_name}</p>
+                                                        ${item.notes ? `<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">📝 ${item.notes}</p>` : ''}
+                                                        ${item.photo_url ? `<p class="text-sm text-blue-500 mt-1">📷 Foto anexada</p>` : ''}
+                                                        ${item.completed_at ? `<p class="text-xs text-gray-400 mt-1">✓ Concluído em ${new Date(item.completed_at).toLocaleString('pt-BR')}</p>` : ''}
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        
+                        <!-- Observações -->
+                        ${checklist.notes ? `
+                            <div class="mt-6 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+                                <h4 class="font-semibold text-[#111318] dark:text-white mb-2">📝 Observações</h4>
+                                <p class="text-gray-700 dark:text-gray-300">${checklist.notes}</p>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Histórico -->
+                        ${history.length > 0 ? `
+                            <div class="mt-6">
+                                <h4 class="font-semibold text-[#111318] dark:text-white mb-3">📜 Histórico</h4>
+                                <div class="space-y-2">
+                                    ${history.map(h => `
+                                        <div class="text-sm text-gray-600 dark:text-gray-400 border-l-2 border-gray-300 dark:border-gray-600 pl-3">
+                                            <span class="font-medium">${h.action_by_name}</span> - ${h.action} 
+                                            <span class="text-xs">(${new Date(h.created_at).toLocaleString('pt-BR')})</span>
+                                            ${h.notes ? `<p class="text-xs mt-1">${h.notes}</p>` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        // Fecha modal do relatório
+        function closeReportModal() {
+            const modal = document.getElementById('report-modal');
+            if (modal) modal.remove();
+        }
+
+        // Gera PDF do relatório
+        async function generatePDF() {
+            if (!currentReportData) return;
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const checklist = currentReportData.checklist;
+            const items = currentReportData.items || [];
+            
+            // Configurações
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 15;
+            let y = 20;
+            
+            // Header
+            doc.setFillColor(19, 91, 236);
+            doc.rect(0, 0, pageWidth, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(20);
+            doc.text('Relatório de Checklist', margin, 25);
+            doc.setFontSize(10);
+            doc.text(`#${checklist.id} - ${new Date(checklist.created_at).toLocaleDateString('pt-BR')}`, margin, 32);
+            
+            // Info Geral
+            y = 50;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Informações Gerais', margin, y);
+            
+            y += 8;
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Cliente: ${checklist.client_name}`, margin, y);
+            y += 6;
+            doc.text(`CPF: ${formatCPF(checklist.client_cpf)}`, margin, y);
+            y += 6;
+            doc.text(`Técnico: ${checklist.technician_name}`, margin, y);
+            y += 6;
+            doc.text(`Tipo: ${installationTypeLabels[checklist.installation_type] || checklist.installation_type}`, margin, y);
+            
+            // Progresso
+            y += 12;
+            const totalItems = items.length;
+            const completedItems = items.filter(i => i.is_completed).length;
+            const completionRate = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+            
+            doc.setFont(undefined, 'bold');
+            doc.text(`Progresso: ${completionRate}% (${completedItems}/${totalItems} itens)`, margin, y);
+            
+            // Barra de progresso
+            y += 4;
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(margin, y, pageWidth - margin * 2, 8, 'S');
+            doc.setFillColor(19, 91, 236);
+            doc.rect(margin, y, (pageWidth - margin * 2) * (completionRate / 100), 8, 'F');
+            
+            // Itens
+            y += 20;
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('Itens do Checklist', margin, y);
+            
+            // Agrupa por categoria
+            const grouped = {};
+            items.forEach(item => {
+                if (!grouped[item.task_category]) grouped[item.task_category] = [];
+                grouped[item.task_category].push(item);
+            });
+            
+            y += 8;
+            Object.entries(categories).forEach(([key, label]) => {
+                const catItems = grouped[key] || [];
+                if (catItems.length === 0) return;
+                
+                // Verifica se precisa de nova página
+                if (y > 260) {
+                    doc.addPage();
+                    y = 20;
+                }
+                
+                doc.setFont(undefined, 'bold');
+                doc.setFontSize(11);
+                doc.setTextColor(19, 91, 236);
+                doc.text(`${label} (${catItems.filter(i => i.is_completed).length}/${catItems.length})`, margin, y);
+                y += 6;
+                
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'normal');
+                
+                catItems.forEach(item => {
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    
+                    const status = item.is_completed ? '✓' : '○';
+                    const itemText = `${status} ${item.task_name}`;
+                    
+                    // Quebra texto longo
+                    const splitText = doc.splitTextToSize(itemText, pageWidth - margin * 2 - 10);
+                    doc.text(splitText, margin + 5, y);
+                    y += splitText.length * 4 + 2;
+                    
+                    if (item.notes) {
+                        doc.setTextColor(100, 100, 100);
+                        const notesText = doc.splitTextToSize(`Notas: ${item.notes}`, pageWidth - margin * 2 - 15);
+                        doc.text(notesText, margin + 10, y);
+                        y += notesText.length * 3 + 2;
+                        doc.setTextColor(0, 0, 0);
+                    }
+                });
+                
+                y += 4;
+            });
+            
+            // Observações
+            if (checklist.notes) {
+                if (y > 240) {
+                    doc.addPage();
+                    y = 20;
+                }
+                y += 10;
+                doc.setFont(undefined, 'bold');
+                doc.setFontSize(11);
+                doc.text('Observações:', margin, y);
+                y += 6;
+                doc.setFont(undefined, 'normal');
+                doc.setFontSize(9);
+                const notesText = doc.splitTextToSize(checklist.notes, pageWidth - margin * 2);
+                doc.text(notesText, margin, y);
+            }
+            
+            // Footer
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text(`Página ${i} de ${totalPages} - Gerado em ${new Date().toLocaleString('pt-BR')}`, margin, doc.internal.pageSize.getHeight() - 10);
+            }
+            
+            // Download
+            doc.save(`checklist-${checklist.id}-${checklist.client_name.replace(/\s+/g, '_')}.pdf`);
+            showToast('PDF gerado com sucesso!', 'success');
         }
 
         // Toast
