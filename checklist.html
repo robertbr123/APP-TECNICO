@@ -133,7 +133,7 @@
 
                 <!-- Ações -->
                 <div class="mt-6 space-y-3">
-                    <button id="btn-complete" class="w-full h-12 bg-green-500 text-white rounded-lg font-semibold disabled:opacity-50" disabled>
+                    <button id="btn-complete" class="w-full h-12 bg-green-500 text-white rounded-lg font-semibold disabled:opacity-50">
                         Finalizar Instalação
                     </button>
                     <button id="btn-cancel" class="w-full h-12 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium">
@@ -416,7 +416,7 @@
         // Renderiza tarefas
         function renderTasks() {
             const container = document.getElementById('tasks-container');
-            
+
             // Agrupa por categoria
             const grouped = {};
             tasks.forEach(task => {
@@ -426,22 +426,16 @@
                 grouped[task.task_category].push(task);
             });
 
-            // Verifica se há itens obrigatórios pendentes para expandir automaticamente
-            const requiredPending = tasks.filter(t => t.is_required && !t.is_completed);
-            const pendingCategories = new Set(requiredPending.map(t => t.task_category));
-
             container.innerHTML = Object.entries(categories).map(([key, label]) => {
                 const categoryTasks = grouped[key] || [];
                 if (categoryTasks.length === 0) return '';
 
                 const completedCount = categoryTasks.filter(t => t.is_completed).length;
-                const hasRequiredPending = categoryTasks.some(t => t.is_required && !t.is_completed);
-                // Expande se tiver itens obrigatórios pendentes ou se não estiver completo
-                const expanded = hasRequiredPending || completedCount < categoryTasks.length;
+                const expanded = completedCount < categoryTasks.length;
 
                 return `
                     <div class="bg-white dark:bg-gray-900 rounded-xl shadow-sm overflow-hidden">
-                        <div class="category-header p-4 flex items-center justify-between cursor-pointer" 
+                        <div class="category-header p-4 flex items-center justify-between cursor-pointer"
                              onclick="toggleCategory('${key}')">
                             <div class="flex items-center gap-3">
                                 <span class="material-symbols-outlined text-primary">
@@ -462,21 +456,18 @@
                             ${categoryTasks.map(task => `
                                 <div class="task-item p-4 border-t border-gray-100 dark:border-gray-800 flex items-start gap-3">
                                     <div class="flex-shrink-0 mt-0.5">
-                                        <input type="checkbox" 
+                                        <input type="checkbox"
                                                class="w-6 h-6 rounded border-2 border-gray-300 dark:border-gray-600 cursor-pointer appearance-none checked:bg-primary checked:border-primary checked:bg-[url('data:image/svg+xml,%3csvg viewBox=%220 0 16 16%22 fill=%22white%22 xmlns=%22http://www.w3.org/2000/svg%22%3e%3cpath d=%22M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%22/%3e%3c/svg%3e')]"
                                                ${task.is_completed ? 'checked' : ''}
                                                onchange="toggleTask(${task.id}, this.checked)">
                                     </div>
                                     <div class="flex-1">
-                                        <p class="text-[#111318] dark:text-white ${task.is_completed ? 'line-through text-gray-500' : ''} ${task.is_required && !task.is_completed ? 'font-semibold text-red-600 dark:text-red-400' : ''}">
+                                        <p class="text-[#111318] dark:text-white ${task.is_completed ? 'line-through text-gray-500' : ''}">
                                             ${task.task_name}
-                                            ${task.is_required ? '<span class="text-red-500" title="Obrigatório">*</span>' : '<span class="text-gray-400 text-xs">(opcional)</span>'}
                                         </p>
-                                        ${!task.is_completed && task.is_required ? '<p class="text-xs text-red-500 mt-1">⚠️ Item obrigatório pendente</p>' : ''}
-                                        ${!task.is_completed && !task.is_required ? '<p class="text-xs text-blue-500 mt-1 cursor-pointer" onclick="markAsNA(${task.id}, event)">ℹ️ Marcar como N/A</p>' : ''}
                                         ${task.notes ? `<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${task.notes}</p>` : ''}
                                     </div>
-                                    <button onclick="openPhotoModal(${task.id})" 
+                                    <button onclick="openPhotoModal(${task.id})"
                                             class="flex-shrink-0 p-2 text-gray-400 hover:text-primary transition-colors">
                                         <span class="material-symbols-outlined">photo_camera</span>
                                     </button>
@@ -508,25 +499,31 @@
             return icons[category] || 'check_circle';
         }
 
-        // Toggle tarefa
+        // Toggle tarefa (atualização otimista)
         async function toggleTask(taskId, completed) {
+            // Atualiza local primeiro (resposta imediata)
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                task.is_completed = completed;
+            }
+            renderTasks();
+            updateProgress();
+
+            // Sincroniza com servidor
             try {
                 if (completed) {
                     await API.completeChecklistItem(taskId);
                 } else {
                     await API.uncheckChecklistItem(taskId);
                 }
-                
-                // Atualiza local
-                const task = tasks.find(t => t.id === taskId);
-                if (task) {
-                    task.is_completed = completed;
-                }
-                
-                renderTasks();
-                updateProgress();
             } catch (error) {
                 console.error('Erro ao atualizar tarefa:', error);
+                // Reverte em caso de erro
+                if (task) {
+                    task.is_completed = !completed;
+                }
+                renderTasks();
+                updateProgress();
                 showToast('Erro ao atualizar tarefa', 'error');
             }
         }
@@ -562,48 +559,18 @@
         function updateProgress() {
             const total = tasks.length;
             const completed = tasks.filter(t => t.is_completed).length;
-            const required = tasks.filter(t => t.is_required);
-            const requiredCompleted = required.filter(t => t.is_completed).length;
-            const requiredPending = required.filter(t => !t.is_completed);
-            
             const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-            
+
             document.getElementById('progress-bar').style.width = `${percent}%`;
             document.getElementById('progress-text').textContent = `${percent}%`;
-            
-            // Mostra itens pendentes se houver
-            let pendingText = '';
-            if (requiredPending.length > 0 && requiredPending.length <= 3) {
-                pendingText = ' - Faltam: ' + requiredPending.slice(0, 3).map(t => t.task_name.substring(0, 20)).join(', ');
-                if (requiredPending.length > 3) pendingText += '...';
-            }
-            
-            document.getElementById('progress-detail').textContent = 
-                `${completed} de ${total} tarefas concluídas (${requiredCompleted}/${required.length} obrigatórias)${pendingText}`;
-            
-            // Habilita botão de finalizar se todas obrigatórias estiverem completas
-            const allRequiredDone = required.length === requiredCompleted;
+            document.getElementById('progress-detail').textContent = `${completed} de ${total} tarefas concluídas`;
+
+            // Botão de finalizar sempre habilitado
             const btnComplete = document.getElementById('btn-complete');
-            btnComplete.disabled = !allRequiredDone;
-            
-            // Atualiza texto do botão
-            if (allRequiredDone) {
-                btnComplete.textContent = 'Finalizar Instalação';
-                btnComplete.classList.remove('bg-gray-400');
-                btnComplete.classList.add('bg-green-500');
-            } else {
-                btnComplete.textContent = `Concluir ${requiredPending.length} item(s) obrigatório(s)`;
-                btnComplete.classList.remove('bg-green-500');
-                btnComplete.classList.add('bg-gray-400');
-            }
-            
-            console.log('Progresso atualizado:', { 
-                total, 
-                completed, 
-                required: required.length, 
-                requiredCompleted,
-                allRequiredDone 
-            });
+            btnComplete.disabled = false;
+            btnComplete.textContent = 'Finalizar Instalação';
+            btnComplete.classList.remove('bg-gray-400');
+            btnComplete.classList.add('bg-green-500');
         }
 
         // Abre modal de foto
@@ -668,15 +635,6 @@
 
         // Finaliza checklist
         async function completeChecklist() {
-            // Verifica se há itens obrigatórios pendentes antes de tentar finalizar
-            const requiredPending = tasks.filter(t => t.is_required && !t.is_completed);
-            
-            if (requiredPending.length > 0) {
-                // Mostra modal com itens pendentes
-                showPendingItemsModal(requiredPending);
-                return;
-            }
-            
             // Confirmação final
             if (!confirm('Tem certeza que deseja finalizar esta instalação?\n\nVerifique se todos os itens foram concluídos corretamente.')) {
                 return;
@@ -830,14 +788,27 @@
         }
 
         // Carrega checklists recentes
-        async function loadRecentChecklists(showAll = false) {
+        async function loadRecentChecklists(showAll = null) {
             // Aguarda API estar disponível
             if (!checkAPI()) {
                 console.log('Aguardando API...');
                 setTimeout(() => loadRecentChecklists(showAll), 500);
                 return;
             }
-            
+
+            // Admin vê todos por padrão
+            if (showAll === null) showAll = isAdmin;
+
+            // Atualiza visual dos botões de filtro
+            const filterBtns = document.querySelectorAll('#admin-filters .flex.gap-2:first-child button');
+            filterBtns.forEach((btn, i) => {
+                if ((i === 0 && !showAll) || (i === 1 && showAll)) {
+                    btn.className = 'px-3 py-1.5 bg-primary text-white rounded-lg text-sm font-medium whitespace-nowrap';
+                } else {
+                    btn.className = 'px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium whitespace-nowrap';
+                }
+            });
+
             try {
                 const params = { limit: 20 };
                 if (isAdmin && showAll) {
@@ -846,7 +817,7 @@
                 
                 const response = await API.getChecklists(params);
                 if (response.success) {
-                    isAdmin = response.is_admin;
+                    if (response.is_admin !== undefined) isAdmin = response.is_admin;
                     if (response.data.length > 0) {
                         renderChecklistsList(response.data, response.counts);
                     } else {
@@ -914,30 +885,37 @@
                 };
                 
                 const showApproval = checklist.approval_status && checklist.approval_status !== 'pending';
-                const isPendingApproval = checklist.approval_status === 'pending_approval';
+                const isPendingApproval = checklist.approval_status === 'pending_approval' ||
+                    (checklist.status === 'completed' && checklist.approval_status !== 'approved' && checklist.approval_status !== 'rejected');
                 const isRejected = checklist.approval_status === 'rejected';
-                
+
                 // Botões de ação para admin
                 let adminActions = '';
                 if (isAdmin && isPendingApproval) {
                     adminActions = `
                         <div class="flex gap-2 mt-2">
-                            <button onclick="approveChecklist(${checklist.id})" 
-                                    class="flex-1 py-1.5 px-3 bg-green-500 text-white rounded-lg text-sm font-medium">
+                            <button onclick="event.stopPropagation(); approveChecklist(${checklist.id})"
+                                    class="flex-1 py-2 px-3 bg-green-500 text-white rounded-lg text-sm font-bold shadow-sm">
                                 ✓ Aprovar
                             </button>
-                            <button onclick="showRejectModal(${checklist.id})" 
-                                    class="flex-1 py-1.5 px-3 bg-red-500 text-white rounded-lg text-sm font-medium">
+                            <button onclick="event.stopPropagation(); showRejectModal(${checklist.id})"
+                                    class="flex-1 py-2 px-3 bg-red-500 text-white rounded-lg text-sm font-bold shadow-sm">
                                 ✕ Rejeitar
+                            </button>
+                        </div>
+                        <div class="flex gap-2 mt-1">
+                            <button onclick="event.stopPropagation(); deleteChecklist(${checklist.id})"
+                                    class="py-1 px-3 text-red-600 hover:bg-red-50 rounded-lg text-xs">
+                                Excluir
                             </button>
                         </div>
                     `;
                 } else if (isAdmin) {
                     adminActions = `
                         <div class="flex gap-2 mt-2">
-                            <button onclick="deleteChecklist(${checklist.id})" 
+                            <button onclick="event.stopPropagation(); deleteChecklist(${checklist.id})"
                                     class="py-1.5 px-3 text-red-600 hover:bg-red-50 rounded-lg text-sm">
-                                🗑 Excluir
+                                Excluir
                             </button>
                         </div>
                     `;

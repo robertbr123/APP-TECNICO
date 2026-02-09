@@ -193,8 +193,8 @@
 <!-- Histórico -->
 <div class="bg-white dark:bg-card-dark rounded-ios-xl p-5 shadow-sm border border-gray-100 dark:border-white/5">
 <div class="flex items-center justify-between mb-4">
-<h4 class="text-[#111318] dark:text-white font-semibold text-base">Últimos Registros</h4>
-<button class="text-primary text-sm font-semibold hover:opacity-70">Ver tudo</button>
+<h4 class="text-[#111318] dark:text-white font-semibold text-base">Registros do Mês</h4>
+<button onclick="loadHistory()" class="text-primary text-sm font-semibold hover:opacity-70">Atualizar</button>
 </div>
 <div id="history-list" class="space-y-3">
 <p class="text-gray-500 dark:text-gray-400 text-sm text-center py-4">Carregando histórico...</p>
@@ -270,8 +270,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     async function loadTodayRecord() {
         try {
             const today = new Date().toISOString().split('T')[0];
-            const response = await API.getTimeClock(today);
-            
+            const response = await API.getTimeClock({ date: today });
+
             if (response.success && response.data) {
                 todayRecord = response.data;
                 updateTodayStatus();
@@ -310,9 +310,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Carrega histórico
     async function loadHistory() {
         try {
-            const response = await API.getTimeClock(null, 10);
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+            const response = await API.getTimeClock({ from: firstDay, to: lastDay, limit: 31 });
             if (response.success) {
-                renderHistory(response.data);
+                const records = Array.isArray(response.data) ? response.data : [response.data];
+                renderHistory(records.filter(r => r));
             }
         } catch (error) {
             console.error('Erro ao carregar histórico:', error);
@@ -458,9 +462,24 @@ document.addEventListener('DOMContentLoaded', async function() {
     function checkButtons() {
         const hasPhoto = photoData !== null;
         const hasLocation = locationData !== null;
-        
-        document.getElementById('btn-entry').disabled = !hasPhoto || !hasLocation;
-        document.getElementById('btn-exit').disabled = !hasPhoto || !hasLocation;
+        const ready = hasPhoto && hasLocation;
+
+        const btnEntry = document.getElementById('btn-entry');
+        const btnExit = document.getElementById('btn-exit');
+
+        if (todayRecord && todayRecord.entry_time && todayRecord.exit_time) {
+            // Ponto completo
+            btnEntry.disabled = true;
+            btnExit.disabled = true;
+        } else if (todayRecord && todayRecord.entry_time && !todayRecord.exit_time) {
+            // Já deu entrada, falta saída
+            btnEntry.disabled = true;
+            btnExit.disabled = !ready;
+        } else {
+            // Sem registro hoje
+            btnEntry.disabled = !ready;
+            btnExit.disabled = true;
+        }
     }
 
     // Registrar entrada

@@ -150,11 +150,10 @@ Sincronizar
 <p id="client-address" class="text-[#111318] dark:text-white text-sm mb-4 leading-relaxed">
                     Carregando endereço...
                 </p>
-<div class="w-full h-32 rounded-xl bg-gray-200 dark:bg-gray-800 bg-cover bg-center overflow-hidden" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDwUvEnmiM868hyViV-qqut5Ygj9Qj4ACMnv2A1XZXiYhDHeLvnQqL6Fo0U1-bMIil_DSiE3e7IKGRRwsgOJ0oTo2f6HC8xTSH63qwZcI0kd3ih_c4-k3Mi6yFXRamkwF17XZWGMfCCithA9KhX5WDbfmgW6dRgfEJGZ8tRRLpMvsIxwCbWaRBr5-2AxVMKfkMAKMumWR2aImR-YlkhVj5F-6bopjMIDIBi3FUMotJJNPC0O9nttZ8r6WId1Nnxx77ve220Of4BMSA');">
-<div class="w-full h-full bg-black/10 flex items-center justify-center">
-<div class="bg-white p-2 rounded-full shadow-lg">
-<span class="material-symbols-outlined text-red-500">location_on</span>
-</div>
+<div id="mini-map" class="w-full h-40 rounded-xl bg-gray-200 dark:bg-gray-800 overflow-hidden flex items-center justify-center">
+<div class="text-center text-gray-400">
+<span class="material-symbols-outlined text-2xl">map</span>
+<p class="text-xs mt-1">Carregando mapa...</p>
 </div>
 </div>
 </section>
@@ -302,23 +301,18 @@ Sincronizar
     
     async function loadClientData(cpf) {
         try {
-            var token = localStorage.getItem('auth_token') || '';
-            var headers = {
-                'Content-Type': 'application/json'
-            };
-            if (token) {
-                headers['Authorization'] = 'Bearer ' + token;
-            }
-            
-            var response = await fetch('/api/search-clients.php?search=' + encodeURIComponent(cpf) + '&limit=1', {
-                headers: headers
-            });
-            var result = await response.json();
-            
+            // Usa API.getClient para obter todos os campos (incluindo pppoe e password)
+            var result = await API.getClient(cpf);
+
             console.log('Cliente:', result);
-            
-            if (result.success && result.data && result.data.length > 0) {
-                var client = result.data[0];
+
+            // Compatibilidade: resultado pode ser objeto ou array
+            var client = null;
+            if (result.success && result.data) {
+                client = Array.isArray(result.data) ? result.data[0] : result.data;
+            }
+
+            if (client) {
                 
                 // Registra a visualização no log de auditoria
                 logClientView(client);
@@ -357,13 +351,13 @@ Sincronizar
                 
                 // PPPoE
                 var pppoeEl = document.getElementById('client-pppoe');
-                if (pppoeEl) pppoeEl.textContent = client.pppoe || 'Não informado';
-                
+                if (pppoeEl) pppoeEl.textContent = client.pppoe || client.pppoe_user || client.usuario_pppoe || 'Não informado';
+
                 // Senha (armazena para toggle)
-                clientPassword = client.password || '';
+                clientPassword = client.password || client.pppoe_password || client.senha || '';
                 var passwordEl = document.getElementById('client-password');
                 if (passwordEl) {
-                    passwordEl.textContent = '••••••••';
+                    passwordEl.textContent = clientPassword ? '••••••••' : 'Não informada';
                 }
                 
                 // Vencimento
@@ -372,12 +366,23 @@ Sincronizar
                 
                 // Endereço
                 var addressEl = document.getElementById('client-address');
+                var fullAddress = '';
                 if (addressEl) {
                     var endereco = (client.address || 'Endereço não informado');
                     if (client.number) endereco += ', ' + client.number;
                     if (client.complement) endereco += ' - ' + client.complement;
                     if (client.city) endereco += '<br>' + client.city;
                     addressEl.innerHTML = endereco;
+
+                    // Monta endereço completo para o mapa
+                    fullAddress = (client.address || '');
+                    if (client.number) fullAddress += ', ' + client.number;
+                    if (client.city) fullAddress += ', ' + client.city;
+                }
+
+                // Carrega mini mapa com a localização
+                if (fullAddress || client.city) {
+                    loadMiniMap(fullAddress || client.city);
                 }
                 
                 // Observações
@@ -639,11 +644,22 @@ Sincronizar
             
             // 2. Extrai contrato e MAC dos dados do SGP
             if (sgpClient.contratos && sgpClient.contratos.length > 0) {
-                contrato = sgpClient.contratos[0].id || sgpClient.contratos[0].contrato;
-                
-                if (sgpClient.contratos[0].servicos && sgpClient.contratos[0].servicos.length > 0) {
-                    mac = sgpClient.contratos[0].servicos[0].mac || null;
+                var c = sgpClient.contratos[0];
+                contrato = c.id || c.contrato;
+
+                // Busca MAC em servicos
+                if (c.servicos && c.servicos.length > 0) {
+                    var svc = c.servicos[0];
+                    mac = svc.mac || svc.endereco_mac || svc.mac_address || svc.serial || null;
                 }
+                // Busca MAC diretamente no contrato
+                if (!mac) {
+                    mac = c.mac || c.endereco_mac || c.mac_address || null;
+                }
+            }
+            // Busca MAC na raiz do cliente SGP
+            if (!mac) {
+                mac = sgpClient.mac || sgpClient.endereco_mac || sgpClient.mac_address || null;
             }
             
             if (!contrato) {
@@ -867,6 +883,34 @@ Sincronizar
         return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
     }
     
+    // Carrega mini mapa usando OpenStreetMap via Nominatim geocoding
+    async function loadMiniMap(address) {
+        var mapContainer = document.getElementById('mini-map');
+        if (!mapContainer) return;
+
+        try {
+            // Geocodifica o endereço usando Nominatim (OpenStreetMap)
+            var geocodeUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(address) + '&limit=1';
+            var response = await fetch(geocodeUrl, {
+                headers: { 'Accept-Language': 'pt-BR' }
+            });
+            var results = await response.json();
+
+            if (results && results.length > 0) {
+                var lat = results[0].lat;
+                var lon = results[0].lon;
+
+                // Usa iframe do OpenStreetMap para mostrar o mapa
+                mapContainer.innerHTML = '<iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" style="border-radius: 12px;" src="https://www.openstreetmap.org/export/embed.html?bbox=' + (parseFloat(lon) - 0.005) + '%2C' + (parseFloat(lat) - 0.003) + '%2C' + (parseFloat(lon) + 0.005) + '%2C' + (parseFloat(lat) + 0.003) + '&layer=mapnik&marker=' + lat + '%2C' + lon + '"></iframe>';
+            } else {
+                mapContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-400"><span class="material-symbols-outlined text-2xl">location_off</span><p class="text-xs mt-1">Localização não encontrada</p></div>';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar mapa:', error);
+            mapContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-400"><span class="material-symbols-outlined text-2xl">map</span><p class="text-xs mt-1">Erro ao carregar mapa</p></div>';
+        }
+    }
+
     // Registra visualização do cliente no log de auditoria
     async function logClientView(client) {
         try {

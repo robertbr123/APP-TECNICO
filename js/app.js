@@ -851,41 +851,10 @@ const App = {
 
     /**
      * Página de Consulta
+     * O carregamento de clientes é feito pelo script inline de consultar.html
      */
     async initConsultaPage() {
         this.setupBottomNavigation();
-
-        // Botão voltar
-        const backBtn = document.querySelector('.material-symbols-outlined');
-        if (backBtn) {
-            backBtn.closest('div').addEventListener('click', () => {
-                window.history.back();
-            });
-        }
-
-        // Campo de busca
-        const searchInput = document.querySelector('input[placeholder*="Buscar"]');
-        let searchTimeout;
-        
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    this.searchClients(e.target.value);
-                }, 500);
-            });
-        }
-
-        // Botão flutuante de adicionar
-        const addBtn = document.querySelector('.fixed.bottom-8');
-        if (addBtn) {
-            addBtn.addEventListener('click', () => {
-                window.location.href = 'novo-cadastro.html';
-            });
-        }
-
-        // Carrega clientes
-        await this.loadClients();
     },
 
     /**
@@ -1144,30 +1113,26 @@ const App = {
 
     /**
      * Configura navegação inferior
+     * Garante que links sem href correto sejam atualizados
      */
     setupBottomNavigation() {
+        const navMap = {
+            'início': 'dashboard.html',
+            'inicio': 'dashboard.html',
+            'rotas': 'mapa.html',
+            'ponto': 'ponto.html',
+            'clientes': 'consultar.html',
+            'ajustes': 'ajustes.html'
+        };
         const navLinks = document.querySelectorAll('nav a');
         navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const text = link.querySelector('span:last-child')?.textContent?.toLowerCase();
-                
-                switch (text) {
-                    case 'início':
-                    case 'inicio':
-                        window.location.href = 'dashboard.html';
-                        break;
-                    case 'clientes':
-                        window.location.href = 'consultar.html';
-                        break;
-                    case 'ponto':
-                        this.showToast('Registro de ponto em breve!', 'info');
-                        break;
-                    case 'ajustes':
-                        window.location.href = 'ajustes.html';
-                        break;
+            const text = link.querySelector('span:last-child')?.textContent?.trim()?.toLowerCase();
+            if (text && navMap[text]) {
+                // Atualiza href se estiver como # ou vazio
+                if (!link.getAttribute('href') || link.getAttribute('href') === '#') {
+                    link.setAttribute('href', navMap[text]);
                 }
-            });
+            }
         });
     },
 
@@ -1402,6 +1367,8 @@ const App = {
 
         if (avatarEl && user.photo) {
             avatarEl.style.backgroundImage = `url("${user.photo}")`;
+            const iconEl = avatarEl.querySelector('.material-symbols-outlined');
+            if (iconEl) iconEl.style.display = 'none';
         }
         if (nameEl) {
             nameEl.textContent = user.full_name || user.username;
@@ -1436,6 +1403,9 @@ const App = {
 
                 if (avatarEl && profile.photo) {
                     avatarEl.style.backgroundImage = `url("${profile.photo}")`;
+                    // Esconde o ícone padrão quando tem foto
+                    const iconEl = avatarEl.querySelector('.material-symbols-outlined');
+                    if (iconEl) iconEl.style.display = 'none';
                 }
                 if (nameEl) nameEl.textContent = profile.full_name || profile.username;
                 if (emailEl) emailEl.textContent = profile.email || 'Sem email';
@@ -1479,7 +1449,11 @@ const App = {
                     const response = await API.uploadProfilePhoto(file);
                     if (response.success) {
                         const avatarEl = document.getElementById('profile-avatar');
-                        if (avatarEl) avatarEl.style.backgroundImage = `url("${response.data.photo}")`;
+                        if (avatarEl) {
+                            avatarEl.style.backgroundImage = `url("${response.data.photo}")`;
+                            const iconEl = avatarEl.querySelector('.material-symbols-outlined');
+                            if (iconEl) iconEl.style.display = 'none';
+                        }
                         const currentUser = API.getUser();
                         API.setUser({ ...currentUser, photo: response.data.photo });
                         this.showToast('Foto atualizada!', 'success');
@@ -1607,12 +1581,14 @@ const App = {
             const progressBar = document.getElementById('progress-bar');
             const progressCircle = document.getElementById('progress-circle');
 
-            const percent = d.monthlyGoal > 0
-                ? Math.min(100, Math.round((d.monthInstallations / d.monthlyGoal) * 100))
+            const goal = d.monthlyGoal || 10;
+            const monthInstalls = d.monthInstallations || 0;
+            const percent = goal > 0
+                ? Math.min(100, Math.round((monthInstalls / goal) * 100))
                 : 0;
 
-            if (monthCount) monthCount.textContent = d.monthInstallations;
-            if (monthGoal) monthGoal.textContent = d.monthlyGoal;
+            if (monthCount) monthCount.textContent = monthInstalls;
+            if (monthGoal) monthGoal.textContent = goal;
             if (progressPercent) progressPercent.textContent = `${percent}%`;
             if (progressBar) progressBar.style.width = `${percent}%`;
 
@@ -1798,15 +1774,13 @@ const App = {
      */
     async initMapaPage() {
         console.log('initMapaPage iniciado');
-        
-        // Verifica se a página tem função própria de inicialização
-        if (typeof window.initMap === 'function') {
-            window.initMap();
-        }
-        
+
+        // O mapa é inicializado pelo script inline da página
+        // Não chamar window.initMap() aqui para evitar dupla inicialização
+
         // Configura navegação
         this.setupBottomNavigation();
-        
+
         // Atualiza foto e dados do header
         const user = API.getUser();
         this.updateHeaderProfile(user);

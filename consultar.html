@@ -102,7 +102,7 @@
 
 <!-- Resultados -->
 <div class="mb-4">
-<p id="result-count" class="text-sm text-gray-500 dark:text-gray-400">Carregando clientes...</p>
+<p id="result-count" class="text-sm text-gray-500 dark:text-gray-400 hidden"></p>
 </div>
 
 <!-- Lista de clientes -->
@@ -220,7 +220,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Clientes:', result);
             
             if (result.success && result.data && result.data.length > 0) {
-                resultCount.textContent = result.data.length + ' cliente(s) encontrado(s)';
+                // Contagem de resultados removida conforme solicitado
+                // resultCount.textContent = result.data.length + ' cliente(s) encontrado(s)';
                 
                 container.innerHTML = result.data.map(function(client) {
                     const cpfFormatado = Utils.formatCPF(client.cpf);

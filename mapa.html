@@ -210,8 +210,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Carrega clientes
     async function loadClients() {
-        showLoading(true);
-        
+        showLoading('Carregando clientes...');
+
         try {
             const response = await API.getClients();
             if (response.success) {
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             showError('Erro ao carregar clientes: ' + error.message);
         } finally {
-            showLoading(false);
+            hideLoading();
         }
     }
 
@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
 
-        showLoading(true);
+        showLoading('Calculando rota...');
 
         // Obtém localização atual
         navigator.geolocation.getCurrentPosition(
@@ -384,7 +384,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const waypoints = nearestClients.slice(0, 5).map(c => `${c.latitude},${c.longitude}`).join('/');
                 Utils.openRouteUrl(currentLat, currentLon, nearestClients[0].latitude, nearestClients[0].longitude);
 
-                showLoading(false);
+                hideLoading();
             },
             (error) => {
                 showWarning('Não foi possível obter sua localização. Usando centro do mapa como ponto de partida.');
@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }).addTo(map);
 
                 map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
-                showLoading(false);
+                hideLoading();
             },
             { enableHighAccuracy: true }
         );
