@@ -260,7 +260,7 @@ async function loadAppVersion() {
             
             registration.active.postMessage({ type: 'GET_VERSION' }, [messageChannel.port2]);
             const version = await Promise.race([versionPromise, timeoutPromise]);
-            document.getElementById('app-version').textContent = version || 'v19';
+            document.getElementById('app-version').textContent = version || 'v21';
         } else {
             document.getElementById('app-version').textContent = 'v18';
         }

@@ -590,6 +590,17 @@ const API = {
     },
 
     /**
+     * Atualizar foto do item do checklist
+     */
+    async updateChecklistItemPhoto(itemId, photoUrl) {
+        return this.put('checklist.php', {
+            action: 'update_photo',
+            item_id: itemId,
+            photo_url: photoUrl
+        });
+    },
+
+    /**
      * Completar checklist
      */
     async completeChecklist(checklistId) {

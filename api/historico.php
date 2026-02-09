@@ -31,6 +31,9 @@ try {
         $installerFilter = ' AND installer = ?';
         $installerParam = [$username];
     }
+    
+    // Log para debug
+    error_log("[Historico] User: $username, Role: $role, WeekStart: $weekStart");
 
     // Cadastros hoje
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM clients WHERE DATE(created_at) = ?" . $installerFilter);
@@ -38,9 +41,13 @@ try {
     $todayInstallations = (int)$stmt->fetch()['total'];
 
     // Cadastros esta semana
-    $stmt = $db->prepare("SELECT COUNT(*) as total FROM clients WHERE DATE(created_at) >= ?" . $installerFilter);
-    $stmt->execute(array_merge([$weekStart], $installerParam));
+    $weekSql = "SELECT COUNT(*) as total FROM clients WHERE DATE(created_at) >= ?" . $installerFilter;
+    $weekParams = array_merge([$weekStart], $installerParam);
+    error_log("[Historico] Week SQL: $weekSql, Params: " . json_encode($weekParams));
+    $stmt = $db->prepare($weekSql);
+    $stmt->execute($weekParams);
     $weekInstallations = (int)$stmt->fetch()['total'];
+    error_log("[Historico] Week result: $weekInstallations");
 
     // Cadastros este mes
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM clients WHERE DATE(created_at) >= ?" . $installerFilter);
@@ -122,7 +129,7 @@ try {
     }
 
     // Meta mensal
-    $monthlyGoal = 30;
+    $monthlyGoal = 10;
 
     jsonResponse([
         'success' => true,

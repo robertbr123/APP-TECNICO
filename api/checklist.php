@@ -623,6 +623,35 @@ function handlePut($db, $userData, $isAdmin) {
             
             jsonResponse(['success' => true, 'message' => 'Item desmarcado']);
             
+        case 'update_photo':
+            // Atualiza apenas a foto de um item
+            $itemId = (int)($data['item_id'] ?? 0);
+            $photoUrl = $data['photo_url'] ?? null;
+            
+            if (!$itemId) {
+                jsonResponse(['success' => false, 'message' => 'ID do item é obrigatório'], 400);
+            }
+            
+            if (!$photoUrl) {
+                jsonResponse(['success' => false, 'message' => 'URL da foto é obrigatória'], 400);
+            }
+            
+            // Verifica se o item existe
+            $checkStmt = $db->prepare("SELECT id FROM checklist_items WHERE id = ?");
+            $checkStmt->execute([$itemId]);
+            if (!$checkStmt->fetch()) {
+                jsonResponse(['success' => false, 'message' => 'Item não encontrado'], 404);
+            }
+            
+            $stmt = $db->prepare("
+                UPDATE checklist_items 
+                SET photo_url = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$photoUrl, $itemId]);
+            
+            jsonResponse(['success' => true, 'message' => 'Foto atualizada']);
+            
         case 'mark_na':
             // Marca item como N/A (Não Aplicável) - apenas para itens não obrigatórios
             $itemId = (int)($data['item_id'] ?? 0);

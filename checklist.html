@@ -218,6 +218,14 @@
                 <span class="material-symbols-outlined">checklist</span>
                 <span class="text-xs font-medium">Checklist</span>
             </a>
+            <a href="vincular-equipamento.html" class="flex flex-col items-center gap-1 text-gray-400 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined">link</span>
+                <span class="text-xs">Vincular</span>
+            </a>
+            <a href="estoque.html" id="nav-estoque" class="hidden flex-col items-center gap-1 text-gray-400 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined">inventory_2</span>
+                <span class="text-xs">Estoque</span>
+            </a>
             <a href="ajustes.html" class="flex flex-col items-center gap-1 text-gray-400 hover:text-primary transition-colors">
                 <span class="material-symbols-outlined">settings</span>
                 <span class="text-xs">Ajustes</span>
@@ -743,8 +751,13 @@
             }
         }
 
-        // Captura foto
+        // Captura foto e faz upload
         async function capturePhoto() {
+            if (!currentTaskId || !selectedClient) {
+                showToast('Erro: Nenhuma tarefa selecionada', 'error');
+                return;
+            }
+            
             const video = document.getElementById('camera-video');
             const canvas = document.getElementById('camera-canvas');
             
@@ -755,14 +768,35 @@
             const base64 = canvas.toDataURL('image/jpeg', 0.8);
             
             try {
-                // Aqui você enviaria a foto para o servidor
-                // await API.uploadPhoto(...)
+                showToast('Enviando foto...', 'info');
                 
+                // Upload da foto
+                const uploadResponse = await API.uploadPhoto(selectedClient.cpf, base64, 'checklist');
+                console.log('[Checklist] Upload response:', uploadResponse);
+                
+                if (!uploadResponse.success) {
+                    throw new Error(uploadResponse.message || 'Erro no upload');
+                }
+                
+                // Atualiza o item do checklist com a URL da foto
+                const photoUrl = uploadResponse.data.url;
+                await API.completeChecklistItem(currentTaskId, 'Foto anexada', photoUrl);
+                
+                // Atualiza localmente
+                const task = tasks.find(t => parseInt(t.id) === parseInt(currentTaskId));
+                if (task) {
+                    task.is_completed = true;
+                    task.photo_url = photoUrl;
+                    task.notes = 'Foto anexada';
+                }
+                
+                renderTasks();
+                updateProgress();
                 closePhotoModal();
-                showToast('Foto anexada com sucesso!', 'success');
+                showToast('✓ Foto anexada com sucesso!', 'success');
             } catch (error) {
-                console.error('Erro ao salvar foto:', error);
-                showToast('Erro ao salvar foto', 'error');
+                console.error('[Checklist] Erro ao salvar foto:', error);
+                showToast('Erro: ' + (error.message || 'Falha ao salvar foto'), 'error');
             }
         }
 
@@ -933,6 +967,12 @@
                 // Atualiza interface baseado no role
                 if (isAdmin) {
                     document.getElementById('admin-filters')?.classList.remove('hidden');
+                    // Mostra botão de estoque na navegação
+                    const navEstoque = document.getElementById('nav-estoque');
+                    if (navEstoque) {
+                        navEstoque.classList.remove('hidden');
+                        navEstoque.classList.add('flex');
+                    }
                 }
             } catch (error) {
                 console.error('Erro ao carregar usuário:', error);
@@ -1314,28 +1354,33 @@
                             <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">${completedItems} de ${totalItems} itens concluídos</p>
                         </div>
                         
-                        <!-- Itens por Categoria -->
+                        <!-- Itens Concluídos -->
                         <div class="space-y-4">
-                            <h3 class="text-lg font-bold text-[#111318] dark:text-white border-b pb-2">Itens do Checklist</h3>
+                            <h3 class="text-lg font-bold text-[#111318] dark:text-white border-b pb-2">
+                                ✓ Itens Concluídos (${completedItems})
+                            </h3>
                             ${Object.entries(categories).map(([key, label]) => {
-                                const catItems = grouped[key] || [];
+                                const catItems = (grouped[key] || []).filter(i => i.is_completed);
                                 if (catItems.length === 0) return '';
                                 return `
                                     <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                                        <div class="bg-gray-100 dark:bg-gray-800 px-4 py-2 font-semibold text-[#111318] dark:text-white">
-                                            ${label} (${catItems.filter(i => i.is_completed).length}/${catItems.length})
+                                        <div class="bg-green-100 dark:bg-green-900/30 px-4 py-2 font-semibold text-[#111318] dark:text-white">
+                                            ${label} (${catItems.length})
                                         </div>
                                         <div class="divide-y divide-gray-200 dark:divide-gray-700">
                                             ${catItems.map(item => `
-                                                <div class="px-4 py-3 flex items-start gap-3 ${item.is_completed ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/10'}">
-                                                    <span class="material-symbols-outlined ${item.is_completed ? 'text-green-500' : 'text-red-400'}">
-                                                        ${item.is_completed ? 'check_circle' : 'radio_button_unchecked'}
-                                                    </span>
+                                                <div class="px-4 py-3 flex items-start gap-3 bg-green-50 dark:bg-green-900/20">
+                                                    <span class="material-symbols-outlined text-green-500">check_circle</span>
                                                     <div class="flex-1">
-                                                        <p class="text-[#111318] dark:text-white ${item.is_completed ? '' : 'text-gray-500'}">${item.task_name}</p>
+                                                        <p class="text-[#111318] dark:text-white font-medium">${item.task_name}</p>
                                                         ${item.notes ? `<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">📝 ${item.notes}</p>` : ''}
-                                                        ${item.photo_url ? `<p class="text-sm text-blue-500 mt-1">📷 Foto anexada</p>` : ''}
-                                                        ${item.completed_at ? `<p class="text-xs text-gray-400 mt-1">✓ Concluído em ${new Date(item.completed_at).toLocaleString('pt-BR')}</p>` : ''}
+                                                        ${item.photo_url ? `
+                                                            <div class="mt-2">
+                                                                <img src="${item.photo_url}" alt="Foto" class="max-w-xs max-h-48 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open('${item.photo_url}', '_blank')">
+                                                                <p class="text-xs text-blue-500 mt-1">📷 Clique para ampliar</p>
+                                                            </div>
+                                                        ` : ''}
+                                                        ${item.completed_at ? `<p class="text-xs text-gray-400 mt-2">✓ Concluído em ${new Date(item.completed_at).toLocaleString('pt-BR')}</p>` : ''}
                                                     </div>
                                                 </div>
                                             `).join('')}
@@ -1344,6 +1389,20 @@
                                 `;
                             }).join('')}
                         </div>
+                        
+                        <!-- Itens Pendentes (apenas para referência) -->
+                        ${items.filter(i => !i.is_completed).length > 0 ? `
+                            <div class="mt-6 space-y-4">
+                                <h3 class="text-lg font-bold text-gray-500 dark:text-gray-400 border-b pb-2">
+                                    ○ Itens Não Concluídos (${items.filter(i => !i.is_completed).length})
+                                </h3>
+                                <div class="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-500">
+                                        ${items.filter(i => !i.is_completed).map(i => i.task_name).join(', ')}
+                                    </p>
+                                </div>
+                            </div>
+                        ` : ''}
                         
                         <!-- Observações -->
                         ${checklist.notes ? `
@@ -1438,15 +1497,15 @@
             doc.setFillColor(19, 91, 236);
             doc.rect(margin, y, (pageWidth - margin * 2) * (completionRate / 100), 8, 'F');
             
-            // Itens
+            // Itens Concluídos
             y += 20;
             doc.setFont(undefined, 'bold');
             doc.setFontSize(12);
-            doc.text('Itens do Checklist', margin, y);
+            doc.text(`✓ Itens Concluídos (${completedItems})`, margin, y);
             
-            // Agrupa por categoria
+            // Agrupa por categoria (apenas concluídos)
             const grouped = {};
-            items.forEach(item => {
+            items.filter(i => i.is_completed).forEach(item => {
                 if (!grouped[item.task_category]) grouped[item.task_category] = [];
                 grouped[item.task_category].push(item);
             });
@@ -1465,7 +1524,7 @@
                 doc.setFont(undefined, 'bold');
                 doc.setFontSize(11);
                 doc.setTextColor(19, 91, 236);
-                doc.text(`${label} (${catItems.filter(i => i.is_completed).length}/${catItems.length})`, margin, y);
+                doc.text(`${label} (${catItems.length})`, margin, y);
                 y += 6;
                 
                 doc.setTextColor(0, 0, 0);
@@ -1478,8 +1537,7 @@
                         y = 20;
                     }
                     
-                    const status = item.is_completed ? '✓' : '○';
-                    const itemText = `${status} ${item.task_name}`;
+                    const itemText = `✓ ${item.task_name}`;
                     
                     // Quebra texto longo
                     const splitText = doc.splitTextToSize(itemText, pageWidth - margin * 2 - 10);
@@ -1493,10 +1551,37 @@
                         y += notesText.length * 3 + 2;
                         doc.setTextColor(0, 0, 0);
                     }
+                    
+                    if (item.photo_url) {
+                        doc.setTextColor(0, 100, 200);
+                        doc.text(`📷 Foto anexada: ${item.photo_url}`, margin + 10, y);
+                        y += 4;
+                        doc.setTextColor(0, 0, 0);
+                    }
                 });
                 
                 y += 4;
             });
+            
+            // Itens pendentes (resumo)
+            const pendingItems = items.filter(i => !i.is_completed);
+            if (pendingItems.length > 0) {
+                if (y > 250) {
+                    doc.addPage();
+                    y = 20;
+                }
+                y += 10;
+                doc.setFont(undefined, 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(150, 150, 150);
+                doc.text(`○ Itens não concluídos (${pendingItems.length}):`, margin, y);
+                y += 5;
+                doc.setFont(undefined, 'normal');
+                doc.setFontSize(8);
+                const pendingText = pendingItems.map(i => i.task_name).join(', ');
+                const splitPending = doc.splitTextToSize(pendingText, pageWidth - margin * 2);
+                doc.text(splitPending, margin, y);
+            }
             
             // Observações
             if (checklist.notes) {

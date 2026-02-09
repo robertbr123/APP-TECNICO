@@ -1612,6 +1612,7 @@ const App = {
             }
 
             const d = response.data;
+            console.log('[Historico] Dados recebidos:', d);
 
             // Stats cards
             const statToday = document.getElementById('stat-today');

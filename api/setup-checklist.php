@@ -118,16 +118,14 @@ try {
     }
     
     // Insere templates padrão (todos opcionais - is_required = 0)
+    // Cada template tem tipos aplicáveis específicos para evitar duplicação
     $templates = [
-        // Pré-instalação - aplicável a todos
+        // Pré-instalação
         ['Verificar sinal na caixa de atendimento', 'pre_installation', 0, 1, 'new,migration,repair,maintenance'],
         ['Conferir materiais e equipamentos', 'pre_installation', 0, 2, 'new,migration,repair,maintenance'],
         ['Verificar rota de cabeamento', 'pre_installation', 0, 3, 'new,migration'],
         ['Identificar ponto de entrada', 'pre_installation', 0, 4, 'new,migration'],
-        
-        // Reparo/Manutenção específicos
-        ['Diagnosticar problema', 'pre_installation', 0, 0, 'repair,maintenance'],
-        ['Verificar cabos e conexões', 'pre_installation', 0, 1, 'repair,maintenance'],
+        ['Diagnosticar problema', 'pre_installation', 0, 5, 'repair,maintenance'],
         
         // Instalação física
         ['Instalar caixa de proteção', 'installation', 0, 10, 'new,migration'],
@@ -135,6 +133,7 @@ try {
         ['Conectar fibra na CTO', 'installation', 0, 12, 'new,migration'],
         ['Instalar roteador/ONU', 'installation', 0, 13, 'new,migration,repair'],
         ['Organizar cabos', 'installation', 0, 14, 'new,migration,repair'],
+        ['Verificar cabos e conexões', 'installation', 0, 15, 'repair,maintenance'],
         
         // Configuração
         ['Configurar PPPoE', 'configuration', 0, 20, 'new,migration,repair'],
@@ -163,6 +162,9 @@ try {
         (task_name, task_category, is_required, order_index, applicable_types) 
         VALUES (?, ?, ?, ?, ?)
     ");
+    
+    // Limpa templates duplicados antes de inserir
+    $db->exec("DELETE FROM checklist_templates WHERE id > 0");
     
     foreach ($templates as $t) {
         $stmt->execute($t);
