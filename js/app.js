@@ -1537,11 +1537,53 @@ const App = {
         const clearCacheBtn = document.getElementById('btn-clear-cache');
         if (clearCacheBtn) {
             clearCacheBtn.addEventListener('click', async () => {
-                if (confirm('Limpar todo o cache do app?')) {
-                    const cacheNames = await caches.keys();
-                    await Promise.all(cacheNames.map(name => caches.delete(name)));
-                    this.showToast('Cache limpo! Recarregando...', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
+                if (confirm('Limpar todo o cache e dados do app?\n\nIsso deslogará você e recarregará a página.')) {
+                    this.showLoading(true);
+                    
+                    try {
+                        // 1. Desregistrar todos os Service Workers
+                        if ('serviceWorker' in navigator) {
+                            const registrations = await navigator.serviceWorker.getRegistrations();
+                            await Promise.all(registrations.map(reg => reg.unregister()));
+                            console.log('[Cache] Service Workers desregistrados');
+                        }
+                        
+                        // 2. Limpar todos os caches
+                        const cacheNames = await caches.keys();
+                        await Promise.all(cacheNames.map(name => caches.delete(name)));
+                        console.log('[Cache] Caches deletados:', cacheNames);
+                        
+                        // 3. Limpar localStorage (exceto dados críticos se necessário)
+                        // Aqui estamos limpando tudo para garantir fresh start
+                        localStorage.clear();
+                        console.log('[Cache] localStorage limpo');
+                        
+                        // 4. Limpar sessionStorage
+                        sessionStorage.clear();
+                        console.log('[Cache] sessionStorage limpo');
+                        
+                        // 5. Limpar IndexedDB (se houver)
+                        const dbs = await window.indexedDB?.databases?.() || [];
+                        await Promise.all(dbs.map(db => {
+                            return new Promise((resolve) => {
+                                const req = indexedDB.deleteDatabase(db.name);
+                                req.onsuccess = resolve;
+                                req.onerror = resolve;
+                            });
+                        }));
+                        
+                        this.showLoading(false);
+                        this.showToast('Cache limpo! Recarregando...', 'success');
+                        
+                        // 6. Recarregar sem cache (hard reload)
+                        setTimeout(() => {
+                            window.location.href = '/login.html?nocache=' + Date.now();
+                        }, 1000);
+                    } catch (error) {
+                        this.showLoading(false);
+                        console.error('[Cache] Erro ao limpar:', error);
+                        this.showToast('Erro ao limpar cache. Tente manualmente.', 'error');
+                    }
                 }
             });
         }
