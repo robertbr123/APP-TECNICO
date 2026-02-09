@@ -1440,9 +1440,28 @@
             if (modal) modal.remove();
         }
 
-        // Gera PDF do relatório
+        // Função auxiliar para carregar imagem como base64
+        async function loadImageAsBase64(url) {
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar imagem:', error);
+                return null;
+            }
+        }
+
+        // Gera PDF do relatório com imagens
         async function generatePDF() {
             if (!currentReportData) return;
+            
+            showToast('Gerando PDF, aguarde...', 'info');
             
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -1451,6 +1470,7 @@
             
             // Configurações
             const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
             const margin = 15;
             let y = 20;
             
@@ -1511,9 +1531,11 @@
             });
             
             y += 8;
-            Object.entries(categories).forEach(([key, label]) => {
+            
+            // Processa cada categoria
+            for (const [key, label] of Object.entries(categories)) {
                 const catItems = grouped[key] || [];
-                if (catItems.length === 0) return;
+                if (catItems.length === 0) continue;
                 
                 // Verifica se precisa de nova página
                 if (y > 260) {
@@ -1531,15 +1553,15 @@
                 doc.setFontSize(9);
                 doc.setFont(undefined, 'normal');
                 
-                catItems.forEach(item => {
-                    if (y > 270) {
+                // Processa cada item da categoria
+                for (const item of catItems) {
+                    // Verifica espaço na página
+                    if (y > 250) {
                         doc.addPage();
                         y = 20;
                     }
                     
                     const itemText = `✓ ${item.task_name}`;
-                    
-                    // Quebra texto longo
                     const splitText = doc.splitTextToSize(itemText, pageWidth - margin * 2 - 10);
                     doc.text(splitText, margin + 5, y);
                     y += splitText.length * 4 + 2;
@@ -1552,16 +1574,33 @@
                         doc.setTextColor(0, 0, 0);
                     }
                     
+                    // Adiciona a imagem se existir
                     if (item.photo_url) {
-                        doc.setTextColor(0, 100, 200);
-                        doc.text(`📷 Foto anexada: ${item.photo_url}`, margin + 10, y);
-                        y += 4;
-                        doc.setTextColor(0, 0, 0);
+                        try {
+                            const base64Image = await loadImageAsBase64(item.photo_url);
+                            if (base64Image) {
+                                // Verifica espaço para a imagem
+                                if (y + 50 > pageHeight - 20) {
+                                    doc.addPage();
+                                    y = 20;
+                                }
+                                
+                                // Adiciona a imagem (max 60x50mm)
+                                doc.addImage(base64Image, 'JPEG', margin + 10, y, 60, 45);
+                                y += 50;
+                            }
+                        } catch (e) {
+                            console.error('Erro ao adicionar imagem ao PDF:', e);
+                            doc.setTextColor(200, 0, 0);
+                            doc.text(`[Erro ao carregar imagem]`, margin + 10, y);
+                            y += 4;
+                            doc.setTextColor(0, 0, 0);
+                        }
                     }
-                });
+                }
                 
                 y += 4;
-            });
+            }
             
             // Itens pendentes (resumo)
             const pendingItems = items.filter(i => !i.is_completed);
