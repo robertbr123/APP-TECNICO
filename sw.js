@@ -185,11 +185,19 @@ async function networkFirst(request) {
     }
 }
 
-// Listener de mensagens (para skipWaiting)
+// Listener de mensagens do cliente
 self.addEventListener('message', (event) => {
-    if (event.data === 'skipWaiting') {
+    // Responder com a versão atual
+    if (event.data && event.data.type === 'GET_VERSION') {
+        event.ports[0].postMessage({ version: APP_VERSION });
+        return;
+    }
+    
+    // Skip waiting para atualizar imediatamente
+    if (event.data && (event.data.type === 'SKIP_WAITING' || event.data === 'skipWaiting')) {
         console.log('[SW] Skip waiting e ativando nova versão...');
         self.skipWaiting();
+        return;
     }
 });
 
@@ -244,16 +252,5 @@ self.addEventListener('notificationclick', (event) => {
         event.waitUntil(
             clients.openWindow('/dashboard.html')
         );
-    }
-});
-
-// Responder mensagens do cliente (ex: obter versão)
-self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'GET_VERSION') {
-        event.ports[0].postMessage({ version: APP_VERSION });
-    }
-    
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
     }
 });

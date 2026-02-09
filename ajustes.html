@@ -253,20 +253,20 @@ async function loadAppVersion() {
                 };
             });
             
-            // Timeout de 500ms
+            // Timeout de 1 segundo
             const timeoutPromise = new Promise((resolve) => {
-                setTimeout(() => resolve('v16'), 500);
+                setTimeout(() => resolve(null), 1000);
             });
             
             registration.active.postMessage({ type: 'GET_VERSION' }, [messageChannel.port2]);
             const version = await Promise.race([versionPromise, timeoutPromise]);
-            document.getElementById('app-version').textContent = version;
+            document.getElementById('app-version').textContent = version || 'v17';
         } else {
-            document.getElementById('app-version').textContent = 'v16';
+            document.getElementById('app-version').textContent = 'v17';
         }
     } catch (e) {
         console.log('[Ajustes] Erro ao carregar versão:', e);
-        document.getElementById('app-version').textContent = 'v16';
+        document.getElementById('app-version').textContent = 'v17';
     }
 }
 
