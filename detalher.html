@@ -371,13 +371,23 @@ Sincronizar
                     var endereco = (client.address || 'Endereço não informado');
                     if (client.number) endereco += ', ' + client.number;
                     if (client.complement) endereco += ' - ' + client.complement;
-                    if (client.city) endereco += '<br>' + client.city;
+                    if (client.neighborhood) endereco += '<br>' + client.neighborhood;
+                    if (client.city || client.state) {
+                        endereco += '<br>';
+                        if (client.city) endereco += client.city;
+                        if (client.city && client.state) endereco += ' - ';
+                        if (client.state) endereco += client.state;
+                    }
                     addressEl.innerHTML = endereco;
 
                     // Monta endereço completo para o mapa
-                    fullAddress = (client.address || '');
-                    if (client.number) fullAddress += ', ' + client.number;
-                    if (client.city) fullAddress += ', ' + client.city;
+                    var addressParts = [];
+                    if (client.address) addressParts.push(client.address);
+                    if (client.number) addressParts.push(client.number);
+                    if (client.neighborhood) addressParts.push(client.neighborhood);
+                    if (client.city) addressParts.push(client.city);
+                    if (client.state) addressParts.push(client.state);
+                    fullAddress = addressParts.join(', ');
                 }
 
                 // Carrega mini mapa com a localização

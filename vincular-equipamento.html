@@ -12,6 +12,7 @@
 <link rel="icon" type="image/png" href="logo.png"/>
 <link rel="apple-touch-icon" href="logo.png"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="css/transitions.css"/>
@@ -156,6 +157,34 @@
             <span class="material-symbols-outlined">link</span>
             Vincular Equipamento
         </button>
+    </div>
+</div>
+
+<!-- Modal do Scanner de Código de Barras -->
+<div id="scanner-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/80" onclick="closeScanner()"></div>
+    <div class="absolute inset-x-4 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 rounded-2xl overflow-hidden max-w-md mx-auto">
+        <div class="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Escanear Código de Barras</h3>
+            <button onclick="closeScanner()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                <span class="material-symbols-outlined text-gray-500">close</span>
+            </button>
+        </div>
+        <div id="scanner-container" class="relative bg-black aspect-[4/3]">
+            <div id="scanner-reader" class="w-full h-full"></div>
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div class="w-3/4 h-16 border-2 border-primary rounded-lg relative">
+                    <div class="absolute inset-0 bg-primary/10"></div>
+                    <div class="absolute left-0 right-0 top-1/2 h-0.5 bg-red-500 animate-pulse"></div>
+                </div>
+            </div>
+        </div>
+        <div class="p-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400 text-center">Posicione o código de barras dentro da área destacada</p>
+            <button onclick="closeScanner()" class="w-full mt-4 py-3 px-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                Cancelar
+            </button>
+        </div>
     </div>
 </div>
 
@@ -477,6 +506,90 @@
         
         console.log('=== Inicialização concluída ===');
     });
+
+    // ===== SCANNER DE CÓDIGO DE BARRAS =====
+    var html5QrCode = null;
+    var scannerModal = document.getElementById('scanner-modal');
+    var btnScan = document.getElementById('btn-scan');
+    
+    // Abre o scanner
+    if (btnScan) {
+        btnScan.onclick = function() {
+            openScanner();
+        };
+    }
+    
+    function openScanner() {
+        scannerModal.classList.remove('hidden');
+        startScanner();
+    }
+    
+    function closeScanner() {
+        scannerModal.classList.add('hidden');
+        stopScanner();
+    }
+    
+    function startScanner() {
+        var config = {
+            fps: 10,
+            qrbox: { width: 280, height: 80 },
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.QR_CODE
+            ]
+        };
+        
+        html5QrCode = new Html5Qrcode('scanner-reader');
+        
+        html5QrCode.start(
+            { facingMode: 'environment' },
+            config,
+            function(decodedText, decodedResult) {
+                console.log('Código lido:', decodedText);
+                
+                // Preenche o campo de serial
+                var serialInput = document.getElementById('field-serial');
+                if (serialInput) {
+                    serialInput.value = decodedText.toUpperCase();
+                    // Dispara evento de input para atualizar o botão
+                    serialInput.dispatchEvent(new Event('input'));
+                }
+                
+                // Feedback de sucesso
+                if (typeof showSuccess === 'function') {
+                    showSuccess('Código lido: ' + decodedText);
+                }
+                
+                // Fecha o scanner
+                closeScanner();
+            },
+            function(errorMessage) {
+                // Ignora erros de leitura contínua
+            }
+        ).catch(function(err) {
+            console.error('Erro ao iniciar scanner:', err);
+            if (typeof showError === 'function') {
+                showError('Erro ao acessar câmera. Verifique as permissões.');
+            }
+            closeScanner();
+        });
+    }
+    
+    function stopScanner() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(function() {
+                console.log('Scanner parado');
+                html5QrCode.clear();
+            }).catch(function(err) {
+                console.error('Erro ao parar scanner:', err);
+            });
+        }
+    }
 
     // Registra acesso à página no log de auditoria
     async function logPageAccess(actionType, actionDescription) {

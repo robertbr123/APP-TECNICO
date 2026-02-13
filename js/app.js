@@ -1614,6 +1614,12 @@ const App = {
             const d = response.data;
             console.log('[Historico] Dados recebidos:', d);
 
+            // Exibe nome do usuário para deixar claro que a meta é individual
+            const userNameDisplay = document.getElementById('user-name-display');
+            if (userNameDisplay && d.username) {
+                userNameDisplay.textContent = `👤 ${d.username}`;
+            }
+
             // Stats cards
             const statToday = document.getElementById('stat-today');
             const statWeek = document.getElementById('stat-week');

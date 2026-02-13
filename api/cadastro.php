@@ -207,11 +207,11 @@ try {
         // Insere o cliente
         $stmt = $db->prepare("
             INSERT INTO clients (
-                cpf, name, phone, birthDate, city, address, number, complement, 
+                cpf, name, phone, birthDate, state, city, neighborhood, address, number, complement, 
                 planId, pppoe, password, dueDay, observation, 
                 latitude, longitude, location_accuracy, installer, status, active, created_at
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, 
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
                 ?, ?, ?, ?, ?, 
                 ?, ?, ?, ?, ?, ?, NOW()
             )
@@ -222,7 +222,9 @@ try {
             $name,
             $data['phone'] ?? '',
             $birthDate,
+            $data['state'] ?? '',
             $data['city'] ?? '',
+            $data['neighborhood'] ?? '',
             $address,
             $data['number'] ?? '',
             $data['complement'] ?? '',
