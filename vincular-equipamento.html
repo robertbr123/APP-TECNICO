@@ -78,11 +78,12 @@
                 <p class="text-[#616f89] text-xs mt-2">Digite ou escaneie o código de barras/QR do equipamento</p>
             </label>
             
-            <!-- Motivo da Troca -->
+            <!-- Motivo da Vinculação -->
             <label class="flex flex-col mt-4">
-                <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-2">Motivo da Troca</p>
+                <p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-2">Motivo</p>
                 <select id="field-reason" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 text-base font-normal leading-normal">
-                    <option value="other">Selecione um motivo</option>
+                    <option value="">Selecione um motivo</option>
+                    <option value="installation">Instalação</option>
                     <option value="defect">Defeito no equipamento</option>
                     <option value="upgrade">Upgrade de equipamento</option>
                     <option value="transfer">Transferência de unidade</option>
@@ -178,6 +179,41 @@
         var btnVincular = document.getElementById('btn-vincular');
         var selectedClientDiv = document.getElementById('selected-client');
         var btnClearSelection = document.getElementById('btn-clear-selection');
+        var reasonSelect = document.getElementById('field-reason');
+        
+        // Verifica se veio do cadastro de novo cliente
+        var urlParams = new URLSearchParams(window.location.search);
+        var fromCadastro = urlParams.get('from') === 'cadastro';
+        var clientCpf = urlParams.get('cpf');
+        var clientName = urlParams.get('name');
+        var clientAddress = urlParams.get('address');
+        
+        if (fromCadastro && clientCpf && clientName) {
+            console.log('Cliente vindo do cadastro:', clientName, clientCpf);
+            
+            // Seleciona automaticamente o cliente
+            selectClient({
+                cpf: clientCpf,
+                name: decodeURIComponent(clientName),
+                address: clientAddress ? decodeURIComponent(clientAddress) : '',
+                serial: ''
+            });
+            
+            // Seleciona "Instalação" como motivo
+            if (reasonSelect) {
+                reasonSelect.value = 'installation';
+            }
+            
+            // Mostra mensagem informativa
+            showSuccess('Cliente cadastrado! Agora vincule o equipamento.');
+            
+            // Foca no campo de serial
+            if (serialInput) {
+                setTimeout(function() {
+                    serialInput.focus();
+                }, 500);
+            }
+        }
         
         console.log('Elementos encontrados:', {
             searchInput: !!searchInput,
@@ -358,8 +394,13 @@
                 var reason = document.getElementById('field-reason').value;
                 var reasonDesc = document.getElementById('field-reason-desc').value;
                 
+                if (!reason) {
+                    showWarning('Por favor, selecione o motivo da vinculação');
+                    return;
+                }
+                
                 if (reason === 'other' && !reasonDesc.trim()) {
-                    showWarning('Por favor, descreva o motivo da troca');
+                    showWarning('Por favor, descreva o motivo');
                     return;
                 }
                 

@@ -518,10 +518,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         mensagem += ' ' + fotosFalha + ' foto(s) falharam.';
                     }
                     
-                    showSuccess(mensagem);
+                    showSuccess(mensagem + ' Redirecionando para vincular equipamento...');
+                    
+                    // Redireciona para vincular equipamento com dados do cliente
+                    var endereco = (data.address || '') + ', ' + (data.number || '') + ' - ' + (data.city || '');
+                    var redirectUrl = 'vincular-equipamento.html?from=cadastro' +
+                        '&cpf=' + encodeURIComponent(cpfLimpo) +
+                        '&name=' + encodeURIComponent(data.name) +
+                        '&address=' + encodeURIComponent(endereco);
+                    
                     setTimeout(function() {
-                        window.location.href = 'dashboard.html';
-                    }, 1000);
+                        window.location.href = redirectUrl;
+                    }, 1500);
                 } else {
                     showError('Erro: ' + (result.message || 'Erro desconhecido'));
                 }
