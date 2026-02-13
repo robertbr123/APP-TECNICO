@@ -300,6 +300,34 @@ var selectedPhotos = {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
+        // CEP: Preencher cidade e UF automaticamente
+        var cepInput = document.getElementById('field-cep');
+        var cityInput = document.getElementById('field-city');
+        var stateInput = document.getElementById('field-state');
+        if (cepInput) {
+            cepInput.addEventListener('blur', function() {
+                var cep = cepInput.value.replace(/\D/g, '');
+                if (cep.length === 8) {
+                    fetch('https://viacep.com.br/ws/' + cep + '/json/')
+                        .then(function(response) { return response.json(); })
+                        .then(function(data) {
+                            if (!data.erro) {
+                                if (cityInput) cityInput.value = data.localidade || '';
+                                if (stateInput) stateInput.value = data.uf || '';
+                                var bairroInput = document.getElementById('field-neighborhood');
+                                if (bairroInput && data.bairro) bairroInput.value = data.bairro;
+                                var streetInput = document.getElementById('field-street');
+                                if (streetInput && data.logradouro) streetInput.value = data.logradouro;
+                            } else {
+                                showError('CEP não encontrado.');
+                            }
+                        })
+                        .catch(function() {
+                            showError('Erro ao buscar CEP.');
+                        });
+                }
+            });
+        }
     console.log('DOM carregado');
     
     // Registra o acesso à página de cadastro no log de auditoria
@@ -449,7 +477,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 birthDate: document.getElementById('field-dob')?.value || '',
                 cep: document.getElementById('field-cep')?.value?.trim() || '',
                 state: document.getElementById('field-state')?.value || '',
-                city: document.getElementById('field-city')?.value?.trim() || '',
+                city: (function() {
+                    var val = document.getElementById('field-city')?.value?.trim() || '';
+                    // Remove sufixo ' - UF' se houver
+                    return val.replace(/\s*-\s*[A-Z]{2}$/, '');
+                })(),
                 neighborhood: document.getElementById('field-neighborhood')?.value?.trim() || '',
                 address: document.getElementById('field-street')?.value?.trim() || '',
                 number: document.getElementById('field-number')?.value?.trim() || '',
