@@ -101,10 +101,10 @@ try {
 
     // Verifica se o cliente existe (com filtro de cidade para técnicos)
     if ($userCity) {
-        $stmt = $db->prepare("SELECT cpf, name, serial FROM clients WHERE cpf = ? AND LOWER(city) LIKE LOWER(?)");
+        $stmt = $db->prepare("SELECT cpf, name, serial, city FROM clients WHERE cpf = ? AND LOWER(city) LIKE LOWER(?)");
         $stmt->execute([$cpf, "%$userCity%"]);
     } else {
-        $stmt = $db->prepare("SELECT cpf, name, serial FROM clients WHERE cpf = ?");
+        $stmt = $db->prepare("SELECT cpf, name, serial, city FROM clients WHERE cpf = ?");
         $stmt->execute([$cpf]);
     }
     $client = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -140,6 +140,81 @@ try {
     $result = $stmt->execute([$serial, $cpf]);
     
     if ($result) {
+        // ==== INTEGRAÇÃO COM ESTOQUE ====
+        // Verifica se o equipamento existe no inventário e atualiza status
+        try {
+            // Se havia um serial antigo, retorna ao estoque
+            if ($oldSerial && $oldSerial !== $serial) {
+                $oldEquipStmt = $db->prepare("SELECT id, location FROM equipment_inventory WHERE serial_number = ?");
+                $oldEquipStmt->execute([$oldSerial]);
+                $oldEquip = $oldEquipStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($oldEquip) {
+                    // Retorna equipamento antigo ao estoque
+                    $db->prepare("
+                        UPDATE equipment_inventory 
+                        SET status = 'available', 
+                            current_user_id = NULL,
+                            current_client_cpf = NULL,
+                            location = 'Estoque Principal',
+                            updated_at = NOW()
+                        WHERE id = ?
+                    ")->execute([$oldEquip['id']]);
+                    
+                    // Registra movimentação de retorno
+                    $db->prepare("
+                        INSERT INTO inventory_movements 
+                        (equipment_id, movement_type, from_location, to_location, user_id, username, client_cpf, client_name, notes)
+                        VALUES (?, 'in', 'Em uso', 'Estoque Principal', ?, ?, ?, ?, ?)
+                    ")->execute([
+                        $oldEquip['id'],
+                        $userId,
+                        $username,
+                        $cpf,
+                        $client['name'],
+                        'Equipamento devolvido automaticamente por troca'
+                    ]);
+                }
+            }
+            
+            // Busca o novo equipamento no inventário
+            $equipStmt = $db->prepare("SELECT id, location, status FROM equipment_inventory WHERE serial_number = ?");
+            $equipStmt->execute([$serial]);
+            $equipment = $equipStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($equipment) {
+                // Atualiza o status do equipamento para "em uso"
+                $db->prepare("
+                    UPDATE equipment_inventory 
+                    SET status = 'in_use', 
+                        current_user_id = ?,
+                        current_client_cpf = ?,
+                        location = 'Em uso',
+                        updated_at = NOW()
+                    WHERE id = ?
+                ")->execute([$userId, $cpf, $equipment['id']]);
+                
+                // Registra movimentação de saída
+                $db->prepare("
+                    INSERT INTO inventory_movements 
+                    (equipment_id, movement_type, from_location, to_location, user_id, username, client_cpf, client_name, notes)
+                    VALUES (?, 'out', ?, 'Em uso', ?, ?, ?, ?, ?)
+                ")->execute([
+                    $equipment['id'],
+                    $equipment['location'],
+                    $userId,
+                    $username,
+                    $cpf,
+                    $client['name'],
+                    $reason === 'installation' ? 'Vinculado - Nova instalação' : 'Vinculado - ' . $reason
+                ]);
+            }
+        } catch (Exception $e) {
+            // Não falha a vinculação se a integração com estoque falhar
+            error_log('Erro ao integrar com estoque: ' . $e->getMessage());
+        }
+        // ==== FIM INTEGRAÇÃO COM ESTOQUE ====
+        
         // Registra a vinculação no log de auditoria
         try {
             $auditStmt = $db->prepare("

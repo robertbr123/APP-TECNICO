@@ -157,6 +157,16 @@ document.addEventListener('DOMContentLoaded', function() {
     let searchTimeout;
     let currentFilter = 'all';
     
+    // Detecta se veio com mode=recent para mostrar últimos cadastros
+    const urlParams = new URLSearchParams(window.location.search);
+    const isRecentMode = urlParams.get('mode') === 'recent';
+    
+    // Atualiza título se for modo recentes
+    if (isRecentMode) {
+        const header = document.querySelector('header h1');
+        if (header) header.textContent = 'Últimos 20 Cadastros';
+    }
+    
     // Filtros
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -171,24 +181,24 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.classList.remove('bg-gray-100', 'text-gray-600');
 
             currentFilter = btn.dataset.filter;
-            loadClients(searchInput.value.trim());
+            loadClients(searchInput.value.trim(), isRecentMode);
         });
     });
     
-    // Carrega clientes iniciais
-    loadClients('');
+    // Carrega clientes iniciais (inclui modo recente)
+    loadClients('', isRecentMode);
     
     // Busca
     if (searchInput) {
         searchInput.addEventListener('input', function(e) {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(function() {
-                loadClients(e.target.value.trim());
+                loadClients(e.target.value.trim(), false); // Busca normal, não modo recente
             }, 400);
         });
     }
     
-    async function loadClients(query) {
+    async function loadClients(query, recentMode = false) {
         container.innerHTML = '<div class="text-center py-10">' +
             '<div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>' +
             '<p class="text-gray-500 mt-4">Buscando...</p>' +
@@ -198,7 +208,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Obtém o token do localStorage
             const token = localStorage.getItem('auth_token');
             
-            let url = '/api/search-clients.php?limit=50';
+            // Define limite - 20 para modo recente, 50 para normal
+            const limit = recentMode ? 20 : 50;
+            let url = '/api/search-clients.php?limit=' + limit;
+            
+            // Adiciona sort=recent para ordenar por data de criação
+            if (recentMode) {
+                url += '&sort=recent';
+            }
+            
             if (query) {
                 url += '&search=' + encodeURIComponent(query);
             }

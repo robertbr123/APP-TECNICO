@@ -157,18 +157,23 @@ try {
         ['Entregar senha anotada', 'documentation', 0, 44, 'new,migration'],
     ];
     
-    $stmt = $db->prepare("
-        INSERT IGNORE INTO checklist_templates 
-        (task_name, task_category, is_required, order_index, applicable_types) 
-        VALUES (?, ?, ?, ?, ?)
-    ");
+    // Verifica se já existem templates
+    $existingCount = $db->query("SELECT COUNT(*) as total FROM checklist_templates")->fetch()['total'];
     
-    // Limpa templates duplicados antes de inserir
-    $db->exec("DELETE FROM checklist_templates WHERE id > 0");
-    
-    foreach ($templates as $t) {
-        $stmt->execute($t);
+    // Se não existir nenhum template, insere os padrões
+    if ($existingCount == 0) {
+        $stmt = $db->prepare("
+            INSERT INTO checklist_templates 
+            (task_name, task_category, is_required, order_index, applicable_types) 
+            VALUES (?, ?, ?, ?, ?)
+        ");
+        
+        foreach ($templates as $t) {
+            $stmt->execute($t);
+        }
     }
+    
+    // NÃO DELETA templates existentes criados pelos administradores
     
     // Atualiza todos os templates existentes para não obrigatórios
     $db->exec("UPDATE checklist_templates SET is_required = 0");

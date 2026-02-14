@@ -30,17 +30,22 @@ try {
     $search = $_GET['search'] ?? '';
     $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
     $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+    $sort = $_GET['sort'] ?? 'name'; // 'name' ou 'recent'
+    $status = $_GET['status'] ?? null;
     
-    if (empty($search)) {
+    // Se for modo recente, não precisa de termo de busca
+    $isRecentMode = $sort === 'recent';
+    
+    if (empty($search) && !$isRecentMode) {
         jsonResponse([
             'success' => false,
             'message' => 'Termo de busca é obrigatório'
         ], 400);
     }
     
-    // Busca cidade do usuário para filtro (técnico)
+    // Busca cidade do usuário para filtro (técnico ou user)
     $userCity = null;
-    if ($userData['role'] === 'tecnico') {
+    if ($userData['role'] === 'tecnico' || $userData['role'] === 'user') {
         try {
             $cityStmt = $db->prepare("SELECT city FROM users WHERE id = ?");
             $cityStmt->execute([$userData['user_id']]);
@@ -64,11 +69,18 @@ try {
                 active,
                 planId,
                 latitude,
-                longitude
+                longitude,
+                created_at
              FROM clients 
-             WHERE (name LIKE ? OR cpf LIKE ? OR phone LIKE ? OR city LIKE ?)";
+             WHERE 1=1";
     
-    $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm];
+    $params = [];
+    
+    // Condição de busca (apenas se não for modo recente ou se tiver search)
+    if (!empty($search)) {
+        $sql .= " AND (name LIKE ? OR cpf LIKE ? OR phone LIKE ? OR city LIKE ?)";
+        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+    }
     
     // Filtro por cidade para técnicos
     if ($userCity) {
@@ -76,7 +88,21 @@ try {
         $params[] = "%$userCity%";
     }
     
-    $sql .= " ORDER BY name ASC LIMIT $limit OFFSET $offset";
+    // Filtro por status
+    if ($status === 'active') {
+        $sql .= " AND (active = 1 OR status = 'ativo')";
+    } else if ($status === 'inactive') {
+        $sql .= " AND (active = 0 OR status = 'inativo')";
+    }
+    
+    // Ordenação
+    if ($sort === 'recent') {
+        $sql .= " ORDER BY created_at DESC";
+    } else {
+        $sql .= " ORDER BY name ASC";
+    }
+    
+    $sql .= " LIMIT $limit OFFSET $offset";
     
     $stmt = $db->prepare($sql);
     $stmt->execute($params);

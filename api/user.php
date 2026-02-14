@@ -20,7 +20,7 @@ if (!file_exists(PROFILE_UPLOAD_DIR)) {
 try {
     $db = Database::getInstance()->getConnection();
 
-    // Auto-migrate: adiciona colunas city e photo se não existirem
+    // Auto-migrate: adiciona colunas city, photo e cargo se não existirem
     try {
         $db->exec("ALTER TABLE users ADD COLUMN city VARCHAR(100) DEFAULT NULL");
     } catch (PDOException $e) {
@@ -28,6 +28,11 @@ try {
     }
     try {
         $db->exec("ALTER TABLE users ADD COLUMN photo VARCHAR(255) DEFAULT NULL");
+    } catch (PDOException $e) {
+        // Coluna já existe, ignora
+    }
+    try {
+        $db->exec("ALTER TABLE users ADD COLUMN cargo VARCHAR(100) DEFAULT NULL");
     } catch (PDOException $e) {
         // Coluna já existe, ignora
     }
@@ -53,7 +58,7 @@ try {
  * GET - Retorna dados do perfil
  */
 function handleGet($db, $userData) {
-    $stmt = $db->prepare("SELECT id, username, full_name, email, role, city, photo FROM users WHERE id = ?");
+    $stmt = $db->prepare("SELECT id, username, full_name, email, role, city, photo, cargo FROM users WHERE id = ?");
     $stmt->execute([$userData['user_id']]);
     $user = $stmt->fetch();
 
@@ -70,7 +75,7 @@ function handleGet($db, $userData) {
 function handlePut($db, $userData) {
     $data = getRequestBody();
 
-    $allowedFields = ['full_name', 'email', 'city'];
+    $allowedFields = ['full_name', 'email', 'city', 'cargo'];
     $updateFields = [];
     $params = [];
 
@@ -91,7 +96,7 @@ function handlePut($db, $userData) {
     $stmt->execute($params);
 
     // Retorna dados atualizados
-    $stmt = $db->prepare("SELECT id, username, full_name, email, role, city, photo FROM users WHERE id = ?");
+    $stmt = $db->prepare("SELECT id, username, full_name, email, role, city, photo, cargo FROM users WHERE id = ?");
     $stmt->execute([$userData['user_id']]);
     $user = $stmt->fetch();
 
