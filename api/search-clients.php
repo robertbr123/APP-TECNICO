@@ -50,8 +50,12 @@ try {
             $cityStmt = $db->prepare("SELECT city FROM users WHERE id = ?");
             $cityStmt->execute([$userData['user_id']]);
             $userCity = $cityStmt->fetch()['city'] ?? null;
+            
+            // Log para debug
+            error_log("Filtro cidade: user_id={$userData['user_id']}, role={$userData['role']}, city=$userCity");
         } catch (Exception $e) {
             // Se falhar, não filtra
+            error_log("Erro ao buscar cidade: " . $e->getMessage());
         }
     }
     
@@ -82,10 +86,10 @@ try {
         $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     }
     
-    // Filtro por cidade para técnicos
+    // Filtro por cidade para técnicos/users - comparação EXATA
     if ($userCity) {
-        $sql .= " AND LOWER(city) LIKE LOWER(?)";
-        $params[] = "%$userCity%";
+        $sql .= " AND LOWER(TRIM(city)) = LOWER(TRIM(?))";
+        $params[] = $userCity;
     }
     
     // Filtro por status

@@ -19,14 +19,21 @@ $userData = requireAuth();
 // Log da requisição
 Logger::logRequest('clients.php', $method, array_merge($_GET, ['body' => file_get_contents('php://input')]));
 
-// Busca a cidade do técnico para filtro
+// Busca a cidade do técnico/user para filtro
 $userCity = null;
-if ($userData['role'] === 'tecnico') {
+if ($userData['role'] === 'tecnico' || $userData['role'] === 'user') {
     try {
         $tmpDb = Database::getInstance()->getConnection();
         $cityStmt = $tmpDb->prepare("SELECT city FROM users WHERE id = ?");
         $cityStmt->execute([$userData['user_id']]);
         $userCity = $cityStmt->fetch()['city'] ?? null;
+        
+        // Log para debug
+        Logger::info('Filtro de cidade aplicado', [
+            'user_id' => $userData['user_id'],
+            'role' => $userData['role'],
+            'city' => $userCity
+        ]);
     } catch (Exception $e) {
         Logger::warning('Erro ao buscar cidade do técnico', ['user_id' => $userData['user_id']]);
     }
@@ -78,8 +85,8 @@ function handleGet($db) {
         $cleanCpf = $cpfValidation['valid'] ? $cpfValidation['clean'] : preg_replace('/\D/', '', $cpf);
         
         if ($userCity) {
-            $stmt = $db->prepare("SELECT * FROM clients WHERE cpf = ? AND LOWER(city) LIKE LOWER(?)");
-            $stmt->execute([$cleanCpf, "%$userCity%"]);
+            $stmt = $db->prepare("SELECT * FROM clients WHERE cpf = ? AND LOWER(TRIM(city)) = LOWER(TRIM(?))");
+            $stmt->execute([$cleanCpf, $userCity]);
         } else {
             $stmt = $db->prepare("SELECT * FROM clients WHERE cpf = ?");
             $stmt->execute([$cleanCpf]);
@@ -100,8 +107,8 @@ function handleGet($db) {
     $conditions = [];
 
     if ($userCity) {
-        $conditions[] = "LOWER(city) LIKE LOWER(?)";
-        $params[] = "%$userCity%";
+        $conditions[] = "LOWER(TRIM(city)) = LOWER(TRIM(?))";
+        $params[] = $userCity;
     }
 
     if ($search) {

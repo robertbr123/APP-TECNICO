@@ -16,16 +16,16 @@ if ($method !== 'GET') {
 try {
     $db = Database::getInstance()->getConnection();
 
-    // Busca cidade do técnico para filtro
+    // Busca cidade do técnico/user para filtro
     $cityFilter = '';
     $cityParam = [];
-    if ($userData['role'] === 'tecnico') {
+    if ($userData['role'] === 'tecnico' || $userData['role'] === 'user') {
         $cityStmt = $db->prepare("SELECT city FROM users WHERE id = ?");
         $cityStmt->execute([$userData['user_id']]);
         $userCity = $cityStmt->fetch()['city'] ?? null;
         if ($userCity) {
-            $cityFilter = " AND LOWER(city) LIKE LOWER(?)";
-            $cityParam = ["%$userCity%"];
+            $cityFilter = " AND LOWER(TRIM(city)) = LOWER(TRIM(?))";
+            $cityParam = [$userCity];
         }
     }
 

@@ -84,14 +84,14 @@ try {
         exit;
     }
     
-    // Busca cidade do técnico para filtro
+    // Busca cidade do técnico/user para filtro
     $userCity = null;
     if ($userId) {
         try {
             $userStmt = $db->prepare("SELECT role, city FROM users WHERE id = ?");
             $userStmt->execute([$userId]);
             $userInfo = $userStmt->fetch(PDO::FETCH_ASSOC);
-            if ($userInfo && $userInfo['role'] === 'tecnico' && !empty($userInfo['city'])) {
+            if ($userInfo && ($userInfo['role'] === 'tecnico' || $userInfo['role'] === 'user') && !empty($userInfo['city'])) {
                 $userCity = $userInfo['city'];
             }
         } catch (Exception $e) {
@@ -99,10 +99,10 @@ try {
         }
     }
 
-    // Verifica se o cliente existe (com filtro de cidade para técnicos)
+    // Verifica se o cliente existe (com filtro de cidade para técnicos/users)
     if ($userCity) {
-        $stmt = $db->prepare("SELECT cpf, name, serial, city FROM clients WHERE cpf = ? AND LOWER(city) LIKE LOWER(?)");
-        $stmt->execute([$cpf, "%$userCity%"]);
+        $stmt = $db->prepare("SELECT cpf, name, serial, city FROM clients WHERE cpf = ? AND LOWER(TRIM(city)) = LOWER(TRIM(?))");
+        $stmt->execute([$cpf, $userCity]);
     } else {
         $stmt = $db->prepare("SELECT cpf, name, serial, city FROM clients WHERE cpf = ?");
         $stmt->execute([$cpf]);
