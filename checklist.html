@@ -1080,6 +1080,50 @@
                 const isPendingApproval = checklist.approval_status === 'pending_approval' ||
                     (checklist.status === 'completed' && checklist.approval_status !== 'approved' && checklist.approval_status !== 'rejected');
                 const isRejected = checklist.approval_status === 'rejected';
+                
+                // Verifica se checklist pode ser continuado (pendente ou em andamento)
+                const canContinue = (checklist.status === 'pending' || checklist.status === 'in_progress') && 
+                                   checklist.technician_id === currentUser?.id;
+                
+                // Calcula prazo restante (3 dias a partir de created_at)
+                let deadlineInfo = '';
+                let isExpired = false;
+                if (canContinue) {
+                    const createdDate = new Date(checklist.created_at);
+                    const deadlineDate = new Date(createdDate.getTime() + (3 * 24 * 60 * 60 * 1000)); // +3 dias
+                    const now = new Date();
+                    const diffMs = deadlineDate - now;
+                    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                    const diffDays = Math.floor(diffHours / 24);
+                    const remainingHours = diffHours % 24;
+                    
+                    if (diffMs <= 0) {
+                        isExpired = true;
+                        deadlineInfo = `
+                            <div class="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                                <p class="text-xs text-red-600 dark:text-red-400 font-medium">
+                                    ⚠️ Prazo expirado! Este checklist não pode mais ser editado.
+                                </p>
+                            </div>
+                        `;
+                    } else if (diffHours <= 24) {
+                        deadlineInfo = `
+                            <div class="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                                <p class="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                                    ⏰ Prazo: ${remainingHours}h restantes para finalizar
+                                </p>
+                            </div>
+                        `;
+                    } else {
+                        deadlineInfo = `
+                            <div class="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                    ⏰ Prazo: ${diffDays} dia(s) e ${remainingHours}h para finalizar
+                                </p>
+                            </div>
+                        `;
+                    }
+                }
 
                 // Botões de ação para admin
                 let adminActions = '';
@@ -1131,6 +1175,16 @@
                             </button>
                         </div>
                     `;
+                } else if (canContinue && !isExpired) {
+                    // Técnico pode continuar checklist pendente/em andamento
+                    adminActions = `
+                        <div class="mt-2">
+                            <button onclick="event.stopPropagation(); continueChecklist(${checklist.id}, '${checklist.client_name.replace(/'/g, "\\'")}', '${checklist.installation_type}')" 
+                                    class="w-full py-2 px-3 bg-primary text-white rounded-lg text-sm font-bold shadow-sm">
+                                ▶ Continuar Checklist
+                            </button>
+                        </div>
+                    `;
                 }
                 
                 // Mostra nome do técnico para admin
@@ -1150,7 +1204,7 @@
                 ` : '';
 
                 return `
-                    <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg ${isPendingApproval ? 'ring-2 ring-yellow-400' : ''}">
+                    <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg ${isPendingApproval ? 'ring-2 ring-yellow-400' : ''} ${canContinue && !isExpired ? 'ring-2 ring-primary' : ''}">
                         <div class="flex items-center justify-between">
                             <div class="flex-1 min-w-0">
                                 <p class="text-[#111318] dark:text-white font-medium truncate">${checklist.client_name}</p>
@@ -1170,6 +1224,7 @@
                                 ` : ''}
                             </div>
                         </div>
+                        ${deadlineInfo}
                         ${rejectionInfo}
                         ${adminActions}
                     </div>
@@ -1236,6 +1291,76 @@
             }
         }
         
+        // Continua checklist pendente/em andamento
+        async function continueChecklist(id, clientName, installationType) {
+            try {
+                showToast('Carregando checklist...', 'info');
+                
+                // Verifica se ainda está dentro do prazo (3 dias)
+                const response = await API.getChecklist(id);
+                
+                if (!response.success) {
+                    showToast('Erro ao carregar checklist', 'error');
+                    return;
+                }
+                
+                const checklist = response.data;
+                
+                // Verifica prazo
+                const createdDate = new Date(checklist.created_at);
+                const deadlineDate = new Date(createdDate.getTime() + (3 * 24 * 60 * 60 * 1000));
+                const now = new Date();
+                
+                if (now > deadlineDate) {
+                    showToast('Prazo expirado! Este checklist não pode mais ser editado.', 'error');
+                    loadRecentChecklists();
+                    return;
+                }
+                
+                // Calcula tempo restante
+                const diffMs = deadlineDate - now;
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffDays = Math.floor(diffHours / 24);
+                const remainingHours = diffHours % 24;
+                
+                let timeMessage = '';
+                if (diffHours <= 24) {
+                    timeMessage = `⚠️ Atenção: Você tem apenas ${remainingHours}h para finalizar este checklist!`;
+                } else {
+                    timeMessage = `Você tem ${diffDays} dia(s) e ${remainingHours}h para finalizar este checklist.`;
+                }
+                
+                // Mostra aviso sobre o prazo
+                if (!confirm(`Continuar checklist de ${clientName}?\n\n${timeMessage}`)) {
+                    return;
+                }
+                
+                // Define o checklist atual
+                currentChecklist = id;
+                currentInstallationType = installationType || checklist.installation_type;
+                selectedClient = {
+                    cpf: checklist.client_cpf,
+                    name: clientName
+                };
+                
+                // Mostra a tela de checklist
+                showChecklist(clientName, currentInstallationType);
+                
+                // Carrega as tarefas
+                tasks = checklist.items || [];
+                console.log('[Checklist] Continuando checklist:', id, 'com', tasks.length, 'tarefas');
+                
+                renderTasks();
+                updateProgress();
+                
+                showToast('Checklist carregado! Continue de onde parou.', 'success');
+                
+            } catch (error) {
+                console.error('Erro ao continuar checklist:', error);
+                showToast('Erro ao carregar checklist', 'error');
+            }
+        }
+        
         // Deleta checklist (admin)
         async function deleteChecklist(id) {
             if (!confirm('Tem certeza que deseja EXCLUIR este checklist permanentemente?\n\nEsta ação não pode ser desfeita.')) return;
@@ -1261,6 +1386,7 @@
 
         // Variável para armazenar dados do relatório atual
         let currentReportData = null;
+        let currentClientData = null;
 
         // Visualiza relatório do checklist (admin)
         async function viewChecklistReport(checklistId) {
@@ -1274,6 +1400,19 @@
                 }
                 
                 currentReportData = response.data;
+                
+                // Busca dados adicionais do cliente (pppoe, mac, etc)
+                try {
+                    const clientResponse = await API.getClient(response.data.checklist.client_cpf);
+                    if (clientResponse.success) {
+                        currentClientData = clientResponse.data;
+                        console.log('[Relatório] Dados do cliente:', currentClientData);
+                    }
+                } catch (e) {
+                    console.error('Erro ao buscar dados do cliente:', e);
+                    currentClientData = null;
+                }
+                
                 renderReportModal(currentReportData);
             } catch (error) {
                 console.error('Erro ao carregar relatório:', error);
@@ -1313,12 +1452,12 @@
                     <!-- Header -->
                     <div class="bg-primary text-white p-4 flex items-center justify-between sticky top-0">
                         <div>
-                            <h2 class="text-xl font-bold">📋 Relatório de Checklist</h2>
-                            <p class="text-sm opacity-90">#${checklist.id} - ${new Date(checklist.created_at).toLocaleDateString('pt-BR')}</p>
+                            <h2 class="text-xl font-bold">📋 Ordem de Serviço</h2>
+                            <p class="text-sm opacity-90">Nº ${checklist.id} - ${new Date(checklist.created_at).toLocaleDateString('pt-BR')}</p>
                         </div>
                         <div class="flex gap-2">
                             <button onclick="generatePDF()" class="px-4 py-2 bg-white text-primary rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors">
-                                ⬇️ Baixar PDF
+                                ⬇️ Baixar OS
                             </button>
                             <button onclick="closeReportModal()" class="p-2 hover:bg-white/20 rounded-lg transition-colors">
                                 <span class="material-symbols-outlined">close</span>
@@ -1457,71 +1596,180 @@
             }
         }
 
-        // Gera PDF do relatório com imagens
+        // Gera PDF do relatório como Ordem de Serviço
         async function generatePDF() {
             if (!currentReportData) return;
             
-            showToast('Gerando PDF, aguarde...', 'info');
+            showToast('Gerando Ordem de Serviço...', 'info');
             
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             const checklist = currentReportData.checklist;
             const items = currentReportData.items || [];
+            const client = currentClientData || {};
             
             // Configurações
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             const margin = 15;
-            let y = 20;
+            let y = 15;
             
-            // Header
+            // === CABEÇALHO ===
             doc.setFillColor(19, 91, 236);
-            doc.rect(0, 0, pageWidth, 40, 'F');
+            doc.rect(0, 0, pageWidth, 35, 'F');
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(20);
-            doc.text('Relatório de Checklist', margin, 25);
-            doc.setFontSize(10);
-            doc.text(`#${checklist.id} - ${new Date(checklist.created_at).toLocaleDateString('pt-BR')}`, margin, 32);
-            
-            // Info Geral
-            y = 50;
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(12);
+            doc.setFontSize(22);
             doc.setFont(undefined, 'bold');
-            doc.text('Informações Gerais', margin, y);
+            doc.text('ORDEM DE SERVIÇO', pageWidth / 2, 18, { align: 'center' });
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Nº ${checklist.id} - ${new Date(checklist.created_at).toLocaleDateString('pt-BR')}`, pageWidth / 2, 28, { align: 'center' });
+            
+            // === DADOS DO CLIENTE ===
+            y = 45;
+            doc.setFillColor(240, 240, 245);
+            doc.rect(margin, y, pageWidth - margin * 2, 50, 'F');
             
             y += 8;
+            doc.setTextColor(19, 91, 236);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('DADOS DO CLIENTE', margin + 5, y);
+            
+            y += 8;
+            doc.setTextColor(0, 0, 0);
             doc.setFontSize(10);
             doc.setFont(undefined, 'normal');
-            doc.text(`Cliente: ${checklist.client_name}`, margin, y);
-            y += 6;
-            doc.text(`CPF: ${formatCPF(checklist.client_cpf)}`, margin, y);
-            y += 6;
-            doc.text(`Técnico: ${checklist.technician_name}`, margin, y);
-            y += 6;
-            doc.text(`Tipo: ${installationTypeLabels[checklist.installation_type] || checklist.installation_type}`, margin, y);
             
-            // Progresso
-            y += 12;
+            // Coluna 1
+            doc.setFont(undefined, 'bold');
+            doc.text('Nome:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(checklist.client_name || '-', margin + 25, y);
+            
+            // Coluna 2
+            doc.setFont(undefined, 'bold');
+            doc.text('CPF:', pageWidth / 2, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(formatCPF(checklist.client_cpf), pageWidth / 2 + 15, y);
+            
+            y += 7;
+            doc.setFont(undefined, 'bold');
+            doc.text('Telefone:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(client.phone || client.phone_number || '-', margin + 30, y);
+            
+            doc.setFont(undefined, 'bold');
+            doc.text('Plano:', pageWidth / 2, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(client.planId || '-', pageWidth / 2 + 18, y);
+            
+            y += 7;
+            doc.setFont(undefined, 'bold');
+            doc.text('Endereço:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            const endereco = client.address ? `${client.address}, ${client.number || 'S/N'} - ${client.city || ''}` : '-';
+            doc.text(endereco.substring(0, 60), margin + 30, y);
+            
+            y += 7;
+            doc.setFont(undefined, 'bold');
+            doc.text('CEP:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(client.cep || '-', margin + 17, y);
+            
+            doc.setFont(undefined, 'bold');
+            doc.text('Bairro:', pageWidth / 2, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(client.neighborhood || '-', pageWidth / 2 + 20, y);
+            
+            // === DADOS DE CONEXÃO ===
+            y += 18;
+            doc.setFillColor(255, 248, 230);
+            doc.rect(margin, y, pageWidth - margin * 2, 30, 'F');
+            doc.setDrawColor(255, 193, 7);
+            doc.rect(margin, y, pageWidth - margin * 2, 30, 'S');
+            
+            y += 8;
+            doc.setTextColor(200, 150, 0);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('DADOS DE CONEXÃO', margin + 5, y);
+            
+            y += 8;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            
+            // PPPoE
+            doc.setFont(undefined, 'bold');
+            doc.text('PPPoE:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(client.pppoe || 'Não informado', margin + 25, y);
+            
+            // Senha PPPoE
+            doc.setFont(undefined, 'bold');
+            doc.text('Senha:', pageWidth / 2, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(client.password ? '******' : 'Não informada', pageWidth / 2 + 20, y);
+            
+            y += 7;
+            // MAC / Serial do equipamento
+            doc.setFont(undefined, 'bold');
+            doc.text('Serial/MAC:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(client.serial || 'Não informado', margin + 35, y);
+            
+            // === DADOS DO SERVIÇO ===
+            y += 18;
+            doc.setFillColor(230, 245, 255);
+            doc.rect(margin, y, pageWidth - margin * 2, 25, 'F');
+            
+            y += 8;
+            doc.setTextColor(19, 91, 236);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('DADOS DO SERVIÇO', margin + 5, y);
+            
+            y += 8;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            
+            doc.setFont(undefined, 'bold');
+            doc.text('Tipo:', margin + 5, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(installationTypeLabels[checklist.installation_type] || checklist.installation_type, margin + 18, y);
+            
+            doc.setFont(undefined, 'bold');
+            doc.text('Técnico:', pageWidth / 2, y);
+            doc.setFont(undefined, 'normal');
+            doc.text(checklist.technician_name || '-', pageWidth / 2 + 25, y);
+            
+            // === PROGRESSO ===
+            y += 18;
             const totalItems = items.length;
             const completedItems = items.filter(i => i.is_completed).length;
             const completionRate = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
             
             doc.setFont(undefined, 'bold');
+            doc.setFontSize(11);
             doc.text(`Progresso: ${completionRate}% (${completedItems}/${totalItems} itens)`, margin, y);
             
             // Barra de progresso
-            y += 4;
+            y += 5;
             doc.setDrawColor(200, 200, 200);
-            doc.rect(margin, y, pageWidth - margin * 2, 8, 'S');
-            doc.setFillColor(19, 91, 236);
-            doc.rect(margin, y, (pageWidth - margin * 2) * (completionRate / 100), 8, 'F');
+            doc.setFillColor(230, 230, 230);
+            doc.rect(margin, y, pageWidth - margin * 2, 6, 'FD');
+            if (completionRate > 0) {
+                doc.setFillColor(19, 91, 236);
+                doc.rect(margin, y, (pageWidth - margin * 2) * (completionRate / 100), 6, 'F');
+            }
             
-            // Itens Concluídos
-            y += 20;
+            // === ITENS CONCLUÍDOS ===
+            y += 15;
             doc.setFont(undefined, 'bold');
             doc.setFontSize(12);
-            doc.text(`✓ Itens Concluídos (${completedItems})`, margin, y);
+            doc.setTextColor(34, 139, 34);
+            doc.text(`✓ ITENS CONCLUÍDOS (${completedItems})`, margin, y);
             
             // Agrupa por categoria (apenas concluídos)
             const grouped = {};
@@ -1530,7 +1778,7 @@
                 grouped[item.task_category].push(item);
             });
             
-            y += 8;
+            y += 6;
             
             // Processa cada categoria
             for (const [key, label] of Object.entries(categories)) {
@@ -1624,33 +1872,84 @@
             
             // Observações
             if (checklist.notes) {
-                if (y > 240) {
+                if (y > 220) {
                     doc.addPage();
                     y = 20;
                 }
                 y += 10;
+                doc.setTextColor(0, 0, 0);
                 doc.setFont(undefined, 'bold');
                 doc.setFontSize(11);
-                doc.text('Observações:', margin, y);
+                doc.text('OBSERVAÇÕES:', margin, y);
                 y += 6;
                 doc.setFont(undefined, 'normal');
                 doc.setFontSize(9);
                 const notesText = doc.splitTextToSize(checklist.notes, pageWidth - margin * 2);
                 doc.text(notesText, margin, y);
+                y += notesText.length * 4;
             }
             
-            // Footer
+            // === ASSINATURAS ===
+            // Verifica se precisa de nova página para as assinaturas
+            if (y > 230) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            y += 20;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('ASSINATURAS', pageWidth / 2, y, { align: 'center' });
+            
+            y += 15;
+            // Linha para assinatura do técnico
+            const lineWidth = 70;
+            const lineStartLeft = margin + 10;
+            const lineStartRight = pageWidth - margin - lineWidth - 10;
+            
+            doc.setDrawColor(0, 0, 0);
+            doc.line(lineStartLeft, y, lineStartLeft + lineWidth, y);
+            doc.line(lineStartRight, y, lineStartRight + lineWidth, y);
+            
+            y += 5;
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.text('Técnico Responsável', lineStartLeft + lineWidth / 2, y, { align: 'center' });
+            doc.text('Cliente', lineStartRight + lineWidth / 2, y, { align: 'center' });
+            
+            y += 4;
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text(checklist.technician_name || '', lineStartLeft + lineWidth / 2, y, { align: 'center' });
+            doc.text(checklist.client_name || '', lineStartRight + lineWidth / 2, y, { align: 'center' });
+            
+            // Data
+            y += 15;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9);
+            const dataFinalizacao = checklist.completed_at 
+                ? new Date(checklist.completed_at).toLocaleDateString('pt-BR') 
+                : new Date().toLocaleDateString('pt-BR');
+            doc.text(`Data: ${dataFinalizacao}`, pageWidth / 2, y, { align: 'center' });
+            
+            // Footer em todas as páginas
             const totalPages = doc.internal.getNumberOfPages();
             for (let i = 1; i <= totalPages; i++) {
                 doc.setPage(i);
                 doc.setFontSize(8);
                 doc.setTextColor(150, 150, 150);
-                doc.text(`Página ${i} de ${totalPages} - Gerado em ${new Date().toLocaleString('pt-BR')}`, margin, doc.internal.pageSize.getHeight() - 10);
+                doc.text(
+                    `Ondeline Tech - Ordem de Serviço Nº ${checklist.id} | Página ${i} de ${totalPages} | Gerado em ${new Date().toLocaleString('pt-BR')}`, 
+                    margin, 
+                    doc.internal.pageSize.getHeight() - 8
+                );
             }
             
-            // Download
-            doc.save(`checklist-${checklist.id}-${checklist.client_name.replace(/\s+/g, '_')}.pdf`);
-            showToast('PDF gerado com sucesso!', 'success');
+            // Download com nome de Ordem de Serviço
+            const fileName = `OS-${checklist.id}-${checklist.client_name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}.pdf`;
+            doc.save(fileName);
+            showToast('Ordem de Serviço gerada com sucesso!', 'success');
         }
 
         // Toast

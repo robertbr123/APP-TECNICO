@@ -26,6 +26,40 @@ $userData = requireAuth();
 $isAdmin = ($userData['role'] ?? '') === 'admin';
 $method = $_SERVER['REQUEST_METHOD'];
 
+// Prazo máximo para finalizar checklist (em dias)
+define('CHECKLIST_DEADLINE_DAYS', 3);
+
+/**
+ * Verifica se o checklist expirou (passou do prazo de 3 dias)
+ */
+function isChecklistExpired($createdAt) {
+    $created = new DateTime($createdAt);
+    $deadline = $created->modify('+' . CHECKLIST_DEADLINE_DAYS . ' days');
+    $now = new DateTime();
+    return $now > $deadline;
+}
+
+/**
+ * Retorna o tempo restante até a expiração
+ */
+function getTimeRemaining($createdAt) {
+    $created = new DateTime($createdAt);
+    $deadline = $created->modify('+' . CHECKLIST_DEADLINE_DAYS . ' days');
+    $now = new DateTime();
+    $diff = $now->diff($deadline);
+    
+    if ($now > $deadline) {
+        return ['expired' => true, 'message' => 'Expirado'];
+    }
+    
+    return [
+        'expired' => false,
+        'days' => $diff->d,
+        'hours' => $diff->h,
+        'message' => $diff->d > 0 ? "{$diff->d} dia(s) e {$diff->h}h restantes" : "{$diff->h}h restantes"
+    ];
+}
+
 try {
     $db = Database::getInstance()->getConnection();
 
@@ -202,6 +236,9 @@ function handleGet($db, $userData, $isAdmin) {
             $historyStmt->execute([$id]);
             $history = $historyStmt->fetchAll();
             
+            // Calcula tempo restante para expiração
+            $deadline = getTimeRemaining($checklist['created_at']);
+            
             jsonResponse([
                 'success' => true,
                 'data' => [
@@ -210,7 +247,9 @@ function handleGet($db, $userData, $isAdmin) {
                     'history' => $history,
                     'progress' => $checklist['total_tasks'] > 0 
                         ? round(($checklist['completed_tasks'] / $checklist['total_tasks']) * 100) 
-                        : 0
+                        : 0,
+                    'deadline' => $deadline,
+                    'deadline_days' => CHECKLIST_DEADLINE_DAYS
                 ]
             ]);
             
@@ -375,12 +414,30 @@ function handlePost($db, $userData, $isAdmin) {
                 jsonResponse(['success' => false, 'message' => 'ID do item é obrigatório'], 400);
             }
             
-            // Verifica se o item existe
-            $checkStmt = $db->prepare("SELECT id FROM checklist_items WHERE id = ?");
+            // Verifica se o item existe e se o checklist não expirou
+            $checkStmt = $db->prepare("
+                SELECT ci.id, ic.created_at, ic.status 
+                FROM checklist_items ci 
+                JOIN installation_checklists ic ON ci.checklist_id = ic.id 
+                WHERE ci.id = ?
+            ");
             $checkStmt->execute([$itemId]);
-            if (!$checkStmt->fetch()) {
+            $itemData = $checkStmt->fetch();
+            
+            if (!$itemData) {
                 Logger::error('Item não encontrado', ['item_id' => $itemId]);
                 jsonResponse(['success' => false, 'message' => 'Item não encontrado: ' . $itemId], 404);
+            }
+            
+            // Verifica se o checklist expirou (só se não for admin e não estiver completo)
+            if (!$isAdmin && $itemData['status'] !== 'completed') {
+                if (isChecklistExpired($itemData['created_at'])) {
+                    Logger::warning('Tentativa de editar checklist expirado', ['item_id' => $itemId]);
+                    jsonResponse([
+                        'success' => false, 
+                        'message' => 'Prazo expirado! Este checklist não pode mais ser editado. O prazo máximo é de ' . CHECKLIST_DEADLINE_DAYS . ' dias.'
+                    ], 400);
+                }
             }
             
             $stmt = $db->prepare("

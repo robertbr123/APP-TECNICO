@@ -251,13 +251,13 @@ function generateSafeFilename($cpf, $type, $extension) {
  * Salva registro da foto no banco
  */
 function savePhotoRecord($db, $cpf, $filename, $type, $userId) {
-    // Cria tabela se não existir
+    // Cria tabela se não existir (com VARCHAR para aceitar qualquer tipo)
     $db->exec("
         CREATE TABLE IF NOT EXISTS `client_photos` (
             `id` int(11) NOT NULL AUTO_INCREMENT,
             `cpf` varchar(11) NOT NULL,
             `filename` varchar(255) NOT NULL,
-            `type` enum('router','cabling','signal','other') DEFAULT 'other',
+            `type` varchar(50) DEFAULT 'other',
             `uploaded_by` int(11) DEFAULT NULL,
             `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
