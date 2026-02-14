@@ -1083,7 +1083,15 @@
                 
                 // Verifica se checklist pode ser continuado (pendente ou em andamento)
                 const canContinue = (checklist.status === 'pending' || checklist.status === 'in_progress') && 
-                                   checklist.technician_id === currentUser?.id;
+                                   parseInt(checklist.technician_id) === parseInt(currentUser?.id);
+                
+                // Debug para verificar condições
+                console.log('[Checklist] canContinue check:', {
+                    status: checklist.status,
+                    technician_id: checklist.technician_id,
+                    currentUser_id: currentUser?.id,
+                    canContinue: canContinue
+                });
                 
                 // Calcula prazo restante (3 dias a partir de created_at)
                 let deadlineInfo = '';
@@ -1165,7 +1173,7 @@
                             </button>
                         </div>
                     `;
-                } else if (isRejected && checklist.technician_id === currentUser?.id) {
+                } else if (isRejected && parseInt(checklist.technician_id) === parseInt(currentUser?.id)) {
                     // Técnico pode reabrir checklist rejeitado
                     adminActions = `
                         <div class="mt-2">
@@ -1204,7 +1212,8 @@
                 ` : '';
 
                 return `
-                    <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg ${isPendingApproval ? 'ring-2 ring-yellow-400' : ''} ${canContinue && !isExpired ? 'ring-2 ring-primary' : ''}">
+                    <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg ${isPendingApproval ? 'ring-2 ring-yellow-400' : ''} ${canContinue && !isExpired ? 'ring-2 ring-primary cursor-pointer active:scale-[0.98] transition-transform' : ''}"
+                         ${canContinue && !isExpired ? `onclick="continueChecklist(${checklist.id}, '${checklist.client_name.replace(/'/g, "\\'")}', '${checklist.installation_type}')"` : ''}>
                         <div class="flex items-center justify-between">
                             <div class="flex-1 min-w-0">
                                 <p class="text-[#111318] dark:text-white font-medium truncate">${checklist.client_name}</p>
