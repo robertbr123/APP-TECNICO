@@ -108,16 +108,33 @@ try {
     
     $sql .= " LIMIT $limit OFFSET $offset";
     
+    // Log detalhado para debug
+    error_log("=== DEBUG SEARCH-CLIENTS ===");
+    error_log("SQL Final: " . $sql);
+    error_log("Params: " . json_encode($params));
+    error_log("userCity: " . ($userCity ?? 'NULL'));
+    error_log("role: " . $userData['role']);
+    
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
     $clients = $stmt->fetchAll();
+    
+    // Log das cidades retornadas
+    $cities = array_unique(array_column($clients, 'city'));
+    error_log("Cidades retornadas: " . json_encode($cities));
+    error_log("=== FIM DEBUG ===");
     
     jsonResponse([
         'success' => true,
         'data' => $clients,
         'count' => count($clients),
         'search' => $search,
-        'filtered_by_city' => $userCity ? true : false
+        'filtered_by_city' => $userCity ? true : false,
+        'debug' => [
+            'user_city' => $userCity,
+            'role' => $userData['role'],
+            'cities_returned' => $cities
+        ]
     ]);
     
 } catch (PDOException $e) {

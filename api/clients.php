@@ -121,6 +121,13 @@ function handleGet($db) {
         $sql .= " WHERE " . implode(' AND ', $conditions);
     }
 
+    // Log detalhado para debug
+    Logger::info('Query de listagem', [
+        'sql' => $sql,
+        'params' => $params,
+        'userCity' => $userCity ?? 'NULL'
+    ]);
+
     // Conta total
     $countSql = str_replace("SELECT *", "SELECT COUNT(*) as total", $sql);
     $countStmt = $db->prepare($countSql);
@@ -132,6 +139,10 @@ function handleGet($db) {
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
     $clients = $stmt->fetchAll();
+
+    // Log das cidades retornadas
+    $cities = array_unique(array_column($clients, 'city'));
+    Logger::info('Cidades retornadas', ['cities' => $cities, 'count' => count($clients)]);
 
     Logger::logDatabase('SELECT', 'clients', count($clients));
 
@@ -145,6 +156,10 @@ function handleGet($db) {
             'pages' => ceil($total / $limit),
             'has_next' => ($page * $limit) < $total,
             'has_prev' => $page > 1
+        ],
+        'debug' => [
+            'user_city' => $userCity,
+            'cities_returned' => $cities
         ]
     ]);
 }
