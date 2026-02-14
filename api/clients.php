@@ -165,10 +165,19 @@ function handleGet($db) {
 }
 
 /**
- * POST - Criar novo cliente
+ * POST - Criar novo cliente ou ações especiais
  */
 function handlePost($db, $userData) {
     $data = getRequestBody();
+
+    // Verificar se é uma ação especial
+    if (isset($data['action'])) {
+        switch ($data['action']) {
+            case 'update_location':
+                handleUpdateLocation($db, $userData, $data);
+                return;
+        }
+    }
 
     Logger::info('Dados recebidos para cadastro', ['data' => $data]);
 
@@ -381,4 +390,50 @@ function handleDelete($db, $userData) {
     }
 
     jsonResponse(['success' => true, 'message' => 'Cliente excluído com sucesso']);
+}
+
+/**
+ * Atualizar localização do cliente (permite técnicos)
+ */
+function handleUpdateLocation($db, $userData, $data) {
+    if (empty($data['cpf'])) {
+        jsonResponse(['success' => false, 'message' => 'CPF é obrigatório'], 400);
+    }
+
+    $cpfValidation = Validator::validateCPF($data['cpf']);
+    $cpf = $cpfValidation['valid'] ? $cpfValidation['clean'] : preg_replace('/\D/', '', $data['cpf']);
+
+    // Verifica se o cliente existe
+    $stmt = $db->prepare("SELECT cpf, name FROM clients WHERE cpf = ?");
+    $stmt->execute([$cpf]);
+    $client = $stmt->fetch();
+    
+    if (!$client) {
+        Logger::warning('Cliente não encontrado para atualização de localização', ['cpf' => $cpf]);
+        jsonResponse(['success' => false, 'message' => 'Cliente não encontrado'], 404);
+    }
+
+    // Valida latitude e longitude
+    $latitude = isset($data['latitude']) ? floatval($data['latitude']) : null;
+    $longitude = isset($data['longitude']) ? floatval($data['longitude']) : null;
+    $accuracy = isset($data['accuracy']) ? floatval($data['accuracy']) : null;
+
+    if (!$latitude || !$longitude) {
+        jsonResponse(['success' => false, 'message' => 'Latitude e longitude são obrigatórios'], 400);
+    }
+
+    // Atualiza apenas a localização
+    $stmt = $db->prepare("UPDATE clients SET latitude = ?, longitude = ?, location_accuracy = ? WHERE cpf = ?");
+    $stmt->execute([$latitude, $longitude, $accuracy, $cpf]);
+
+    Logger::logDatabase('UPDATE', 'clients', $stmt->rowCount());
+    Logger::info('Localização do cliente atualizada', [
+        'cpf' => $cpf,
+        'name' => $client['name'],
+        'latitude' => $latitude,
+        'longitude' => $longitude,
+        'updated_by' => $userData['username']
+    ]);
+
+    jsonResponse(['success' => true, 'message' => 'Localização atualizada com sucesso']);
 }

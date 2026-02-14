@@ -473,25 +473,44 @@
                 const techLocation = await getTechnicianLocation();
                 console.log('[Checklist] Localização do técnico:', techLocation);
                 
+                if (!techLocation) {
+                    console.warn('[Checklist] Não foi possível obter localização do técnico');
+                    showToast('Não foi possível obter sua localização. Verifique as permissões.', 'warning');
+                }
+                
                 // 2. Busca dados completos do cliente para verificar se tem lat/long
                 let clientData = null;
                 try {
                     const clientResponse = await API.getClient(selectedClient.cpf);
+                    console.log('[Checklist] Resposta API.getClient:', clientResponse);
                     if (clientResponse.success) {
                         clientData = clientResponse.data;
                         selectedClientData = clientData;
                         console.log('[Checklist] Dados do cliente:', clientData);
+                        console.log('[Checklist] Cliente latitude:', clientData?.latitude);
+                        console.log('[Checklist] Cliente longitude:', clientData?.longitude);
                     }
                 } catch (e) {
                     console.error('[Checklist] Erro ao buscar dados do cliente:', e);
                 }
                 
                 // 3. Verifica se cliente tem localização
-                const clientHasLocation = clientData && clientData.latitude && clientData.longitude;
+                const clientLat = clientData?.latitude;
+                const clientLng = clientData?.longitude;
+                const clientHasLocation = clientLat && clientLng && 
+                    clientLat !== '0' && clientLng !== '0' && 
+                    clientLat !== 0 && clientLng !== 0 &&
+                    clientLat !== null && clientLng !== null &&
+                    clientLat !== '' && clientLng !== '';
+                
+                console.log('[Checklist] clientHasLocation:', clientHasLocation);
+                console.log('[Checklist] techLocation disponível:', !!techLocation);
+                
                 let saveClientLocation = false;
                 
                 // 4. Se cliente não tem localização e técnico tem, pergunta se quer salvar
                 if (!clientHasLocation && techLocation) {
+                    console.log('[Checklist] Mostrando pergunta para salvar localização');
                     const confirmSave = confirm(
                         `📍 O cliente "${selectedClient.name}" não possui localização cadastrada.\n\n` +
                         `Você está na casa do cliente?\n\n` +
@@ -505,7 +524,7 @@
                         
                         // Salva localização no cliente
                         try {
-                            const updateResponse = await API.updateClient(selectedClient.cpf, {
+                            const updateResponse = await API.updateClientLocation(selectedClient.cpf, {
                                 latitude: techLocation.latitude,
                                 longitude: techLocation.longitude,
                                 accuracy: techLocation.accuracy

@@ -207,6 +207,17 @@ const API = {
     },
 
     /**
+     * Atualizar apenas localização do cliente (permite técnicos)
+     */
+    async updateClientLocation(cpf, locationData) {
+        return this.post('clients.php', {
+            action: 'update_location',
+            cpf,
+            ...locationData
+        });
+    },
+
+    /**
      * Excluir cliente
      */
     async deleteClient(cpf) {
