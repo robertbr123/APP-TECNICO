@@ -60,9 +60,13 @@ try {
 function handleGet($db) {
     $id = $_GET['id'] ?? null;
     
+    // Verifica quais colunas existem na tabela
+    $columns = getAvailableColumns($db);
+    $selectFields = implode(', ', $columns);
+    
     if ($id) {
         // Busca usuário específico
-        $stmt = $db->prepare("SELECT id, username, full_name, email, role, city, active, created_at FROM users WHERE id = ?");
+        $stmt = $db->prepare("SELECT $selectFields FROM users WHERE id = ?");
         $stmt->execute([$id]);
         $user = $stmt->fetch();
         
@@ -73,10 +77,43 @@ function handleGet($db) {
         jsonResponse(['success' => true, 'data' => $user]);
     } else {
         // Lista todos os usuários
-        $stmt = $db->query("SELECT id, username, full_name, email, role, city, active, created_at FROM users ORDER BY created_at DESC");
+        $stmt = $db->query("SELECT $selectFields FROM users ORDER BY id DESC");
         $users = $stmt->fetchAll();
         
         jsonResponse(['success' => true, 'data' => $users, 'count' => count($users)]);
+    }
+}
+
+/**
+ * Retorna lista de colunas disponíveis na tabela users
+ */
+function getAvailableColumns($db) {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    
+    // Colunas base que sempre existem
+    $baseColumns = ['id', 'username'];
+    
+    // Colunas opcionais que queremos incluir se existirem
+    $optionalColumns = ['full_name', 'email', 'role', 'city', 'cargo', 'active', 'created_at'];
+    
+    // Verifica quais colunas existem
+    try {
+        $stmt = $db->query("SHOW COLUMNS FROM users");
+        $existingColumns = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+        
+        $availableColumns = $baseColumns;
+        foreach ($optionalColumns as $col) {
+            if (in_array($col, $existingColumns)) {
+                $availableColumns[] = $col;
+            }
+        }
+        
+        $cache = $availableColumns;
+        return $cache;
+    } catch (Exception $e) {
+        // Fallback: retorna apenas colunas base
+        return $baseColumns;
     }
 }
 
@@ -102,8 +139,8 @@ function handlePost($db, $adminData) {
     $passwordHash = password_hash($data['password'], PASSWORD_BCRYPT);
     
     $stmt = $db->prepare("
-        INSERT INTO users (username, password, full_name, email, role, city, active, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, 1, NOW())
+        INSERT INTO users (username, password, full_name, email, role, city, cargo, active, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, NOW())
     ");
     
     $stmt->execute([
@@ -112,7 +149,8 @@ function handlePost($db, $adminData) {
         $data['full_name'],
         $data['email'] ?? null,
         $data['role'] ?? 'tecnico',
-        $data['city'] ?? null
+        $data['city'] ?? null,
+        $data['cargo'] ?? null
     ]);
     
     $userId = $db->lastInsertId();
@@ -171,6 +209,10 @@ function handlePut($db, $adminData) {
     if (isset($data['city'])) {
         $updates[] = 'city = ?';
         $params[] = $data['city'];
+    }
+    if (isset($data['cargo'])) {
+        $updates[] = 'cargo = ?';
+        $params[] = $data['cargo'];
     }
     if (isset($data['active'])) {
         $updates[] = 'active = ?';

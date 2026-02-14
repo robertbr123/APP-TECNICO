@@ -182,14 +182,23 @@ Sincronizar
 </section>
 </div>
 <div class="p-4 flex flex-col gap-3 mb-10">
-<button class="w-full h-14 bg-primary text-white rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
-<span class="material-symbols-outlined">edit</span>
-                Editar Cliente
-            </button>
-<button class="w-full h-14 bg-white dark:bg-gray-900 text-[#111318] dark:text-white border border-gray-200 dark:border-gray-800 rounded-2xl font-bold text-base flex items-center justify-center gap-2">
+<!-- Botões de Ação (Agendar visível para todos) -->
+<button onclick="openScheduleMaintenance()" class="w-full h-14 bg-primary text-white rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
 <span class="material-symbols-outlined">calendar_today</span>
                 Agendar Manutenção
             </button>
+
+<!-- Botões Admin Only (Editar e Excluir) -->
+<div id="admin-actions" class="hidden flex flex-col gap-3">
+<button onclick="editClient()" class="w-full h-14 bg-white dark:bg-gray-900 text-primary border-2 border-primary rounded-2xl font-bold text-base flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">edit</span>
+                Editar Cliente
+            </button>
+<button onclick="confirmDeleteClient()" class="w-full h-14 bg-red-500 text-white rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
+<span class="material-symbols-outlined">delete</span>
+                Excluir Cliente
+            </button>
+</div>
 </div>
 </div>
 
@@ -202,8 +211,12 @@ Sincronizar
     var currentCpf = '';
     var currentContrato = '';
     var currentServidor = '';
+    var currentClientData = null; // Armazena dados do cliente para edição
     
     document.addEventListener('DOMContentLoaded', async function() {
+        // Verifica se é admin e mostra botões de editar/excluir
+        checkAdminAccess();
+        
         // Pega o CPF da URL
         var params = new URLSearchParams(window.location.search);
         var cpf = params.get('cpf');
@@ -949,6 +962,120 @@ Sincronizar
         } catch (error) {
             console.error('Erro ao registrar visualização:', error);
         }
+    }
+    
+    // =====================================================
+    // Verificação de Admin e Ações de Admin
+    // =====================================================
+    
+    function checkAdminAccess() {
+        try {
+            var userData = localStorage.getItem('user_data');
+            if (userData) {
+                var user = JSON.parse(userData);
+                if (user.role === 'admin') {
+                    var adminActions = document.getElementById('admin-actions');
+                    if (adminActions) {
+                        adminActions.classList.remove('hidden');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao verificar acesso admin:', error);
+        }
+    }
+    
+    function editClient() {
+        if (!currentCpf) return;
+        // Redireciona para página de edição com CPF
+        window.location.href = 'novo-cadastro.html?edit=' + encodeURIComponent(currentCpf);
+    }
+    
+    function confirmDeleteClient() {
+        if (!currentCpf) return;
+        
+        var clientName = document.getElementById('client-name')?.textContent || 'este cliente';
+        
+        // Modal de confirmação
+        var modal = document.createElement('div');
+        modal.id = 'delete-modal';
+        modal.className = 'fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4';
+        modal.innerHTML = 
+            '<div class="bg-white dark:bg-gray-900 w-full max-w-sm rounded-2xl p-6 shadow-2xl" onclick="event.stopPropagation()">' +
+                '<div class="flex flex-col items-center text-center">' +
+                    '<div class="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">' +
+                        '<span class="material-symbols-outlined text-red-500 text-3xl">delete_forever</span>' +
+                    '</div>' +
+                    '<h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Excluir Cliente</h3>' +
+                    '<p class="text-gray-500 dark:text-gray-400 text-sm mb-6">' +
+                        'Tem certeza que deseja excluir <strong class="text-gray-900 dark:text-white">' + clientName + '</strong>?<br>' +
+                        '<span class="text-red-500">Esta ação não pode ser desfeita.</span>' +
+                    '</p>' +
+                    '<div class="flex gap-3 w-full">' +
+                        '<button onclick="closeDeleteModal()" class="flex-1 h-12 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold">' +
+                            'Cancelar' +
+                        '</button>' +
+                        '<button onclick="deleteClient()" id="btn-confirm-delete" class="flex-1 h-12 bg-red-500 text-white rounded-xl font-semibold flex items-center justify-center gap-2">' +
+                            '<span class="material-symbols-outlined text-sm">delete</span>' +
+                            'Excluir' +
+                        '</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        modal.onclick = function(e) { if (e.target === modal) closeDeleteModal(); };
+        document.body.appendChild(modal);
+    }
+    
+    function closeDeleteModal() {
+        var modal = document.getElementById('delete-modal');
+        if (modal) modal.remove();
+    }
+    
+    async function deleteClient() {
+        if (!currentCpf) return;
+        
+        var btn = document.getElementById('btn-confirm-delete');
+        if (btn) {
+            btn.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>';
+            btn.disabled = true;
+        }
+        
+        try {
+            var result = await API.deleteClient(currentCpf);
+            
+            if (result.success) {
+                closeDeleteModal();
+                
+                // Mostra mensagem de sucesso
+                var toast = document.createElement('div');
+                toast.className = 'fixed top-20 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2';
+                toast.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Cliente excluído com sucesso';
+                document.body.appendChild(toast);
+                
+                // Redireciona após 1.5 segundos
+                setTimeout(function() {
+                    window.location.href = 'consultar.html';
+                }, 1500);
+            } else {
+                alert('Erro ao excluir: ' + (result.message || 'Tente novamente'));
+                if (btn) {
+                    btn.innerHTML = '<span class="material-symbols-outlined text-sm">delete</span> Excluir';
+                    btn.disabled = false;
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao excluir cliente:', error);
+            alert('Erro ao excluir cliente. Verifique sua conexão.');
+            if (btn) {
+                btn.innerHTML = '<span class="material-symbols-outlined text-sm">delete</span> Excluir';
+                btn.disabled = false;
+            }
+        }
+    }
+    
+    function openScheduleMaintenance() {
+        // Placeholder para agendar manutenção
+        alert('Funcionalidade de agendamento em desenvolvimento.\n\nCliente: ' + (document.getElementById('client-name')?.textContent || currentCpf));
     }
 </script>
 </body></html>

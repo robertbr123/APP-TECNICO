@@ -330,8 +330,100 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     console.log('DOM carregado');
     
+    // ==========================================
+    // MODO DE EDIÇÃO: Verifica se está editando um cliente existente
+    // ==========================================
+    var urlParams = new URLSearchParams(window.location.search);
+    var editCpf = urlParams.get('edit');
+    var isEditMode = !!editCpf;
+    
+    if (isEditMode) {
+        console.log('Modo de edição ativado para CPF:', editCpf);
+        
+        // Atualiza título da página
+        document.title = 'Editar Cliente - Ondeline';
+        var headerTitle = document.querySelector('h2.text-lg.font-bold');
+        if (headerTitle) {
+            headerTitle.textContent = 'Editar Cliente';
+        }
+        
+        // Desabilita campo CPF para não alterar o identificador
+        var cpfField = document.getElementById('field-cpf');
+        if (cpfField) {
+            cpfField.readOnly = true;
+            cpfField.classList.add('bg-gray-100', 'cursor-not-allowed');
+        }
+        
+        // Carrega dados do cliente
+        loadClientForEdit(editCpf);
+    }
+    
+    async function loadClientForEdit(cpf) {
+        try {
+            var token = localStorage.getItem('auth_token');
+            var response = await fetch('/api/clients.php?cpf=' + encodeURIComponent(cpf), {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + (token || '')
+                }
+            });
+            
+            var result = await response.json();
+            console.log('Cliente carregado:', result);
+            
+            if (result.success && result.data) {
+                var client = result.data;
+                
+                // Preenche os campos do formulário
+                document.getElementById('field-name').value = client.name || '';
+                document.getElementById('field-cpf').value = client.cpf || '';
+                document.getElementById('field-phone').value = client.phone || '';
+                document.getElementById('field-dob').value = client.birth_date || '';
+                document.getElementById('field-cep').value = client.cep || '';
+                document.getElementById('field-state').value = client.state || '';
+                document.getElementById('field-city').value = client.city || '';
+                document.getElementById('field-neighborhood').value = client.neighborhood || '';
+                document.getElementById('field-street').value = client.address || '';
+                document.getElementById('field-number').value = client.number || '';
+                document.getElementById('field-complement').value = client.complement || '';
+                document.getElementById('field-pppoe-user').value = client.pppoe || '';
+                document.getElementById('field-pppoe-pass').value = client.password || '';
+                document.getElementById('field-observations').value = client.observation || '';
+                
+                // Selects
+                var planSelect = document.getElementById('field-plan');
+                if (planSelect && client.plan_id) {
+                    planSelect.value = client.plan_id;
+                }
+                
+                var dueDateSelect = document.getElementById('field-due-date');
+                if (dueDateSelect && client.due_day) {
+                    dueDateSelect.value = client.due_day;
+                }
+                
+                // Campos de localização
+                if (client.latitude) document.getElementById('field-latitude').value = client.latitude;
+                if (client.longitude) document.getElementById('field-longitude').value = client.longitude;
+                if (client.accuracy) document.getElementById('field-accuracy').value = client.accuracy;
+                
+                // Atualiza botão
+                var btn = document.getElementById('btn-salvar-cadastro');
+                if (btn) {
+                    btn.innerHTML = '<span class="material-symbols-outlined">save</span> Atualizar Cliente';
+                }
+                
+                showSuccess('Dados carregados. Faça as alterações e salve.');
+            } else {
+                showError('Erro ao carregar cliente: ' + (result.message || 'Cliente não encontrado'));
+            }
+        } catch (error) {
+            console.error('Erro ao carregar cliente:', error);
+            showError('Erro ao carregar dados do cliente');
+        }
+    }
+    
     // Registra o acesso à página de cadastro no log de auditoria
-    logPageAccess('new_client_page', 'Acessou página de novo cadastro');
+    logPageAccess(isEditMode ? 'edit_client_page' : 'new_client_page', isEditMode ? 'Acessou página de edição de cliente' : 'Acessou página de novo cadastro');
     
     // Variável para controlar se a localização foi obtida
     var locationObtained = false;
@@ -512,7 +604,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Verifica se está offline
             if (!navigator.onLine) {
-                saveOffline('create_client', data);
+                saveOffline(isEditMode ? 'update_client' : 'create_client', data);
                 showSuccess('Cliente salvo offline! Será sincronizado quando reconectar.');
                 setTimeout(function() {
                     window.location.href = 'dashboard.html';
@@ -522,15 +614,19 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Desabilita botão
             btn.disabled = true;
-            btn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Salvando...';
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> ' + (isEditMode ? 'Atualizando...' : 'Salvando...');
             
             try {
-                // Envia para API de cadastro
+                // Envia para API de cadastro ou atualização
                 var token = localStorage.getItem('auth_token');
                 console.log('Token:', token ? 'Presente' : 'Ausente');
+                console.log('Modo:', isEditMode ? 'Edição' : 'Novo cadastro');
                 
-                var response = await fetch('/api/cadastro.php', {
-                    method: 'POST',
+                var apiUrl = isEditMode ? '/api/clients.php' : '/api/cadastro.php';
+                var apiMethod = isEditMode ? 'PUT' : 'POST';
+                
+                var response = await fetch(apiUrl, {
+                    method: apiMethod,
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + (token || '')
@@ -583,7 +679,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                     
-                    var mensagem = 'Cliente cadastrado com sucesso!';
+                    var mensagem = isEditMode ? 'Cliente atualizado com sucesso!' : 'Cliente cadastrado com sucesso!';
                     if (fotosEnviadas > 0) {
                         mensagem += ' ' + fotosEnviadas + ' foto(s) enviada(s).';
                     }
@@ -591,25 +687,34 @@ document.addEventListener('DOMContentLoaded', function() {
                         mensagem += ' ' + fotosFalha + ' foto(s) falharam.';
                     }
                     
-                    showSuccess(mensagem + ' Redirecionando para vincular equipamento...');
-                    
-                    // Redireciona para vincular equipamento com dados do cliente
-                    var enderecoParts = [];
-                    if (data.address) enderecoParts.push(data.address);
-                    if (data.number) enderecoParts.push(data.number);
-                    if (data.neighborhood) enderecoParts.push(data.neighborhood);
-                    if (data.city) enderecoParts.push(data.city);
-                    if (data.state) enderecoParts.push(data.state);
-                    var endereco = enderecoParts.join(', ');
-                    
-                    var redirectUrl = 'vincular-equipamento.html?from=cadastro' +
-                        '&cpf=' + encodeURIComponent(cpfLimpo) +
-                        '&name=' + encodeURIComponent(data.name) +
-                        '&address=' + encodeURIComponent(endereco);
-                    
-                    setTimeout(function() {
-                        window.location.href = redirectUrl;
-                    }, 1500);
+                    if (isEditMode) {
+                        // No modo edição, retorna para detalher.html
+                        showSuccess(mensagem + ' Redirecionando para detalhes...');
+                        setTimeout(function() {
+                            window.location.href = 'detalher.html?cpf=' + encodeURIComponent(data.cpf.replace(/\D/g, ''));
+                        }, 1500);
+                    } else {
+                        // No modo novo, vai para vincular equipamento
+                        showSuccess(mensagem + ' Redirecionando para vincular equipamento...');
+                        
+                        // Redireciona para vincular equipamento com dados do cliente
+                        var enderecoParts = [];
+                        if (data.address) enderecoParts.push(data.address);
+                        if (data.number) enderecoParts.push(data.number);
+                        if (data.neighborhood) enderecoParts.push(data.neighborhood);
+                        if (data.city) enderecoParts.push(data.city);
+                        if (data.state) enderecoParts.push(data.state);
+                        var endereco = enderecoParts.join(', ');
+                        
+                        var redirectUrl = 'vincular-equipamento.html?from=cadastro' +
+                            '&cpf=' + encodeURIComponent(cpfLimpo) +
+                            '&name=' + encodeURIComponent(data.name) +
+                            '&address=' + encodeURIComponent(endereco);
+                        
+                        setTimeout(function() {
+                            window.location.href = redirectUrl;
+                        }, 1500);
+                    }
                 } else {
                     showError('Erro: ' + (result.message || 'Erro desconhecido'));
                 }
@@ -618,7 +723,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Salva offline se falhar
                 if (!navigator.onLine) {
-                    saveOffline('create_client', data);
+                    saveOffline(isEditMode ? 'update_client' : 'create_client', data);
                     showSuccess('Salvo offline! Será sincronizado quando reconectar.');
                     setTimeout(function() {
                         window.location.href = 'dashboard.html';
@@ -628,7 +733,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<span class="material-symbols-outlined">save</span> Salvar Cadastro';
+                btn.innerHTML = '<span class="material-symbols-outlined">save</span> ' + (isEditMode ? 'Atualizar Cliente' : 'Salvar Cadastro');
             }
         };
     }

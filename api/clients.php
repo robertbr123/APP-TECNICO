@@ -231,9 +231,15 @@ function handlePost($db, $userData) {
 }
 
 /**
- * PUT - Atualizar cliente
+ * PUT - Atualizar cliente (APENAS ADMIN)
  */
 function handlePut($db, $userData) {
+    // Verifica se é admin
+    if ($userData['role'] !== 'admin') {
+        Logger::warning('Tentativa de edição sem permissão', ['user' => $userData['username'], 'role' => $userData['role']]);
+        jsonResponse(['success' => false, 'message' => 'Apenas administradores podem editar clientes'], 403);
+    }
+    
     $data = getRequestBody();
 
     if (empty($data['cpf'])) {
@@ -254,7 +260,13 @@ function handlePut($db, $userData) {
     // Monta a query de atualização
     $updateFields = [];
     $params = [];
-    $allowedFields = ['name', 'birthDate', 'phone', 'cep', 'address', 'number', 'complement', 'city', 'planId', 'pppoe', 'password', 'dueDay', 'installer', 'observation', 'status', 'active', 'serial', 'phone_number', 'contrato'];
+    
+    // Mapeia campos do frontend para campos da tabela
+    $fieldMapping = [
+        'accuracy' => 'location_accuracy'
+    ];
+    
+    $allowedFields = ['name', 'birthDate', 'phone', 'cep', 'state', 'address', 'number', 'complement', 'city', 'neighborhood', 'planId', 'pppoe', 'password', 'dueDay', 'installer', 'observation', 'status', 'active', 'serial', 'phone_number', 'contrato', 'latitude', 'longitude', 'accuracy'];
 
     foreach ($allowedFields as $field) {
         if (isset($data[$field])) {
@@ -262,7 +274,10 @@ function handlePut($db, $userData) {
             if ($field === 'name') {
                 $data[$field] = Validator::sanitizeString($data[$field], ['maxLength' => 150]);
             }
-            $updateFields[] = "$field = ?";
+            
+            // Usa mapeamento se existir
+            $dbField = $fieldMapping[$field] ?? $field;
+            $updateFields[] = "$dbField = ?";
             $params[] = $data[$field];
         }
     }
@@ -283,9 +298,15 @@ function handlePut($db, $userData) {
 }
 
 /**
- * DELETE - Excluir cliente
+ * DELETE - Excluir cliente (APENAS ADMIN)
  */
 function handleDelete($db, $userData) {
+    // Verifica se é admin
+    if ($userData['role'] !== 'admin') {
+        Logger::warning('Tentativa de exclusão sem permissão', ['user' => $userData['username'], 'role' => $userData['role']]);
+        jsonResponse(['success' => false, 'message' => 'Apenas administradores podem excluir clientes'], 403);
+    }
+    
     $cpf = $_GET['cpf'] ?? null;
 
     if (!$cpf) {
@@ -294,6 +315,11 @@ function handleDelete($db, $userData) {
 
     $cpfValidation = Validator::validateCPF($cpf);
     $cpf = $cpfValidation['valid'] ? $cpfValidation['clean'] : preg_replace('/\D/', '', $cpf);
+    
+    // Busca dados do cliente para log antes de excluir
+    $clientStmt = $db->prepare("SELECT name, city FROM clients WHERE cpf = ?");
+    $clientStmt->execute([$cpf]);
+    $clientData = $clientStmt->fetch();
 
     $stmt = $db->prepare("DELETE FROM clients WHERE cpf = ?");
     $stmt->execute([$cpf]);
@@ -304,7 +330,33 @@ function handleDelete($db, $userData) {
     }
 
     Logger::logDatabase('DELETE', 'clients', 1);
-    Logger::info('Cliente excluído', ['cpf' => $cpf, 'deleted_by' => $userData['username']]);
+    Logger::info('Cliente excluído', [
+        'cpf' => $cpf, 
+        'client_name' => $clientData['name'] ?? 'N/A',
+        'deleted_by' => $userData['username']
+    ]);
+    
+    // Registra no log de auditoria
+    try {
+        $auditStmt = $db->prepare("
+            INSERT INTO audit_logs 
+            (user_id, username, action_type, action_description, entity_type, entity_id, entity_name, ip_address, user_agent)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $auditStmt->execute([
+            $userData['user_id'],
+            $userData['username'],
+            'client_deleted',
+            'Cliente excluído permanentemente',
+            'client',
+            $cpf,
+            $clientData['name'] ?? 'N/A',
+            $_SERVER['REMOTE_ADDR'] ?? null,
+            $_SERVER['HTTP_USER_AGENT'] ?? null
+        ]);
+    } catch (Exception $e) {
+        Logger::warning('Erro ao registrar auditoria de exclusão', ['error' => $e->getMessage()]);
+    }
 
     jsonResponse(['success' => true, 'message' => 'Cliente excluído com sucesso']);
 }
