@@ -118,11 +118,15 @@
 <main class="pb-32">
 <!-- Filtros -->
 <div class="bg-white dark:bg-card-dark px-4 py-3 border-b border-gray-100 dark:border-white/5 overflow-x-auto">
-<div class="flex gap-2 min-w-max">
+<div class="flex gap-2 min-w-max items-center">
 <button class="filter-btn active px-3 py-1.5 rounded-full text-sm font-medium bg-primary text-white" data-filter="all">Todos</button>
 <button class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="active">Ativos</button>
 <button class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="pending">Pendentes</button>
 <button class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="inactive">Inativos</button>
+<button id="btn-reload" class="ml-auto px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-600 flex items-center gap-1" onclick="loadClients()">
+    <span class="material-symbols-outlined text-base">refresh</span>
+    Atualizar
+</button>
 </div>
 </div>
 
@@ -233,9 +237,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         markers = [];
 
         // Filtra clientes com localização
-        const clientsWithLocation = clientList.filter(client => 
-            client.latitude && client.longitude
-        );
+        const clientsWithLocation = clientList.filter(client => {
+            const lat = parseFloat(client.latitude);
+            const lng = parseFloat(client.longitude);
+            return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+        });
+
+        console.log('[Mapa] Clientes com localização:', clientsWithLocation.length, 'de', clientList.length);
 
         if (clientsWithLocation.length === 0) {
             showInfo('Nenhum cliente com localização encontrada');
@@ -253,7 +261,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 iconAnchor: [15, 15]
             });
 
-            const marker = L.marker([client.latitude, client.longitude], { icon })
+            const lat = parseFloat(client.latitude);
+            const lng = parseFloat(client.longitude);
+            
+            const marker = L.marker([lat, lng], { icon })
                 .addTo(map)
                 .bindPopup(`
                     <div class="p-2 min-w-[200px]">
@@ -284,7 +295,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('stat-total').textContent = clientList.length;
         document.getElementById('stat-active').textContent = clientList.filter(c => c.active == 1 || c.status === 'ativo').length;
         document.getElementById('stat-pending').textContent = clientList.filter(c => c.status === 'pendente').length;
-        document.getElementById('stat-with-location').textContent = clientList.filter(c => c.latitude && c.longitude).length;
+        document.getElementById('stat-with-location').textContent = clientList.filter(c => {
+            const lat = parseFloat(c.latitude);
+            const lng = parseFloat(c.longitude);
+            return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+        }).length;
     }
 
     // Filtros
@@ -417,8 +432,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     initMap();
     loadClients();
     
-    // Expõe função globalmente para app.js
+    // Expõe funções globalmente
     window.initMap = initMap;
+    window.loadClients = loadClients;
 });
 </script>
 </body></html>
