@@ -417,6 +417,26 @@
             document.getElementById('btn-start-checklist').disabled = !selectedClient;
         }
 
+        // Função para atualizar localização do cliente (direto, sem depender de API.updateClientLocation)
+        async function updateClientLocationDirect(cpf, locationData) {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch('/api/clients.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + (token || '')
+                },
+                body: JSON.stringify({
+                    action: 'update_location',
+                    cpf: cpf,
+                    latitude: locationData.latitude,
+                    longitude: locationData.longitude,
+                    accuracy: locationData.accuracy
+                })
+            });
+            return await response.json();
+        }
+
         // Captura localização do técnico
         function getTechnicianLocation() {
             return new Promise((resolve, reject) => {
@@ -531,7 +551,7 @@
                                 accuracy: techLocation.accuracy
                             });
                             
-                            const updateResponse = await API.updateClientLocation(selectedClient.cpf, {
+                            const updateResponse = await updateClientLocationDirect(selectedClient.cpf, {
                                 latitude: techLocation.latitude,
                                 longitude: techLocation.longitude,
                                 accuracy: techLocation.accuracy
