@@ -524,21 +524,37 @@
                         
                         // Salva localização no cliente
                         try {
+                            console.log('[Checklist] Enviando localização para API:', {
+                                cpf: selectedClient.cpf,
+                                latitude: techLocation.latitude,
+                                longitude: techLocation.longitude,
+                                accuracy: techLocation.accuracy
+                            });
+                            
                             const updateResponse = await API.updateClientLocation(selectedClient.cpf, {
                                 latitude: techLocation.latitude,
                                 longitude: techLocation.longitude,
                                 accuracy: techLocation.accuracy
                             });
                             
+                            console.log('[Checklist] Resposta da API:', updateResponse);
+                            
                             if (updateResponse.success) {
                                 showToast('✓ Localização do cliente salva!', 'success');
                             } else {
                                 console.error('[Checklist] Erro ao salvar localização:', updateResponse.message);
+                                showToast('Erro: ' + updateResponse.message, 'error');
                             }
                         } catch (e) {
                             console.error('[Checklist] Erro ao salvar localização do cliente:', e);
+                            showToast('Erro ao salvar localização: ' + e.message, 'error');
                         }
                     }
+                } else {
+                    console.log('[Checklist] Motivo para não perguntar:', {
+                        clientHasLocation,
+                        techLocationNull: !techLocation
+                    });
                 }
                 
                 btnStart.textContent = 'Criando checklist...';
