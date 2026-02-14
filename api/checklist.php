@@ -310,11 +310,16 @@ function handlePost($db, $userData, $isAdmin) {
             
             $installationType = $data['installation_type'] ?? 'new';
             
-            // Cria checklist
+            // Dados de localização do técnico
+            $techLatitude = isset($data['tech_latitude']) ? (float)$data['tech_latitude'] : null;
+            $techLongitude = isset($data['tech_longitude']) ? (float)$data['tech_longitude'] : null;
+            $techAccuracy = isset($data['tech_accuracy']) ? (float)$data['tech_accuracy'] : null;
+            
+            // Cria checklist com localização
             $stmt = $db->prepare("
                 INSERT INTO installation_checklists 
-                (client_cpf, client_name, technician_id, technician_name, installation_type, status, approval_status, started_at, notes)
-                VALUES (?, ?, ?, ?, ?, 'pending', 'pending', NULL, ?)
+                (client_cpf, client_name, technician_id, technician_name, installation_type, status, approval_status, started_at, notes, tech_latitude, tech_longitude, tech_location_accuracy, location_captured_at)
+                VALUES (?, ?, ?, ?, ?, 'pending', 'pending', NULL, ?, ?, ?, ?, " . ($techLatitude ? "NOW()" : "NULL") . ")
             ");
             $stmt->execute([
                 $cpf,
@@ -322,7 +327,10 @@ function handlePost($db, $userData, $isAdmin) {
                 $userData['user_id'],
                 $userData['username'],
                 $installationType,
-                $data['notes'] ?? null
+                $data['notes'] ?? null,
+                $techLatitude,
+                $techLongitude,
+                $techAccuracy
             ]);
             
             $checklistId = $db->lastInsertId();

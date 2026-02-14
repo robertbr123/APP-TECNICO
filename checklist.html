@@ -417,6 +417,38 @@
             document.getElementById('btn-start-checklist').disabled = !selectedClient;
         }
 
+        // Captura localização do técnico
+        function getTechnicianLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    resolve(null);
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        });
+                    },
+                    (error) => {
+                        console.warn('[Checklist] Erro ao obter localização:', error.message);
+                        resolve(null);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            });
+        }
+        
+        // Dados do cliente selecionado (incluindo lat/long)
+        let selectedClientData = null;
+
         // Inicia checklist
         async function startChecklist() {
             if (!selectedClient) return;
@@ -429,25 +461,101 @@
 
             console.log('[Checklist] Iniciando checklist para cliente:', selectedClient.cpf);
             
+            // Mostra loading
+            const btnStart = document.getElementById('btn-start-checklist');
+            const originalText = btnStart.textContent;
+            btnStart.disabled = true;
+            btnStart.textContent = 'Obtendo localização...';
+            
             try {
+                // 1. Captura localização do técnico
+                showToast('Obtendo sua localização...', 'info');
+                const techLocation = await getTechnicianLocation();
+                console.log('[Checklist] Localização do técnico:', techLocation);
+                
+                // 2. Busca dados completos do cliente para verificar se tem lat/long
+                let clientData = null;
+                try {
+                    const clientResponse = await API.getClient(selectedClient.cpf);
+                    if (clientResponse.success) {
+                        clientData = clientResponse.data;
+                        selectedClientData = clientData;
+                        console.log('[Checklist] Dados do cliente:', clientData);
+                    }
+                } catch (e) {
+                    console.error('[Checklist] Erro ao buscar dados do cliente:', e);
+                }
+                
+                // 3. Verifica se cliente tem localização
+                const clientHasLocation = clientData && clientData.latitude && clientData.longitude;
+                let saveClientLocation = false;
+                
+                // 4. Se cliente não tem localização e técnico tem, pergunta se quer salvar
+                if (!clientHasLocation && techLocation) {
+                    const confirmSave = confirm(
+                        `📍 O cliente "${selectedClient.name}" não possui localização cadastrada.\n\n` +
+                        `Você está na casa do cliente?\n\n` +
+                        `Se sim, clique em "OK" para salvar esta localização no cadastro do cliente.\n` +
+                        `Se não, clique em "Cancelar" para continuar sem salvar.`
+                    );
+                    
+                    if (confirmSave) {
+                        saveClientLocation = true;
+                        showToast('Salvando localização do cliente...', 'info');
+                        
+                        // Salva localização no cliente
+                        try {
+                            const updateResponse = await API.updateClient(selectedClient.cpf, {
+                                latitude: techLocation.latitude,
+                                longitude: techLocation.longitude,
+                                accuracy: techLocation.accuracy
+                            });
+                            
+                            if (updateResponse.success) {
+                                showToast('✓ Localização do cliente salva!', 'success');
+                            } else {
+                                console.error('[Checklist] Erro ao salvar localização:', updateResponse.message);
+                            }
+                        } catch (e) {
+                            console.error('[Checklist] Erro ao salvar localização do cliente:', e);
+                        }
+                    }
+                }
+                
+                btnStart.textContent = 'Criando checklist...';
+                
                 currentInstallationType = document.getElementById('installation-type').value;
                 console.log('[Checklist] Tipo de instalação:', currentInstallationType);
                 
-                const response = await API.createChecklist({
+                // 5. Cria checklist com localização do técnico
+                const checklistData = {
                     client_cpf: selectedClient.cpf,
                     installation_type: currentInstallationType
-                });
+                };
+                
+                // Adiciona localização do técnico se disponível
+                if (techLocation) {
+                    checklistData.tech_latitude = techLocation.latitude;
+                    checklistData.tech_longitude = techLocation.longitude;
+                    checklistData.tech_accuracy = techLocation.accuracy;
+                }
+                
+                const response = await API.createChecklist(checklistData);
                 
                 console.log('[Checklist] Resposta createChecklist:', response);
 
                 if (response.success) {
                     currentChecklist = response.data.id;
                     console.log('[Checklist] Checklist criado com ID:', currentChecklist);
+                    btnStart.textContent = originalText;
+                    btnStart.disabled = false;
                     showChecklist(selectedClient.name, currentInstallationType);
                     await loadTasks();
                 } else {
                     console.error('[Checklist] Erro ao criar:', response.message);
                     showToast(response.message, 'error');
+                    btnStart.textContent = originalText;
+                    btnStart.disabled = false;
                     
                     // Se as tabelas não existirem
                     if (response.message && (response.message.includes('tabela') || response.message.includes('table') || response.message.includes('não configuradas'))) {
@@ -457,6 +565,8 @@
             } catch (error) {
                 console.error('[Checklist] Erro ao criar checklist:', error);
                 showToast('Erro ao iniciar checklist: ' + error.message, 'error');
+                btnStart.textContent = originalText;
+                btnStart.disabled = false;
             }
         }
 
@@ -1502,6 +1612,32 @@
                             <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">${completedItems} de ${totalItems} itens concluídos</p>
                         </div>
                         
+                        ${checklist.tech_latitude && checklist.tech_longitude ? `
+                        <!-- Localização Verificada -->
+                        <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 rounded-lg mb-6">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="material-symbols-outlined text-green-600">location_on</span>
+                                <span class="text-sm font-bold text-green-700 dark:text-green-400">LOCALIZAÇÃO VERIFICADA</span>
+                            </div>
+                            <p class="text-sm text-green-700 dark:text-green-400">
+                                Lat: ${parseFloat(checklist.tech_latitude).toFixed(6)} | 
+                                Lng: ${parseFloat(checklist.tech_longitude).toFixed(6)}
+                                ${checklist.tech_location_accuracy ? ` (±${Math.round(checklist.tech_location_accuracy)}m)` : ''}
+                            </p>
+                            <p class="text-xs text-green-600 dark:text-green-500 mt-1">
+                                Capturada em: ${checklist.location_captured_at 
+                                    ? new Date(checklist.location_captured_at).toLocaleString('pt-BR') 
+                                    : new Date(checklist.created_at).toLocaleString('pt-BR')}
+                            </p>
+                            <a href="https://www.google.com/maps?q=${checklist.tech_latitude},${checklist.tech_longitude}" 
+                               target="_blank" 
+                               class="inline-flex items-center gap-1 mt-2 text-sm text-green-700 dark:text-green-400 hover:underline">
+                                <span class="material-symbols-outlined text-sm">open_in_new</span>
+                                Ver no Google Maps
+                            </a>
+                        </div>
+                        ` : ''}
+                        
                         <!-- Itens Concluídos -->
                         <div class="space-y-4">
                             <h3 class="text-lg font-bold text-[#111318] dark:text-white border-b pb-2">
@@ -1752,6 +1888,37 @@
             doc.text('Técnico:', pageWidth / 2, y);
             doc.setFont(undefined, 'normal');
             doc.text(checklist.technician_name || '-', pageWidth / 2 + 25, y);
+            
+            // === LOCALIZAÇÃO DO TÉCNICO ===
+            if (checklist.tech_latitude && checklist.tech_longitude) {
+                y += 15;
+                doc.setFillColor(240, 255, 240);
+                doc.rect(margin, y, pageWidth - margin * 2, 20, 'F');
+                doc.setDrawColor(34, 139, 34);
+                doc.rect(margin, y, pageWidth - margin * 2, 20, 'S');
+                
+                y += 8;
+                doc.setTextColor(34, 139, 34);
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'bold');
+                doc.text('📍 LOCALIZAÇÃO VERIFICADA', margin + 5, y);
+                
+                y += 6;
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'normal');
+                
+                const lat = parseFloat(checklist.tech_latitude).toFixed(6);
+                const lng = parseFloat(checklist.tech_longitude).toFixed(6);
+                const accuracy = checklist.tech_location_accuracy ? `±${Math.round(checklist.tech_location_accuracy)}m` : '';
+                const capturedAt = checklist.location_captured_at 
+                    ? new Date(checklist.location_captured_at).toLocaleString('pt-BR') 
+                    : new Date(checklist.created_at).toLocaleString('pt-BR');
+                
+                doc.text(`Lat: ${lat}  |  Lng: ${lng}  ${accuracy}  |  Capturada em: ${capturedAt}`, margin + 5, y);
+                
+                y += 5;
+            }
             
             // === PROGRESSO ===
             y += 18;
