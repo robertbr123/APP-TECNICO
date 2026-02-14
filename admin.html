@@ -2,42 +2,91 @@
 <html class="light" lang="pt-BR">
 <head>
     <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
     <title>Painel Administrativo - Ondeline</title>
     <meta name="theme-color" content="#135bec"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+    <meta name="apple-mobile-web-app-title" content="Ondeline Tech"/>
     <link rel="manifest" href="manifest.json"/>
     <link rel="icon" type="image/png" href="logo.png"/>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="apple-touch-icon" href="logo.png"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400&display=swap" rel="stylesheet"/>
-    <style>
-        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400; }
-        .tab-active { border-bottom: 2px solid #135bec; color: #135bec; }
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="css/transitions.css"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#F2F2F7",
+                        "background-dark": "#000000",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#1C1C1E"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "ios": "12px",
+                        "ios-lg": "16px",
+                        "ios-xl": "20px"
+                    }
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-background-light dark:bg-background-dark font-display text-[#000000] dark:text-white antialiased;
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .safe-top {
+            padding-top: env(safe-area-inset-top);
+        }
+        .tab-active { 
+            border-bottom: 2px solid #135bec; 
+            color: #135bec; 
+        }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 font-['Inter']">
+<body class="min-h-screen">
     
     <!-- Header -->
-    <div class="flex items-center bg-white dark:bg-gray-900 p-4 justify-between border-b sticky top-0 z-30">
-        <div class="text-gray-900 dark:text-white cursor-pointer" onclick="history.back()">
-            <span class="material-symbols-outlined">arrow_back_ios</span>
+    <header class="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top">
+        <div class="flex items-center justify-between px-4 h-14">
+            <div class="text-gray-900 dark:text-white cursor-pointer" onclick="history.back()">
+                <span class="material-symbols-outlined">arrow_back_ios</span>
+            </div>
+            <h2 class="text-lg font-bold text-gray-900 dark:text-white flex-1 text-center">Painel Admin</h2>
+            <div class="w-8"></div>
         </div>
-        <h2 class="text-lg font-bold text-gray-900 dark:text-white flex-1 text-center">🛠️ Painel Admin</h2>
-        <div class="w-8"></div>
-    </div>
+    </header>
 
     <div class="p-4 pb-32">
         
         <!-- Stats -->
         <div class="grid grid-cols-2 gap-3 mb-4">
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+            <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm">
                 <div class="flex items-center gap-2 mb-2">
                     <span class="material-symbols-outlined text-blue-500">people</span>
-                    <span class="text-xs text-gray-500">Clientes</span>
+                    <span class="text-xs text-gray-500">Usuários</span>
                 </div>
                 <p id="stat-clients" class="text-2xl font-bold text-gray-900 dark:text-white">-</p>
             </div>
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+            <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm">
                 <div class="flex items-center gap-2 mb-2">
                     <span class="material-symbols-outlined text-orange-500">pending_actions</span>
                     <span class="text-xs text-gray-500">P/ Aprovar</span>
@@ -47,18 +96,18 @@
         </div>
 
         <!-- Tabs -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm mb-4 overflow-hidden">
+        <div class="bg-card-light dark:bg-card-dark rounded-ios-lg shadow-sm mb-4 overflow-hidden">
             <div class="flex overflow-x-auto">
-                <button onclick="showTab('templates')" id="tab-templates" class="tab-btn flex-1 px-4 py-3 text-sm font-medium tab-active">📋 Templates</button>
-                <button onclick="showTab('users')" id="tab-users" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">👥 Usuários</button>
-                <button onclick="showTab('checklists')" id="tab-checklists" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">✅ Checklists</button>
-                <button onclick="showTab('config')" id="tab-config" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">⚙️ Config</button>
+                <button onclick="showTab('templates')" id="tab-templates" class="tab-btn flex-1 px-4 py-3 text-sm font-medium tab-active">Templates</button>
+                <button onclick="showTab('users')" id="tab-users" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Usuários</button>
+                <button onclick="showTab('checklists')" id="tab-checklists" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Checklists</button>
+                <button onclick="showTab('config')" id="tab-config" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Config</button>
             </div>
         </div>
 
         <!-- Templates Panel -->
         <div id="panel-templates" class="tab-content">
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+            <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-semibold text-gray-900 dark:text-white">Templates do Checklist</h3>
                     <button onclick="openTemplateModal()" class="px-3 py-2 bg-green-500 text-white rounded-lg text-sm flex items-center gap-1">
@@ -73,7 +122,7 @@
 
         <!-- Users Panel -->
         <div id="panel-users" class="tab-content hidden">
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+            <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-semibold text-gray-900 dark:text-white">Gerenciar Usuários</h3>
                     <button onclick="openUserModal()" class="px-3 py-2 bg-green-500 text-white rounded-lg text-sm flex items-center gap-1">
@@ -88,7 +137,7 @@
 
         <!-- Checklists Panel -->
         <div id="panel-checklists" class="tab-content hidden">
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+            <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm">
                 <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Todos os Checklists</h3>
                 <div id="checklists-list" class="space-y-2">
                     <p class="text-gray-500 text-center py-4">Carregando...</p>
@@ -98,7 +147,7 @@
 
         <!-- Config Panel -->
         <div id="panel-config" class="tab-content hidden">
-            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm space-y-4">
+            <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm space-y-4">
                 <h3 class="font-semibold text-gray-900 dark:text-white">Configurações</h3>
                 
                 <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -126,7 +175,7 @@
 
     <!-- Modal User -->
     <div id="modal-user" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl max-w-sm w-full p-4 max-h-[90vh] overflow-y-auto">
+        <div class="bg-card-light dark:bg-card-dark rounded-ios-lg max-w-sm w-full p-4 max-h-[90vh] overflow-y-auto">
             <h3 class="font-bold text-lg mb-4" id="user-title">Novo Usuário</h3>
             <input type="hidden" id="user-id">
             <div class="space-y-3">
@@ -172,7 +221,7 @@
 
     <!-- Modal Template -->
     <div id="modal-template" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl max-w-sm w-full p-4">
+        <div class="bg-card-light dark:bg-card-dark rounded-ios-lg max-w-sm w-full p-4">
             <h3 class="font-bold text-lg mb-4" id="tmpl-title">Novo Template</h3>
             <input type="hidden" id="tmpl-id">
             <div class="space-y-3">
@@ -208,7 +257,7 @@
     </div>
 
     <!-- Bottom Nav -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t px-6 py-2 flex justify-around z-50">
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-black/80 ios-blur border-t border-gray-200/50 dark:border-white/10 px-6 py-2 flex justify-around z-50 safe-bottom">
         <a href="dashboard.html" class="flex flex-col items-center text-gray-400">
             <span class="material-symbols-outlined">home</span>
             <span class="text-[10px]">Início</span>
@@ -446,13 +495,22 @@
         function openUserModal(id = null) {
             document.getElementById('modal-user').classList.remove('hidden');
             if (id) {
-                const u = usersData.find(x => x.id === id);
+                // Converte para número para comparação consistente
+                const userId = parseInt(id);
+                const u = usersData.find(x => parseInt(x.id) === userId);
+                
+                if (!u) {
+                    console.error('Usuário não encontrado:', id, usersData);
+                    alert('Usuário não encontrado');
+                    return;
+                }
+                
                 document.getElementById('user-title').textContent = 'Editar Usuário';
                 document.getElementById('user-id').value = u.id;
-                document.getElementById('user-fullname').value = u.full_name;
-                document.getElementById('user-username').value = u.username;
+                document.getElementById('user-fullname').value = u.full_name || '';
+                document.getElementById('user-username').value = u.username || '';
                 document.getElementById('user-email').value = u.email || '';
-                document.getElementById('user-role').value = u.role;
+                document.getElementById('user-role').value = u.role || 'tecnico';
                 document.getElementById('user-city').value = u.city || '';
                 document.getElementById('user-cargo').value = u.cargo || '';
                 document.getElementById('user-password').value = '';

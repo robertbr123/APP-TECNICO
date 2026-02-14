@@ -186,11 +186,6 @@ function handlePut($db, $adminData) {
         jsonResponse(['success' => false, 'message' => 'Usuário não encontrado'], 404);
     }
     
-    // Não permite editar o próprio usuário para evitar problemas
-    if ($id == $adminData['user_id']) {
-        jsonResponse(['success' => false, 'message' => 'Não pode editar seu próprio usuário aqui'], 400);
-    }
-    
     $updates = [];
     $params = [];
     

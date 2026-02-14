@@ -1,17 +1,26 @@
--- Atualização da tabela clients para adicionar campos de bairro e estado
--- Execute este script no banco de dados ondeline
+-- =====================================================
+-- Atualização da tabela clients - adicionar colunas faltantes
+-- Execute cada comando separadamente no phpMyAdmin
+-- Se der "Duplicate column name", a coluna já existe (OK)
+-- =====================================================
 
--- Adiciona coluna de estado (UF)
-ALTER TABLE clients 
-ADD COLUMN IF NOT EXISTS state VARCHAR(2) DEFAULT NULL AFTER city;
+-- Estado (UF)
+ALTER TABLE clients ADD COLUMN state VARCHAR(2) DEFAULT NULL;
 
--- Adiciona coluna de bairro
-ALTER TABLE clients 
-ADD COLUMN IF NOT EXISTS neighborhood VARCHAR(100) DEFAULT NULL AFTER state;
+-- Bairro
+ALTER TABLE clients ADD COLUMN neighborhood VARCHAR(100) DEFAULT NULL;
 
--- Caso a sintaxe IF NOT EXISTS não funcione no seu MySQL, use:
--- ALTER TABLE clients ADD COLUMN state VARCHAR(2) DEFAULT NULL AFTER city;
--- ALTER TABLE clients ADD COLUMN neighborhood VARCHAR(100) DEFAULT NULL AFTER state;
+-- CEP
+ALTER TABLE clients ADD COLUMN cep VARCHAR(9) DEFAULT NULL;
 
--- Índice para melhorar buscas por cidade e estado
-CREATE INDEX IF NOT EXISTS idx_clients_city_state ON clients(city, state);
+-- Latitude
+ALTER TABLE clients ADD COLUMN latitude DECIMAL(10,8) DEFAULT NULL;
+
+-- Longitude
+ALTER TABLE clients ADD COLUMN longitude DECIMAL(11,8) DEFAULT NULL;
+
+-- Precisão da localização
+ALTER TABLE clients ADD COLUMN location_accuracy FLOAT DEFAULT NULL;
+
+-- Verifica as colunas
+SHOW COLUMNS FROM clients;

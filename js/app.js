@@ -571,13 +571,23 @@ const App = {
             });
         }
 
-        // Botão salvar
+        // Botão salvar - NÃO adiciona handler em novo-cadastro.html
+        // A página novo-cadastro.html tem seu próprio handler inline completo
+        // que faz o cadastro corretamente e redireciona para vincular-equipamento
         const saveBtn = document.getElementById('btn-salvar-cadastro');
-        const self = this; // Guarda referência
-        if (saveBtn) {
+        const self = this;
+        
+        // Verifica se é a página novo-cadastro verificando URL
+        const fullUrl = (window.location.href + window.location.pathname).toLowerCase();
+        const isNovoCadastroPage = fullUrl.indexOf('novo-cadastro') !== -1;
+        
+        console.log('app.js: btn-salvar-cadastro check:', { isNovoCadastroPage, fullUrl });
+        
+        // NÃO adiciona handler em novo-cadastro.html - a página tem seu próprio
+        if (saveBtn && !isNovoCadastroPage) {
             saveBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                console.log('Botão salvar clicado');
+                console.log('Botão salvar clicado (app.js handler)');
                 await self.handleSaveClient();
             });
         }
@@ -632,8 +642,10 @@ const App = {
                         if (!data.erro) {
                             const ruaInput = document.getElementById('field-street');
                             const cidadeInput = document.getElementById('field-city');
+                            const estadoInput = document.getElementById('field-state');
                             if (ruaInput) ruaInput.value = data.logradouro;
-                            if (cidadeInput) cidadeInput.value = `${data.localidade} - ${data.uf}`;
+                            if (cidadeInput) cidadeInput.value = data.localidade;
+                            if (estadoInput) estadoInput.value = data.uf;
                         }
                     } catch (error) {
                         console.error('Erro ao buscar CEP:', error);
