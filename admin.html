@@ -339,13 +339,20 @@
         function openTemplateModal(id = null) {
             document.getElementById('modal-template').classList.remove('hidden');
             if (id) {
-                const t = templatesData.find(x => x.id === id);
+                const templateId = parseInt(id);
+                const t = templatesData.find(x => parseInt(x.id) === templateId);
+                if (!t) {
+                    console.error('Template não encontrado:', id);
+                    alert('Template não encontrado');
+                    return;
+                }
                 document.getElementById('tmpl-title').textContent = 'Editar Template';
                 document.getElementById('tmpl-id').value = t.id;
-                document.getElementById('tmpl-name').value = t.task_name;
-                document.getElementById('tmpl-category').value = t.task_category;
+                document.getElementById('tmpl-name').value = t.task_name || '';
+                document.getElementById('tmpl-category').value = t.task_category || '';
                 document.querySelectorAll('.tmpl-type').forEach(cb => {
-                    cb.checked = t.applicable_types.includes(cb.value);
+                    const types = t.applicable_types || '';
+                    cb.checked = types.includes(cb.value);
                 });
             } else {
                 document.getElementById('tmpl-title').textContent = 'Novo Template';
