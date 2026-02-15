@@ -21,9 +21,8 @@
 - **JWT** para autenticacao (Bearer token)
 - **Hospedagem**: cPanel com Apache
 
-### Bancos de Dados
-- `onde2292_cadastro`: usuarios, auditoria, ponto, fotos, estoque, notificacoes
-- `onde2292_erp`: clientes, checklists de instalacao, planos
+### Banco de Dados
+- `onde2292_erp`: banco unico com todas as tabelas (usuarios, clientes, auditoria, ponto, fotos, estoque, checklists, planos, notificacoes)
 
 ## Estrutura do Projeto
 

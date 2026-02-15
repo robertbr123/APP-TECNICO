@@ -2,17 +2,13 @@
 -- ONDELINE TECH APP - Script Completo do Banco de Dados
 -- Versão consolidada de todos os scripts SQL do projeto
 -- =====================================================
+-- Banco de dados: onde2292_erp
 -- Este arquivo contém TODA a estrutura do banco de dados.
 -- Execute no phpMyAdmin ou via CLI do MySQL.
 -- =====================================================
 
--- #####################################################
--- BANCO DE DADOS: onde2292_cadastro
--- (Usuários, Auditoria, Ponto, Fotos, Estoque)
--- #####################################################
-
-CREATE DATABASE IF NOT EXISTS `onde2292_cadastro` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `onde2292_cadastro`;
+CREATE DATABASE IF NOT EXISTS `onde2292_erp` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `onde2292_erp`;
 
 -- =====================================================
 -- 1. TABELA DE USUÁRIOS
@@ -39,255 +35,7 @@ INSERT INTO `users` (`username`, `password`, `full_name`, `email`, `role`) VALUE
 ON DUPLICATE KEY UPDATE `username` = `username`;
 
 -- =====================================================
--- 2. TABELA DE LOGS DE AUDITORIA
--- =====================================================
-CREATE TABLE IF NOT EXISTS `audit_logs` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) DEFAULT NULL,
-  `username` varchar(100) DEFAULT NULL,
-  `action_type` varchar(50) NOT NULL,
-  `action_description` varchar(255) NOT NULL,
-  `entity_type` varchar(50) DEFAULT NULL,
-  `entity_id` varchar(100) DEFAULT NULL,
-  `entity_name` varchar(255) DEFAULT NULL,
-  `details` text DEFAULT NULL,
-  `ip_address` varchar(45) DEFAULT NULL,
-  `user_agent` varchar(255) DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `user_id` (`user_id`),
-  KEY `action_type` (`action_type`),
-  KEY `created_at` (`created_at`),
-  KEY `idx_audit_user_action` (`user_id`, `action_type`),
-  KEY `idx_audit_date` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- =====================================================
--- 3. TABELA DE REGISTRO DE PONTO (TIME CLOCK)
--- =====================================================
-CREATE TABLE IF NOT EXISTS `time_clock` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
-  `username` varchar(100) NOT NULL,
-  `clock_date` date NOT NULL,
-  `entry_time` time DEFAULT NULL,
-  `entry_photo` longtext DEFAULT NULL,
-  `entry_latitude` decimal(10, 8) DEFAULT NULL,
-  `entry_longitude` decimal(11, 8) DEFAULT NULL,
-  `entry_accuracy` decimal(10, 2) DEFAULT NULL,
-  `exit_time` time DEFAULT NULL,
-  `exit_photo` longtext DEFAULT NULL,
-  `exit_latitude` decimal(10, 8) DEFAULT NULL,
-  `exit_longitude` decimal(11, 8) DEFAULT NULL,
-  `exit_accuracy` decimal(10, 2) DEFAULT NULL,
-  `worked_hours` time DEFAULT NULL,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `user_id` (`user_id`),
-  KEY `clock_date` (`clock_date`),
-  KEY `username` (`username`),
-  UNIQUE KEY `user_date_unique` (`user_id`, `clock_date`),
-  KEY `idx_timeclock_date` (`clock_date` DESC),
-  KEY `idx_timeclock_entry` (`entry_time`),
-  KEY `idx_timeclock_exit` (`exit_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Registro de ponto eletrônico dos técnicos';
-
--- =====================================================
--- 4. TABELA DE FOTOS DOS CLIENTES
--- =====================================================
-CREATE TABLE IF NOT EXISTS `client_photos` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `cpf` varchar(11) NOT NULL,
-  `filename` varchar(255) NOT NULL,
-  `type` varchar(50) DEFAULT 'other',
-  `uploaded_by` int(11) DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `cpf` (`cpf`),
-  KEY `uploaded_by` (`uploaded_by`),
-  KEY `idx_client_photos_cpf_type` (`cpf`, `type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- =====================================================
--- 5. TABELA DE ESTOQUE DE EQUIPAMENTOS
--- =====================================================
-CREATE TABLE IF NOT EXISTS `equipment_inventory` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `serial_number` varchar(100) NOT NULL,
-  `model` varchar(150) NOT NULL,
-  `brand` varchar(100) DEFAULT NULL,
-  `type` enum('router','modem','onu','cpe','antenna','cable','accessory','other') DEFAULT 'router',
-  `status` enum('available','in_use','maintenance','defective','lost') DEFAULT 'available',
-  `location` varchar(200) DEFAULT 'Estoque Principal',
-  `purchase_date` date DEFAULT NULL,
-  `purchase_price` decimal(10, 2) DEFAULT NULL,
-  `warranty_until` date DEFAULT NULL,
-  `current_user_id` int(11) DEFAULT NULL,
-  `current_client_cpf` varchar(11) DEFAULT NULL,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `serial_number` (`serial_number`),
-  KEY `status` (`status`),
-  KEY `type` (`type`),
-  KEY `current_client_cpf` (`current_client_cpf`),
-  KEY `current_user_id` (`current_user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Controle de estoque de equipamentos';
-
--- =====================================================
--- 6. TABELA DE MOVIMENTAÇÕES DE ESTOQUE
--- =====================================================
-CREATE TABLE IF NOT EXISTS `inventory_movements` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `equipment_id` int(11) NOT NULL,
-  `movement_type` enum('in','out','transfer','maintenance','defective','lost') NOT NULL,
-  `from_location` varchar(200) DEFAULT NULL,
-  `to_location` varchar(200) NOT NULL,
-  `user_id` int(11) DEFAULT NULL,
-  `username` varchar(100) DEFAULT NULL,
-  `client_cpf` varchar(11) DEFAULT NULL,
-  `client_name` varchar(150) DEFAULT NULL,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `equipment_id` (`equipment_id`),
-  KEY `movement_type` (`movement_type`),
-  KEY `user_id` (`user_id`),
-  KEY `created_at` (`created_at`),
-  KEY `client_cpf` (`client_cpf`),
-  CONSTRAINT `fk_movement_equipment` FOREIGN KEY (`equipment_id`) REFERENCES `equipment_inventory` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Histórico de movimentações de estoque';
-
--- =====================================================
--- 7. TABELA DE ALERTAS DE ESTOQUE
--- =====================================================
-CREATE TABLE IF NOT EXISTS `inventory_alerts` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `equipment_id` int(11) DEFAULT NULL,
-  `alert_type` enum('low_stock','no_stock','overdue_return','defective','missing','maintenance_needed','defective_equipment') NOT NULL,
-  `severity` enum('low','medium','high','critical','info','warning') DEFAULT 'medium',
-  `title` varchar(200) DEFAULT NULL,
-  `equipment_type` varchar(100) DEFAULT NULL,
-  `message` text DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `resolved` tinyint(1) DEFAULT 0,
-  `resolved_at` timestamp NULL DEFAULT NULL,
-  `resolved_by` int(11) DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `equipment_id` (`equipment_id`),
-  KEY `alert_type` (`alert_type`),
-  KEY `severity` (`severity`),
-  KEY `resolved` (`resolved`),
-  KEY `created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alertas de estoque';
-
--- =====================================================
--- 8. TABELA DE GEOLOCALIZAÇÃO DOS CLIENTES
--- =====================================================
-CREATE TABLE IF NOT EXISTS `client_locations` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `cpf` varchar(11) NOT NULL,
-  `latitude` decimal(10, 8) NOT NULL,
-  `longitude` decimal(11, 8) NOT NULL,
-  `address_computed` text,
-  `accuracy` decimal(10, 2) DEFAULT NULL,
-  `altitude` decimal(10, 2) DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `cpf` (`cpf`),
-  KEY `idx_client_locations_cpf` (`cpf`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- =====================================================
--- 9. TABELA DE HISTÓRICO DE SERIAIS
--- =====================================================
-CREATE TABLE IF NOT EXISTS `serial_history` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `cpf` varchar(11) NOT NULL,
-  `client_name` varchar(150) NOT NULL,
-  `old_serial` varchar(100) DEFAULT NULL,
-  `new_serial` varchar(100) NOT NULL,
-  `reason` enum('defect','upgrade','transfer','theft','other') DEFAULT 'other',
-  `reason_description` text,
-  `old_photos` json DEFAULT NULL,
-  `changed_by` int(11) DEFAULT NULL,
-  `changed_by_name` varchar(150) DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `cpf` (`cpf`),
-  KEY `new_serial` (`new_serial`),
-  KEY `created_at` (`created_at`),
-  KEY `idx_serial_history_cpf` (`cpf`, `created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- =====================================================
--- 10. TABELA DE FOTOS DE EQUIPAMENTO ANTIGO
--- =====================================================
-CREATE TABLE IF NOT EXISTS `old_equipment_photos` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `serial_history_id` int(11) NOT NULL,
-  `filename` varchar(255) NOT NULL,
-  `description` varchar(255) DEFAULT NULL,
-  `uploaded_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `serial_history_id` (`serial_history_id`),
-  CONSTRAINT `fk_old_photo_history` FOREIGN KEY (`serial_history_id`) REFERENCES `serial_history` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- =====================================================
--- 11. TABELA DE FILA OFFLINE
--- =====================================================
-CREATE TABLE IF NOT EXISTS `offline_queue` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `action_type` enum('create_client','update_client','link_equipment','upload_photo') NOT NULL,
-  `data_json` text NOT NULL,
-  `user_id` int(11) DEFAULT NULL,
-  `username` varchar(100) DEFAULT NULL,
-  `device_id` varchar(255) DEFAULT NULL,
-  `status` enum('pending','synced','failed') DEFAULT 'pending',
-  `error_message` text,
-  `attempt_count` int(11) DEFAULT 0,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `synced_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `status` (`status`),
-  KEY `user_id` (`user_id`),
-  KEY `created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- =====================================================
--- 12. TABELA DE NOTIFICAÇÕES
--- =====================================================
-CREATE TABLE IF NOT EXISTS `notifications` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) NOT NULL,
-  `title` varchar(200) NOT NULL,
-  `message` text NOT NULL,
-  `type` enum('info','success','warning','error') DEFAULT 'info',
-  `read` tinyint(1) DEFAULT 0,
-  `action_url` varchar(255) DEFAULT NULL,
-  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `user_id` (`user_id`),
-  KEY `read` (`read`),
-  KEY `created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
--- #####################################################
--- BANCO DE DADOS: onde2292_erp
--- (Clientes, Checklists, Planos)
--- #####################################################
-
-CREATE DATABASE IF NOT EXISTS `onde2292_erp` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `onde2292_erp`;
-
--- =====================================================
--- 13. TABELA DE CLIENTES
+-- 2. TABELA DE CLIENTES
 -- =====================================================
 CREATE TABLE IF NOT EXISTS `clients` (
   `cpf` varchar(11) NOT NULL,
@@ -321,7 +69,7 @@ CREATE TABLE IF NOT EXISTS `clients` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
--- 14. TABELA DE PLANOS
+-- 3. TABELA DE PLANOS
 -- =====================================================
 CREATE TABLE IF NOT EXISTS `plans` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -338,6 +86,245 @@ INSERT INTO `plans` (`name`) VALUES
 ('Fibra 500MB'),
 ('Fibra 1GB')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+
+-- =====================================================
+-- 4. TABELA DE LOGS DE AUDITORIA
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `audit_logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT NULL,
+  `username` varchar(100) DEFAULT NULL,
+  `action_type` varchar(50) NOT NULL,
+  `action_description` varchar(255) NOT NULL,
+  `entity_type` varchar(50) DEFAULT NULL,
+  `entity_id` varchar(100) DEFAULT NULL,
+  `entity_name` varchar(255) DEFAULT NULL,
+  `details` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `action_type` (`action_type`),
+  KEY `created_at` (`created_at`),
+  KEY `idx_audit_user_action` (`user_id`, `action_type`),
+  KEY `idx_audit_date` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- 5. TABELA DE REGISTRO DE PONTO (TIME CLOCK)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `time_clock` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `username` varchar(100) NOT NULL,
+  `clock_date` date NOT NULL,
+  `entry_time` time DEFAULT NULL,
+  `entry_photo` longtext DEFAULT NULL,
+  `entry_latitude` decimal(10, 8) DEFAULT NULL,
+  `entry_longitude` decimal(11, 8) DEFAULT NULL,
+  `entry_accuracy` decimal(10, 2) DEFAULT NULL,
+  `exit_time` time DEFAULT NULL,
+  `exit_photo` longtext DEFAULT NULL,
+  `exit_latitude` decimal(10, 8) DEFAULT NULL,
+  `exit_longitude` decimal(11, 8) DEFAULT NULL,
+  `exit_accuracy` decimal(10, 2) DEFAULT NULL,
+  `worked_hours` time DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `clock_date` (`clock_date`),
+  KEY `username` (`username`),
+  UNIQUE KEY `user_date_unique` (`user_id`, `clock_date`),
+  KEY `idx_timeclock_date` (`clock_date` DESC),
+  KEY `idx_timeclock_entry` (`entry_time`),
+  KEY `idx_timeclock_exit` (`exit_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Registro de ponto eletrônico dos técnicos';
+
+-- =====================================================
+-- 6. TABELA DE FOTOS DOS CLIENTES
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `client_photos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `cpf` varchar(11) NOT NULL,
+  `filename` varchar(255) NOT NULL,
+  `type` varchar(50) DEFAULT 'other',
+  `uploaded_by` int(11) DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `cpf` (`cpf`),
+  KEY `uploaded_by` (`uploaded_by`),
+  KEY `idx_client_photos_cpf_type` (`cpf`, `type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- 7. TABELA DE ESTOQUE DE EQUIPAMENTOS
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `equipment_inventory` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `serial_number` varchar(100) NOT NULL,
+  `model` varchar(150) NOT NULL,
+  `brand` varchar(100) DEFAULT NULL,
+  `type` enum('router','modem','onu','cpe','antenna','cable','accessory','other') DEFAULT 'router',
+  `status` enum('available','in_use','maintenance','defective','lost') DEFAULT 'available',
+  `location` varchar(200) DEFAULT 'Estoque Principal',
+  `purchase_date` date DEFAULT NULL,
+  `purchase_price` decimal(10, 2) DEFAULT NULL,
+  `warranty_until` date DEFAULT NULL,
+  `current_user_id` int(11) DEFAULT NULL,
+  `current_client_cpf` varchar(11) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `serial_number` (`serial_number`),
+  KEY `status` (`status`),
+  KEY `type` (`type`),
+  KEY `current_client_cpf` (`current_client_cpf`),
+  KEY `current_user_id` (`current_user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Controle de estoque de equipamentos';
+
+-- =====================================================
+-- 8. TABELA DE MOVIMENTAÇÕES DE ESTOQUE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `inventory_movements` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `equipment_id` int(11) NOT NULL,
+  `movement_type` enum('in','out','transfer','maintenance','defective','lost') NOT NULL,
+  `from_location` varchar(200) DEFAULT NULL,
+  `to_location` varchar(200) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `username` varchar(100) DEFAULT NULL,
+  `client_cpf` varchar(11) DEFAULT NULL,
+  `client_name` varchar(150) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `equipment_id` (`equipment_id`),
+  KEY `movement_type` (`movement_type`),
+  KEY `user_id` (`user_id`),
+  KEY `created_at` (`created_at`),
+  KEY `client_cpf` (`client_cpf`),
+  CONSTRAINT `fk_movement_equipment` FOREIGN KEY (`equipment_id`) REFERENCES `equipment_inventory` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Histórico de movimentações de estoque';
+
+-- =====================================================
+-- 9. TABELA DE ALERTAS DE ESTOQUE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `inventory_alerts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `equipment_id` int(11) DEFAULT NULL,
+  `alert_type` enum('low_stock','no_stock','overdue_return','defective','missing','maintenance_needed','defective_equipment') NOT NULL,
+  `severity` enum('low','medium','high','critical','info','warning') DEFAULT 'medium',
+  `title` varchar(200) DEFAULT NULL,
+  `equipment_type` varchar(100) DEFAULT NULL,
+  `message` text DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `resolved` tinyint(1) DEFAULT 0,
+  `resolved_at` timestamp NULL DEFAULT NULL,
+  `resolved_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `equipment_id` (`equipment_id`),
+  KEY `alert_type` (`alert_type`),
+  KEY `severity` (`severity`),
+  KEY `resolved` (`resolved`),
+  KEY `created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Alertas de estoque';
+
+-- =====================================================
+-- 10. TABELA DE GEOLOCALIZAÇÃO DOS CLIENTES
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `client_locations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `cpf` varchar(11) NOT NULL,
+  `latitude` decimal(10, 8) NOT NULL,
+  `longitude` decimal(11, 8) NOT NULL,
+  `address_computed` text,
+  `accuracy` decimal(10, 2) DEFAULT NULL,
+  `altitude` decimal(10, 2) DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `cpf` (`cpf`),
+  KEY `idx_client_locations_cpf` (`cpf`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- 11. TABELA DE HISTÓRICO DE SERIAIS
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `serial_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `cpf` varchar(11) NOT NULL,
+  `client_name` varchar(150) NOT NULL,
+  `old_serial` varchar(100) DEFAULT NULL,
+  `new_serial` varchar(100) NOT NULL,
+  `reason` enum('defect','upgrade','transfer','theft','other') DEFAULT 'other',
+  `reason_description` text,
+  `old_photos` json DEFAULT NULL,
+  `changed_by` int(11) DEFAULT NULL,
+  `changed_by_name` varchar(150) DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `cpf` (`cpf`),
+  KEY `new_serial` (`new_serial`),
+  KEY `created_at` (`created_at`),
+  KEY `idx_serial_history_cpf` (`cpf`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- 12. TABELA DE FOTOS DE EQUIPAMENTO ANTIGO
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `old_equipment_photos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `serial_history_id` int(11) NOT NULL,
+  `filename` varchar(255) NOT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `uploaded_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `serial_history_id` (`serial_history_id`),
+  CONSTRAINT `fk_old_photo_history` FOREIGN KEY (`serial_history_id`) REFERENCES `serial_history` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- 13. TABELA DE FILA OFFLINE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `offline_queue` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `action_type` enum('create_client','update_client','link_equipment','upload_photo') NOT NULL,
+  `data_json` text NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `username` varchar(100) DEFAULT NULL,
+  `device_id` varchar(255) DEFAULT NULL,
+  `status` enum('pending','synced','failed') DEFAULT 'pending',
+  `error_message` text,
+  `attempt_count` int(11) DEFAULT 0,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `synced_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `status` (`status`),
+  KEY `user_id` (`user_id`),
+  KEY `created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- 14. TABELA DE NOTIFICAÇÕES
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `message` text NOT NULL,
+  `type` enum('info','success','warning','error') DEFAULT 'info',
+  `read` tinyint(1) DEFAULT 0,
+  `action_url` varchar(255) DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `read` (`read`),
+  KEY `created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
 -- 15. TABELA DE CHECKLISTS DE INSTALAÇÃO
@@ -492,4 +479,4 @@ CREATE TABLE IF NOT EXISTS `checklist_approval_history` (
 -- =====================================================
 -- FIM DO SCRIPT
 -- =====================================================
-SELECT 'Banco de dados configurado com sucesso!' as status;
+SELECT 'Banco de dados onde2292_erp configurado com sucesso!' as status;
