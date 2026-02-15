@@ -217,13 +217,27 @@ document.addEventListener('DOMContentLoaded', async function() {
         showLoading('Carregando clientes...');
 
         try {
-            const response = await API.getClients();
+            // Busca todos os clientes (limite maior para mapa)
+            const response = await API.getClients({ limit: 1000 });
+            console.log('[Mapa] Resposta da API:', response);
+            
             if (response.success) {
                 clients = response.data;
+                console.log('[Mapa] Total de clientes recebidos:', clients.length);
+                
+                // Debug: mostra clientes com lat/lng
+                const clientsComLoc = clients.filter(c => c.latitude && c.longitude);
+                console.log('[Mapa] Clientes com latitude/longitude no response:', clientsComLoc.map(c => ({
+                    nome: c.name,
+                    lat: c.latitude,
+                    lng: c.longitude
+                })));
+                
                 addMarkers(clients);
                 updateStats(clients);
             }
         } catch (error) {
+            console.error('[Mapa] Erro:', error);
             showError('Erro ao carregar clientes: ' + error.message);
         } finally {
             hideLoading();
