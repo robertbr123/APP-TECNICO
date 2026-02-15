@@ -257,26 +257,10 @@
     </div>
 
     <!-- Bottom Nav -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-black/80 ios-blur border-t border-gray-200/50 dark:border-white/10 px-6 py-2 flex justify-around z-50 safe-bottom">
-        <a href="dashboard.html" class="flex flex-col items-center text-gray-400">
-            <span class="material-symbols-outlined">home</span>
-            <span class="text-[10px]">Início</span>
-        </a>
-        <a href="checklist.html" class="flex flex-col items-center text-gray-400">
-            <span class="material-symbols-outlined">checklist</span>
-            <span class="text-[10px]">Checklist</span>
-        </a>
-        <a href="admin.html" class="flex flex-col items-center text-blue-500">
-            <span class="material-symbols-outlined">admin_panel_settings</span>
-            <span class="text-[10px]">Admin</span>
-        </a>
-        <a href="ajustes.html" class="flex flex-col items-center text-gray-400">
-            <span class="material-symbols-outlined">settings</span>
-            <span class="text-[10px]">Ajustes</span>
-        </a>
-    </nav>
+    <nav id="bottom-nav"></nav>
 
     <script src="js/api.js"></script>
+    <script src="js/components.js"></script>
     <script>
         // Verifica admin
         const user = API.getUser();

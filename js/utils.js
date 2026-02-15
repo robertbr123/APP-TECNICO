@@ -270,46 +270,30 @@ const Utils = {
     // ==========================================
 
     /**
-     * Salva dados offline
+     * Salva dados offline (delega para sistema unificado em feedback.js)
      */
     saveOffline(actionType, data) {
-        try {
-            const queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
-            
-            queue.push({
-                id: Date.now(),
-                actionType: actionType,
-                data: data,
-                timestamp: new Date().toISOString()
-            });
-            
-            localStorage.setItem('offline_queue', JSON.stringify(queue));
-            
-            console.log('Salvo offline:', actionType);
-            return true;
-        } catch (error) {
-            console.error('Erro ao salvar offline:', error);
-            return false;
+        if (typeof saveOffline === 'function') {
+            return saveOffline(actionType, data);
         }
+        return false;
     },
 
     /**
-     * Obtém fila de sincronização offline
+     * Obtém fila de sincronização offline (delega para sistema unificado em feedback.js)
      */
     getOfflineQueue() {
-        try {
-            return JSON.parse(localStorage.getItem('offline_queue') || '[]');
-        } catch (error) {
-            console.error('Erro ao ler fila offline:', error);
-            return [];
+        if (typeof getOfflineQueue === 'function') {
+            return getOfflineQueue();
         }
+        return [];
     },
 
     /**
      * Limpa fila de sincronização offline
      */
     clearOfflineQueue() {
-        localStorage.removeItem('offline_queue');
+        localStorage.removeItem('offlineQueue');
     },
 
     // ==========================================

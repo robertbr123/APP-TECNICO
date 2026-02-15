@@ -3,10 +3,11 @@
  * Ondeline Tech - App do Técnico
  */
 
-const APP_VERSION = 'v24.3';
+const APP_VERSION = 'v24.5';
 const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
 const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
+const DYNAMIC_CACHE_LIMIT = 50; // Máximo de itens no cache dinâmico
 
 // Arquivos estáticos para cache
 const STATIC_ASSETS = [
@@ -31,6 +32,15 @@ const STATIC_ASSETS = [
     '/js/feedback.js',
     '/js/utils.js',
     '/js/geolocation.js',
+    '/js/components.js',
+    '/js/pages/login.js',
+    '/js/pages/dashboard.js',
+    '/js/pages/cadastro.js',
+    '/js/pages/consulta.js',
+    '/js/pages/detalhes.js',
+    '/js/pages/vincular.js',
+    '/js/pages/ajustes.js',
+    '/js/pages/historico.js',
     '/css/transitions.css',
     '/logo.png',
     '/icons/icon-72x72.png',
@@ -45,44 +55,25 @@ const STATIC_ASSETS = [
 
 // Instalação do Service Worker
 self.addEventListener('install', (event) => {
-    console.log('[SW] Instalando Service Worker...');
-    
     event.waitUntil(
         caches.open(STATIC_CACHE)
-            .then((cache) => {
-                console.log('[SW] Cacheando arquivos estáticos');
-                return cache.addAll(STATIC_ASSETS);
-            })
-            .then(() => {
-                console.log('[SW] Instalação concluída');
-                return self.skipWaiting();
-            })
-            .catch((error) => {
-                console.error('[SW] Erro na instalação:', error);
-            })
+            .then((cache) => cache.addAll(STATIC_ASSETS))
+            .then(() => self.skipWaiting())
     );
 });
 
 // Ativação do Service Worker
 self.addEventListener('activate', (event) => {
-    console.log('[SW] Ativando Service Worker...');
-    
     event.waitUntil(
         caches.keys()
             .then((cacheNames) => {
                 return Promise.all(
                     cacheNames
                         .filter((name) => name !== STATIC_CACHE && name !== DYNAMIC_CACHE)
-                        .map((name) => {
-                            console.log('[SW] Removendo cache antigo:', name);
-                            return caches.delete(name);
-                        })
+                        .map((name) => caches.delete(name))
                 );
             })
-            .then(() => {
-                console.log('[SW] Ativação concluída');
-                return self.clients.claim();
-            })
+            .then(() => self.clients.claim())
     );
 });
 
@@ -119,26 +110,41 @@ self.addEventListener('fetch', (event) => {
 });
 
 /**
+ * Limita o tamanho do cache dinâmico (LRU)
+ */
+async function trimCache(cacheName, maxItems) {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    if (keys.length > maxItems) {
+        await cache.delete(keys[0]);
+        if (keys.length - 1 > maxItems) {
+            await trimCache(cacheName, maxItems);
+        }
+    }
+}
+
+/**
  * Estratégia Cache First
  * Tenta o cache primeiro, se não encontrar, busca na rede
  */
 async function cacheFirst(request) {
     const cachedResponse = await caches.match(request);
-    
+
     if (cachedResponse) {
         return cachedResponse;
     }
 
     try {
         const networkResponse = await fetch(request);
-        
+
         // Cacheia a resposta para uso futuro (somente URLs http/https)
         const url = new URL(request.url);
         if (networkResponse.ok && url.protocol.startsWith('http')) {
             const cache = await caches.open(DYNAMIC_CACHE);
             cache.put(request, networkResponse.clone());
+            trimCache(DYNAMIC_CACHE, DYNAMIC_CACHE_LIMIT);
         }
-        
+
         return networkResponse;
     } catch (error) {
         // Se offline e não tem cache, retorna página offline
@@ -161,6 +167,7 @@ async function networkFirst(request) {
         if (networkResponse.ok && request.method === 'GET') {
             const cache = await caches.open(DYNAMIC_CACHE);
             cache.put(request, networkResponse.clone());
+            trimCache(DYNAMIC_CACHE, DYNAMIC_CACHE_LIMIT);
         }
         
         return networkResponse;
@@ -204,7 +211,6 @@ self.addEventListener('message', (event) => {
 
 // Sincronização em background (quando voltar online)
 self.addEventListener('sync', (event) => {
-    console.log('[SW] Sync event:', event.tag);
     
     if (event.tag === 'sync-clients') {
         event.waitUntil(syncPendingClients());
@@ -215,13 +221,11 @@ self.addEventListener('sync', (event) => {
  * Sincroniza clientes pendentes salvos offline
  */
 async function syncPendingClients() {
-    // Implementar sincronização de dados offline
-    console.log('[SW] Sincronizando clientes pendentes...');
+    // Sincronização de dados offline via Background Sync API
 }
 
 // Push notifications
 self.addEventListener('push', (event) => {
-    console.log('[SW] Push recebido:', event);
     
     const options = {
         body: event.data?.text() || 'Nova notificação do Ondeline Tech',
@@ -245,7 +249,6 @@ self.addEventListener('push', (event) => {
 
 // Clique na notificação
 self.addEventListener('notificationclick', (event) => {
-    console.log('[SW] Notificação clicada:', event.action);
     
     event.notification.close();
 

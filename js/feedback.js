@@ -244,7 +244,6 @@ function saveOffline(actionType, data) {
         });
         
         localStorage.setItem('offlineQueue', JSON.stringify(offlineData));
-        console.log('Dados salvos offline:', actionType);
         return true;
     } catch (error) {
         console.error('Erro ao salvar offline:', error);
@@ -282,47 +281,41 @@ function clearOfflineItem(id) {
 
 // Sincroniza fila offline
 async function syncOfflineQueue() {
-    if (!navigator.onLine) {
-        console.log('Offline, pulando sincronização');
-        return;
-    }
-    
+    if (!navigator.onLine) return;
+
     var queue = getOfflineQueue();
-    if (queue.length === 0) {
-        console.log('Fila vazia');
-        return;
-    }
-    
-    console.log('Sincronizando ' + queue.length + ' itens...');
+    if (queue.length === 0) return;
     
     for (var i = 0; i < queue.length; i++) {
         var item = queue[i];
-        console.log('Processando item:', item.action_type, item.id);
         
         try {
-            var token = localStorage.getItem('authToken');
+            var token = localStorage.getItem('auth_token');
             var headers = {
                 'Content-Type': 'application/json'
             };
             if (token) {
                 headers['Authorization'] = 'Bearer ' + token;
             }
-            
+
             var url = '';
             var method = 'POST';
-            
+
             switch (item.action_type) {
                 case 'create_client':
-                    url = '/api/cadastro.php';
+                    url = '/api/clients.php';
+                    break;
+                case 'update_client':
+                    url = '/api/clients.php';
+                    method = 'PUT';
                     break;
                 case 'link_equipment':
-                    url = '/api/vincular.php';
+                    url = '/api/inventory.php';
                     break;
                 case 'upload_photo':
-                    url = '/api/upload-foto.php';
+                    url = '/api/upload.php';
                     break;
                 default:
-                    console.error('Tipo de ação desconhecido:', item.action_type);
                     clearOfflineItem(item.id);
                     continue;
             }
@@ -332,17 +325,14 @@ async function syncOfflineQueue() {
                 headers: headers,
                 body: JSON.stringify(item.data)
             });
-            
+
             var result = await response.json();
-            
+
             if (result.success) {
-                console.log('Item sincronizado com sucesso:', item.id);
                 clearOfflineItem(item.id);
-            } else {
-                console.error('Erro ao sincronizar item:', item.id, result.message);
             }
         } catch (error) {
-            console.error('Erro ao processar item:', item.id, error);
+            // Item will be retried next sync
         }
     }
     
@@ -359,8 +349,28 @@ async function syncOfflineQueue() {
 // =====================================================
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Migra dados antigos de offline_queue para offlineQueue (consolidação)
+    try {
+        var oldQueue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
+        if (oldQueue.length > 0) {
+            var currentQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+            oldQueue.forEach(function(item) {
+                currentQueue.push({
+                    id: item.id || Date.now(),
+                    action_type: item.actionType || item.action_type,
+                    data: item.data,
+                    username: item.username || localStorage.getItem('username') || 'unknown',
+                    user_id: item.user_id || localStorage.getItem('userId'),
+                    created_at: item.timestamp || item.created_at || new Date().toISOString()
+                });
+            });
+            localStorage.setItem('offlineQueue', JSON.stringify(currentQueue));
+            localStorage.removeItem('offline_queue');
+        }
+    } catch (e) { /* migration failed silently */ }
+
     startConnectionMonitoring();
-    
+
     // Tenta sincronizar ao carregar se estiver online
     if (navigator.onLine) {
         setTimeout(function() {
