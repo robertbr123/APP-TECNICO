@@ -439,7 +439,7 @@
         }
 
         async function deleteTemplate(id) {
-            const confirmed = await Components.showConfirmModal({
+            const confirmed = await AppComponents.showConfirmModal({
                 title: 'Excluir Template',
                 message: 'Tem certeza que deseja excluir este template? Esta acao nao pode ser desfeita.',
                 confirmText: 'Excluir',
@@ -480,7 +480,7 @@
         }
 
         async function runSetup() {
-            const confirmed = await Components.showConfirmModal({
+            const confirmed = await AppComponents.showConfirmModal({
                 title: 'Reconfigurar Templates',
                 message: 'Deseja reconfigurar todos os templates? Isso pode sobrescrever configuracoes existentes.',
                 confirmText: 'Reconfigurar',
@@ -637,7 +637,7 @@
         }
 
         async function deleteUser(id) {
-            const confirmed = await Components.showConfirmModal({
+            const confirmed = await AppComponents.showConfirmModal({
                 title: 'Desativar Usuario',
                 message: 'Tem certeza que deseja desativar este usuario? Ele nao podera mais acessar o sistema.',
                 confirmText: 'Desativar',

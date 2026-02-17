@@ -3,7 +3,7 @@
  * Ondeline Tech - App do Técnico
  */
 
-const APP_VERSION = 'v25.0';
+const APP_VERSION = 'v25.1';
 const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
 const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
@@ -42,23 +42,18 @@ const STATIC_ASSETS = [
     '/js/pages/ajustes.js',
     '/js/pages/historico.js',
     '/css/transitions.css',
-    '/logo.png',
-    '/icons/icon-72x72.png',
-    '/icons/icon-96x96.png',
-    '/icons/icon-128x128.png',
-    '/icons/icon-144x144.png',
-    '/icons/icon-152x152.png',
-    '/icons/icon-192x192.png',
-    '/icons/icon-384x384.png',
-    '/icons/icon-512x512.png'
+    '/logo.png'
 ];
 
 // Instalação do Service Worker
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(STATIC_CACHE)
-            .then((cache) => cache.addAll(STATIC_ASSETS))
-            .then(() => self.skipWaiting())
+        caches.open(STATIC_CACHE).then((cache) => {
+            // Usa addAll em bloco; erros individuais não quebram a instalação
+            return Promise.allSettled(
+                STATIC_ASSETS.map(url => cache.add(url).catch(() => null))
+            );
+        }).then(() => self.skipWaiting())
     );
 });
 

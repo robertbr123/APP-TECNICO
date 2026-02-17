@@ -100,9 +100,9 @@ const App = {
                     }
                 });
 
-                // Tenta registrar push subscription após login
-                if (API.isAuthenticated()) {
-                    this.subscribePush(registration);
+                // Mostra banner para ativar notificações (requer gesto do usuário)
+                if (API.isAuthenticated() && Notification.permission === 'default') {
+                    this.showPushBanner(registration);
                 }
             } catch (error) { /* SW registration failed */ }
         }
@@ -134,6 +134,36 @@ const App = {
         } catch (err) {
             // Push subscription falhou silenciosamente (normal em alguns browsers)
         }
+    },
+
+    // Exibe banner fixo pedindo permissão para notificações (requer clique do usuário)
+    showPushBanner(registration) {
+        if (!('PushManager' in window) || !('Notification' in window)) return;
+        if (document.getElementById('push-banner')) return;
+        if (localStorage.getItem('push-banner-dismissed')) return;
+
+        const banner = document.createElement('div');
+        banner.id = 'push-banner';
+        banner.className = 'fixed bottom-20 left-4 right-4 bg-blue-600 text-white rounded-2xl p-4 z-40 flex items-center gap-3 shadow-lg';
+        banner.innerHTML = `
+            <span class="material-symbols-outlined text-2xl flex-shrink-0">notifications</span>
+            <div class="flex-1">
+                <p class="text-sm font-semibold">Ativar notificações</p>
+                <p class="text-xs opacity-80">Receba alertas importantes</p>
+            </div>
+            <button id="push-banner-allow" class="bg-white text-blue-600 text-xs font-bold px-3 py-1.5 rounded-xl flex-shrink-0">Ativar</button>
+            <button id="push-banner-dismiss" class="text-white/70 ml-1 flex-shrink-0"><span class="material-symbols-outlined text-xl">close</span></button>
+        `;
+        document.body.appendChild(banner);
+
+        document.getElementById('push-banner-dismiss').addEventListener('click', () => {
+            banner.remove();
+            localStorage.setItem('push-banner-dismissed', '1');
+        });
+        document.getElementById('push-banner-allow').addEventListener('click', async () => {
+            banner.remove();
+            await this.subscribePush(registration);
+        });
     },
 
     urlBase64ToUint8Array(base64String) {

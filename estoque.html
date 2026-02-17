@@ -640,7 +640,7 @@ async function checkoutEquipment(id, serial) {
 }
 
 async function returnEquipment(id, serial) {
-    const confirmReturn = await Components.showConfirmModal({
+    const confirmReturn = await AppComponents.showConfirmModal({
         title: 'Retornar Equipamento',
         message: 'Deseja retornar o equipamento ' + serial + ' ao estoque?',
         confirmText: 'Retornar',

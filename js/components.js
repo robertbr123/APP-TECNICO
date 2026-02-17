@@ -5,7 +5,7 @@
  * Gera elementos de UI reutilizáveis (bottom nav, etc.)
  */
 
-const Components = {
+const AppComponents = {
     /**
      * Renderiza a bottom navigation bar
      * Substitui <nav id="bottom-nav"></nav> com a nav completa
@@ -132,7 +132,7 @@ const Components = {
 
 // Auto-inicializa quando DOM estiver pronto
 document.addEventListener('DOMContentLoaded', function() {
-    Components.init();
+    AppComponents.init();
 });
 
-window.Components = Components;
+window.AppComponents = AppComponents;

@@ -356,7 +356,7 @@
 
             // Cancelar
             document.getElementById('btn-cancel').addEventListener('click', async () => {
-                const confirmed = await Components.showConfirmModal({
+                const confirmed = await AppComponents.showConfirmModal({
                     title: 'Cancelar Checklist',
                     message: 'Tem certeza que deseja cancelar? O progresso sera perdido.',
                     confirmText: 'Cancelar',
@@ -537,7 +537,7 @@
                 // 4. Se cliente não tem localização e técnico tem, pergunta se quer salvar
                 if (!clientHasLocation && techLocation) {
                     console.log('[Checklist] Mostrando pergunta para salvar localização');
-                    const confirmSave = await Components.showConfirmModal({
+                    const confirmSave = await AppComponents.showConfirmModal({
                         title: 'Salvar Localizacao',
                         message: 'O cliente "' + selectedClient.name + '" nao possui localizacao cadastrada. Voce esta na casa do cliente? Se sim, salvaremos esta localizacao no cadastro.',
                         confirmText: 'Salvar',
@@ -846,7 +846,7 @@
         async function markAsNA(taskId, event) {
             event.stopPropagation();
             
-            const naConfirmed = await Components.showConfirmModal({
+            const naConfirmed = await AppComponents.showConfirmModal({
                 title: 'Nao Aplicavel',
                 message: 'Marcar este item como "Nao Aplicavel"? Esta acao nao pode ser desfeita.',
                 confirmText: 'Marcar N/A',
@@ -988,7 +988,7 @@
             }
             
             // Confirmação final
-            const finishConfirmed = await Components.showConfirmModal({
+            const finishConfirmed = await AppComponents.showConfirmModal({
                 title: 'Finalizar Instalacao',
                 message: 'Tem certeza que deseja finalizar esta instalacao? Verifique se todos os itens foram concluidos corretamente.',
                 confirmText: 'Finalizar',
@@ -1426,7 +1426,7 @@
         
         // Aprova checklist (admin)
         async function approveChecklist(id) {
-            const approveConfirmed = await Components.showConfirmModal({
+            const approveConfirmed = await AppComponents.showConfirmModal({
                 title: 'Aprovar Checklist',
                 message: 'Confirmar aprovacao deste checklist?',
                 confirmText: 'Aprovar',
@@ -1475,7 +1475,7 @@
         
         // Reabre checklist rejeitado (técnico)
         async function reopenChecklist(id) {
-            const reopenConfirmed = await Components.showConfirmModal({
+            const reopenConfirmed = await AppComponents.showConfirmModal({
                 title: 'Reabrir Checklist',
                 message: 'Reabrir este checklist para correcao? Voce precisara corrigir os itens e enviar novamente para aprovacao.',
                 confirmText: 'Reabrir',
@@ -1537,7 +1537,7 @@
                 }
                 
                 // Mostra aviso sobre o prazo
-                const continueConfirmed = await Components.showConfirmModal({
+                const continueConfirmed = await AppComponents.showConfirmModal({
                     title: 'Continuar Checklist',
                     message: 'Continuar checklist de ' + clientName + '? ' + timeMessage,
                     confirmText: 'Continuar',
@@ -1574,7 +1574,7 @@
         
         // Deleta checklist (admin)
         async function deleteChecklist(id) {
-            const deleteConfirmed = await Components.showConfirmModal({
+            const deleteConfirmed = await AppComponents.showConfirmModal({
                 title: 'Excluir Checklist',
                 message: 'Tem certeza que deseja EXCLUIR este checklist permanentemente? Esta acao nao pode ser desfeita.',
                 confirmText: 'Excluir',
