@@ -7,6 +7,28 @@
 require_once 'config.php';
 require_once 'Logger.php';
 
+// Handler de erros para capturar erros fatais
+set_error_handler(function($severity, $message, $file, $line) {
+    Logger::error("PHP Error", [
+        'severity' => $severity,
+        'message' => $message,
+        'file' => $file,
+        'line' => $line
+    ]);
+    // Converte erros em exceções
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
+// Handler de exceções não capturadas
+set_exception_handler(function($e) {
+    Logger::error("Uncaught Exception", [
+        'message' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+    ]);
+    jsonResponse(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()], 500);
+});
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 // =====================================================
@@ -213,22 +235,29 @@ function handleSend($data) {
             'title' => $title,
             'body' => $body,
             'url' => $url
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
 
         $sent = 0;
         $failed = 0;
         $expired = [];
+        $errors = [];
 
         foreach ($subscriptions as $sub) {
-            $result = sendPushNotification($sub['endpoint'], $sub['p256dh'], $sub['auth'], $payload);
+            try {
+                $result = sendPushNotification($sub['endpoint'], $sub['p256dh'], $sub['auth'], $payload);
 
-            if ($result === true) {
-                $sent++;
-            } elseif ($result === 'expired') {
-                $expired[] = $sub['id'];
+                if ($result === true) {
+                    $sent++;
+                } elseif ($result === 'expired') {
+                    $expired[] = $sub['id'];
+                    $failed++;
+                } else {
+                    $failed++;
+                }
+            } catch (Exception $e) {
                 $failed++;
-            } else {
-                $failed++;
+                $errors[] = $e->getMessage();
+                Logger::error("Erro ao enviar push", ['error' => $e->getMessage(), 'sub_id' => $sub['id']]);
             }
         }
 
@@ -277,66 +306,75 @@ function handleList() {
 // =====================================================
 
 function sendPushNotification($endpoint, $p256dh, $auth, $payload) {
-    // Log para debug
-    Logger::info("Iniciando envio push", [
-        'endpoint' => substr($endpoint, 0, 60) . '...',
-        'p256dh_len' => strlen($p256dh),
-        'auth_len' => strlen($auth)
-    ]);
+    try {
+        // Log para debug
+        Logger::info("Iniciando envio push", [
+            'endpoint' => substr($endpoint, 0, 60) . '...',
+            'p256dh_len' => strlen($p256dh),
+            'auth_len' => strlen($auth)
+        ]);
 
-    // Monta headers para Web Push com VAPID
-    $vapidHeaders = generateVapidHeaders($endpoint);
+        // Monta headers para Web Push com VAPID
+        $vapidHeaders = generateVapidHeaders($endpoint);
 
-    if (!$vapidHeaders) {
-        Logger::warning("Falha ao gerar VAPID headers");
+        if (!$vapidHeaders) {
+            Logger::warning("Falha ao gerar VAPID headers");
+            return false;
+        }
+
+        // Encripta o payload usando as chaves do cliente
+        $encrypted = encryptPayload($payload, $p256dh, $auth);
+        
+        if (!$encrypted) {
+            Logger::warning("Falha ao encriptar payload - tentando envio simplificado");
+            // Fallback: tenta envio sem payload (notificação vazia que o SW pode preencher)
+            return sendEmptyPush($endpoint, $vapidHeaders);
+        }
+
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $encrypted['ciphertext'],
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/octet-stream',
+                'Content-Encoding: aes128gcm',
+                'Content-Length: ' . strlen($encrypted['ciphertext']),
+                'TTL: 86400',
+                'Urgency: normal',
+                'Authorization: vapid t=' . $vapidHeaders['token'] . ', k=' . $vapidHeaders['publicKey'],
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => 0
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        Logger::info("Resposta do push", [
+            'httpCode' => $httpCode,
+            'response' => substr($response, 0, 100),
+            'curlError' => $curlError
+        ]);
+
+        if ($httpCode >= 200 && $httpCode < 300) {
+            return true;
+        } elseif ($httpCode === 404 || $httpCode === 410) {
+            return 'expired'; // Subscription expirada
+        }
+
+        return false;
+        
+    } catch (Exception $e) {
+        Logger::error("Exceção em sendPushNotification", ['error' => $e->getMessage()]);
+        return false;
+    } catch (Error $e) {
+        Logger::error("Erro fatal em sendPushNotification", ['error' => $e->getMessage()]);
         return false;
     }
-
-    // Encripta o payload usando as chaves do cliente
-    $encrypted = encryptPayload($payload, $p256dh, $auth);
-    
-    if (!$encrypted) {
-        Logger::warning("Falha ao encriptar payload - tentando envio simplificado");
-        // Fallback: tenta envio sem payload (notificação vazia que o SW pode preencher)
-        return sendEmptyPush($endpoint, $vapidHeaders);
-    }
-
-    $ch = curl_init($endpoint);
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $encrypted['ciphertext'],
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/octet-stream',
-            'Content-Encoding: aes128gcm',
-            'Content-Length: ' . strlen($encrypted['ciphertext']),
-            'TTL: 86400',
-            'Urgency: normal',
-            'Authorization: vapid t=' . $vapidHeaders['token'] . ', k=' . $vapidHeaders['publicKey'],
-        ],
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 15,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => 0
-    ]);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-
-    Logger::info("Resposta do push", [
-        'httpCode' => $httpCode,
-        'response' => substr($response, 0, 100),
-        'curlError' => $curlError
-    ]);
-
-    if ($httpCode >= 200 && $httpCode < 300) {
-        return true;
-    } elseif ($httpCode === 404 || $httpCode === 410) {
-        return 'expired'; // Subscription expirada
-    }
-
-    return false;
 }
 
 /**
