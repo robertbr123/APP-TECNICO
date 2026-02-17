@@ -63,14 +63,14 @@ if ($method === 'DELETE') {
 // GET - Listar subscriptions (admin) ou Test (debug)
 // =====================================================
 if ($method === 'GET') {
-    // Endpoint de debug: /api/push.php?test=1 (não requer auth para diagnóstico)
-    if (isset($_GET['test'])) {
-        handleTest();
-    }
-    
     $userData = requireAuth();
     if ($userData['role'] !== 'admin') {
         jsonResponse(['success' => false, 'message' => 'Acesso negado'], 403);
+    }
+    
+    // Endpoint de debug: /api/push.php?test=1
+    if (isset($_GET['test'])) {
+        handleTest();
     }
     
     handleList();
