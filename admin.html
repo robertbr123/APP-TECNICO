@@ -198,11 +198,15 @@
                 <div class="mt-4">
                     <div class="flex items-center justify-between mb-2">
                         <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Dispositivos com push ativo</p>
-                        <button onclick="loadPushSubscriptions()" class="text-xs text-primary">Atualizar</button>
+                        <div class="flex gap-2">
+                            <button onclick="testPushConfig()" class="text-xs text-orange-500">Testar Config</button>
+                            <button onclick="loadPushSubscriptions()" class="text-xs text-primary">Atualizar</button>
+                        </div>
                     </div>
                     <div id="push-subs-list" class="space-y-1">
                         <p class="text-xs text-gray-500 text-center py-2">Carregando...</p>
                     </div>
+                    <div id="push-test-result" class="mt-2 text-xs hidden"></div>
                 </div>
             </div>
         </div>
@@ -877,6 +881,39 @@
                 }
             } catch (e) {
                 showError('Erro ao enviar notificação.');
+            }
+        }
+
+        // Testa configuração de push
+        async function testPushConfig() {
+            const resultEl = document.getElementById('push-test-result');
+            resultEl.classList.remove('hidden');
+            resultEl.innerHTML = '<p class="text-blue-500">Testando configuração...</p>';
+
+            try {
+                const res = await fetch('/api/push.php?test=1', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    }
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    let html = '<div class="bg-gray-100 dark:bg-gray-700 rounded p-2 max-h-40 overflow-y-auto">';
+                    html += '<p class="font-medium mb-1">' + (data.all_passed ? '✅ Todos os testes OK' : '⚠️ Alguns testes falharam') + '</p>';
+                    
+                    for (const [key, value] of Object.entries(data.tests)) {
+                        const icon = value === true ? '✓' : (value === false ? '✗' : '');
+                        const color = value === true ? 'text-green-600' : (value === false ? 'text-red-600' : 'text-gray-600');
+                        html += `<p class="${color}">${icon} ${key}: ${typeof value === 'boolean' ? (value ? 'OK' : 'FALHOU') : value}</p>`;
+                    }
+                    html += '</div>';
+                    resultEl.innerHTML = html;
+                } else {
+                    resultEl.innerHTML = '<p class="text-red-500">Erro: ' + data.message + '</p>';
+                }
+            } catch (e) {
+                resultEl.innerHTML = '<p class="text-red-500">Erro ao testar: ' + e.message + '</p>';
             }
         }
 
