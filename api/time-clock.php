@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'config.php';
+require_once 'Logger.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $userData = requireAuth();
@@ -34,7 +35,7 @@ try {
             jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
     }
 } catch (PDOException $e) {
-    error_log('Erro PDO em time-clock.php: ' . $e->getMessage());
+    Logger::logException($e, ['endpoint' => 'time-clock.php']);
     jsonResponse(['success' => false, 'message' => 'Erro no banco de dados'], 500);
 }
 
@@ -248,6 +249,6 @@ function logAudit($db, $userData, $actionType, $description, $entityType, $entit
             $_SERVER['HTTP_USER_AGENT'] ?? null
         ]);
     } catch (Exception $e) {
-        error_log('Erro ao registrar auditoria: ' . $e->getMessage());
+        Logger::logException($e, ['context' => 'auditoria time-clock']);
     }
 }

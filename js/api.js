@@ -732,6 +732,35 @@ const API = {
             action: 'delete_template',
             template_id: templateId
         });
+    },
+
+    // ==========================================
+    // PUSH NOTIFICATIONS
+    // ==========================================
+
+    async subscribePush(subscription) {
+        return this.post('push.php', {
+            action: 'subscribe',
+            subscription: subscription.toJSON()
+        });
+    },
+
+    async sendPush(title, body, url, userId) {
+        return this.post('push.php', {
+            action: 'send',
+            title: title,
+            body: body,
+            url: url || '/dashboard.html',
+            user_id: userId || null
+        });
+    },
+
+    async unsubscribePush() {
+        return this.delete('push.php');
+    },
+
+    async listPushSubscriptions() {
+        return this.get('push.php');
     }
 };
 

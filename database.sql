@@ -477,6 +477,21 @@ CREATE TABLE IF NOT EXISTS `checklist_approval_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
+-- 19. TABELA DE PUSH SUBSCRIPTIONS
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `push_subscriptions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `endpoint` text NOT NULL,
+  `p256dh` varchar(255) NOT NULL,
+  `auth` varchar(255) NOT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
 -- FIM DO SCRIPT
 -- =====================================================
 SELECT 'Banco de dados onde2292_erp configurado com sucesso!' as status;

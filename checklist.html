@@ -15,23 +15,48 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="css/transitions.css"/>
-    <script>
+<script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
                         "primary": "#135bec",
-                        "background-light": "#f6f6f8",
-                        "background-dark": "#101622",
+                        "background-light": "#F2F2F7",
+                        "background-dark": "#000000",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#1C1C1E"
                     },
                     fontFamily: {
-                        "display": ["Inter"]
+                        "display": ["Inter", "sans-serif"]
                     },
+                    borderRadius: {
+                        "ios": "12px",
+                        "ios-lg": "16px",
+                        "ios-xl": "20px"
+                    }
                 },
             },
         }
     </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-background-light dark:bg-background-dark font-display text-[#000000] dark:text-white antialiased;
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .safe-top {
+            padding-top: env(safe-area-inset-top);
+        }
+    </style>
     <style>
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -330,10 +355,15 @@
             document.getElementById('btn-complete').addEventListener('click', completeChecklist);
 
             // Cancelar
-            document.getElementById('btn-cancel').addEventListener('click', () => {
-                if (confirm('Tem certeza que deseja cancelar? O progresso será perdido.')) {
-                    location.reload();
-                }
+            document.getElementById('btn-cancel').addEventListener('click', async () => {
+                const confirmed = await Components.showConfirmModal({
+                    title: 'Cancelar Checklist',
+                    message: 'Tem certeza que deseja cancelar? O progresso sera perdido.',
+                    confirmText: 'Cancelar',
+                    icon: 'cancel',
+                    type: 'warning'
+                });
+                if (confirmed) location.reload();
             });
 
             // Fechar modal de foto
@@ -507,13 +537,15 @@
                 // 4. Se cliente não tem localização e técnico tem, pergunta se quer salvar
                 if (!clientHasLocation && techLocation) {
                     console.log('[Checklist] Mostrando pergunta para salvar localização');
-                    const confirmSave = confirm(
-                        `📍 O cliente "${selectedClient.name}" não possui localização cadastrada.\n\n` +
-                        `Você está na casa do cliente?\n\n` +
-                        `Se sim, clique em "OK" para salvar esta localização no cadastro do cliente.\n` +
-                        `Se não, clique em "Cancelar" para continuar sem salvar.`
-                    );
-                    
+                    const confirmSave = await Components.showConfirmModal({
+                        title: 'Salvar Localizacao',
+                        message: 'O cliente "' + selectedClient.name + '" nao possui localizacao cadastrada. Voce esta na casa do cliente? Se sim, salvaremos esta localizacao no cadastro.',
+                        confirmText: 'Salvar',
+                        cancelText: 'Nao salvar',
+                        icon: 'location_on',
+                        type: 'info'
+                    });
+
                     if (confirmSave) {
                         saveClientLocation = true;
                         showToast('Salvando localização do cliente...', 'info');
@@ -814,9 +846,14 @@
         async function markAsNA(taskId, event) {
             event.stopPropagation();
             
-            if (!confirm('Marcar este item como "Não Aplicável"?\n\nEsta ação não pode ser desfeita.')) {
-                return;
-            }
+            const naConfirmed = await Components.showConfirmModal({
+                title: 'Nao Aplicavel',
+                message: 'Marcar este item como "Nao Aplicavel"? Esta acao nao pode ser desfeita.',
+                confirmText: 'Marcar N/A',
+                icon: 'do_not_disturb',
+                type: 'warning'
+            });
+            if (!naConfirmed) return;
             
             try {
                 await API.markChecklistItemNA(taskId);
@@ -951,9 +988,14 @@
             }
             
             // Confirmação final
-            if (!confirm('Tem certeza que deseja finalizar esta instalação?\n\nVerifique se todos os itens foram concluídos corretamente.')) {
-                return;
-            }
+            const finishConfirmed = await Components.showConfirmModal({
+                title: 'Finalizar Instalacao',
+                message: 'Tem certeza que deseja finalizar esta instalacao? Verifique se todos os itens foram concluidos corretamente.',
+                confirmText: 'Finalizar',
+                icon: 'check_circle',
+                type: 'info'
+            });
+            if (!finishConfirmed) return;
             
             // Mostra loading
             const btnComplete = document.getElementById('btn-complete');
@@ -1384,7 +1426,14 @@
         
         // Aprova checklist (admin)
         async function approveChecklist(id) {
-            if (!confirm('Confirmar aprovação deste checklist?')) return;
+            const approveConfirmed = await Components.showConfirmModal({
+                title: 'Aprovar Checklist',
+                message: 'Confirmar aprovacao deste checklist?',
+                confirmText: 'Aprovar',
+                icon: 'check',
+                type: 'info'
+            });
+            if (!approveConfirmed) return;
             
             try {
                 const response = await API.approveChecklist(id);
@@ -1426,7 +1475,14 @@
         
         // Reabre checklist rejeitado (técnico)
         async function reopenChecklist(id) {
-            if (!confirm('Reabrir este checklist para correção?\n\nVocê precisará corrigir os itens e enviar novamente para aprovação.')) return;
+            const reopenConfirmed = await Components.showConfirmModal({
+                title: 'Reabrir Checklist',
+                message: 'Reabrir este checklist para correcao? Voce precisara corrigir os itens e enviar novamente para aprovacao.',
+                confirmText: 'Reabrir',
+                icon: 'restart_alt',
+                type: 'warning'
+            });
+            if (!reopenConfirmed) return;
             
             try {
                 const response = await API.reopenChecklist(id);
@@ -1481,9 +1537,14 @@
                 }
                 
                 // Mostra aviso sobre o prazo
-                if (!confirm(`Continuar checklist de ${clientName}?\n\n${timeMessage}`)) {
-                    return;
-                }
+                const continueConfirmed = await Components.showConfirmModal({
+                    title: 'Continuar Checklist',
+                    message: 'Continuar checklist de ' + clientName + '? ' + timeMessage,
+                    confirmText: 'Continuar',
+                    icon: 'play_arrow',
+                    type: 'info'
+                });
+                if (!continueConfirmed) return;
                 
                 // Define o checklist atual
                 currentChecklist = id;
@@ -1513,7 +1574,14 @@
         
         // Deleta checklist (admin)
         async function deleteChecklist(id) {
-            if (!confirm('Tem certeza que deseja EXCLUIR este checklist permanentemente?\n\nEsta ação não pode ser desfeita.')) return;
+            const deleteConfirmed = await Components.showConfirmModal({
+                title: 'Excluir Checklist',
+                message: 'Tem certeza que deseja EXCLUIR este checklist permanentemente? Esta acao nao pode ser desfeita.',
+                confirmText: 'Excluir',
+                icon: 'delete_forever',
+                type: 'danger'
+            });
+            if (!deleteConfirmed) return;
             
             try {
                 const response = await API.deleteChecklist(id);

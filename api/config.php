@@ -40,6 +40,14 @@ define('JWT_SECRET', '123E34535ERG5546ondeline_tech_secret_key_2024_altere_isso'
 define('JWT_EXPIRATION', 86400 * 7); // 7 dias em segundos
 
 // =====================================================
+// CONFIGURAÇÕES DE PUSH NOTIFICATIONS (VAPID)
+// =====================================================
+// Gere suas chaves em: https://vapidkeys.com/
+define('VAPID_PUBLIC_KEY', 'BCxBeZ9LpHe2nfk3QMHYdNrXdxB7E2hyIefVm7u6yGN5js0nvxXiNGRQE8FZC5E5MiHzqHDSAl1JIkvRrw25iMU');
+define('VAPID_PRIVATE_KEY', '-v85UYgK_SeBtLj9FQA-0JkODq9BFYo-wlgCVqghjQs');
+define('VAPID_SUBJECT', 'mailto:robert.on@icloud.com');
+
+// =====================================================
 // CLASSE DE CONEXÃO COM O BANCO
 // =====================================================
 class Database {

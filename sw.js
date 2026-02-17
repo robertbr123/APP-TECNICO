@@ -3,7 +3,7 @@
  * Ondeline Tech - App do Técnico
  */
 
-const APP_VERSION = 'v24.5';
+const APP_VERSION = 'v25.0';
 const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
 const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
@@ -221,40 +221,60 @@ self.addEventListener('sync', (event) => {
  * Sincroniza clientes pendentes salvos offline
  */
 async function syncPendingClients() {
-    // Sincronização de dados offline via Background Sync API
+    const allClients = await self.clients.matchAll();
+    allClients.forEach(client => {
+        client.postMessage({ type: 'SYNC_OFFLINE' });
+    });
 }
 
 // Push notifications
 self.addEventListener('push', (event) => {
-    
+    let data = {
+        title: 'Ondeline Tech',
+        body: 'Nova notificação',
+        url: '/dashboard.html'
+    };
+
+    if (event.data) {
+        try {
+            data = { ...data, ...event.data.json() };
+        } catch (e) {
+            data.body = event.data.text();
+        }
+    }
+
     const options = {
-        body: event.data?.text() || 'Nova notificação do Ondeline Tech',
+        body: data.body,
         icon: '/icons/icon-192x192.png',
         badge: '/icons/icon-72x72.png',
         vibrate: [100, 50, 100],
-        data: {
-            dateOfArrival: Date.now(),
-            primaryKey: 1
-        },
+        data: { url: data.url },
         actions: [
-            { action: 'explore', title: 'Ver detalhes' },
+            { action: 'open', title: 'Abrir' },
             { action: 'close', title: 'Fechar' }
         ]
     };
 
     event.waitUntil(
-        self.registration.showNotification('Ondeline Tech', options)
+        self.registration.showNotification(data.title, options)
     );
 });
 
 // Clique na notificação
 self.addEventListener('notificationclick', (event) => {
-    
     event.notification.close();
 
-    if (event.action === 'explore') {
+    if (event.action !== 'close') {
+        const url = event.notification.data?.url || '/dashboard.html';
         event.waitUntil(
-            clients.openWindow('/dashboard.html')
+            clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+                for (const client of windowClients) {
+                    if (client.url.includes(url) && 'focus' in client) {
+                        return client.focus();
+                    }
+                }
+                return clients.openWindow(url);
+            })
         );
     }
 });

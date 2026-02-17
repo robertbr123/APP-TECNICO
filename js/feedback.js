@@ -209,17 +209,21 @@ function updateConnectionStatus(online) {
 function startConnectionMonitoring() {
     ensureConnectionIndicator();
     updateConnectionStatus(navigator.onLine);
-    
+
+    // Mostra badge se há itens pendentes
+    updateOfflineQueueBadge();
+
     // Eventos de mudança de status
     window.addEventListener('online', function() {
         updateConnectionStatus(true);
         showInfo('Conexão restaurada. Sincronizando dados...');
         syncOfflineQueue();
     });
-    
+
     window.addEventListener('offline', function() {
         updateConnectionStatus(false);
         showWarning('Você está offline. Os dados serão salvos localmente.');
+        updateOfflineQueueBadge();
     });
 }
 
@@ -279,16 +283,25 @@ function clearOfflineItem(id) {
 // Sincronização Offline
 // =====================================================
 
-// Sincroniza fila offline
+// Sincroniza fila offline com feedback visual
 async function syncOfflineQueue() {
     if (!navigator.onLine) return;
 
     var queue = getOfflineQueue();
-    if (queue.length === 0) return;
-    
+    if (queue.length === 0) {
+        updateOfflineQueueBadge(0);
+        return;
+    }
+
+    var total = queue.length;
+    var synced = 0;
+    var failed = 0;
+
+    showSyncProgress(total, 0, 0);
+
     for (var i = 0; i < queue.length; i++) {
         var item = queue[i];
-        
+
         try {
             var token = localStorage.getItem('auth_token');
             var headers = {
@@ -317,9 +330,11 @@ async function syncOfflineQueue() {
                     break;
                 default:
                     clearOfflineItem(item.id);
+                    synced++;
+                    updateSyncProgress(total, synced, failed);
                     continue;
             }
-            
+
             var response = await fetch(url, {
                 method: method,
                 headers: headers,
@@ -330,18 +345,98 @@ async function syncOfflineQueue() {
 
             if (result.success) {
                 clearOfflineItem(item.id);
+                synced++;
+            } else {
+                failed++;
             }
         } catch (error) {
-            // Item will be retried next sync
+            failed++;
         }
+        updateSyncProgress(total, synced, failed);
     }
-    
-    var remaining = getOfflineQueue().length;
-    if (remaining === 0) {
-        showSuccess('Todos os dados foram sincronizados!');
+
+    hideSyncProgress();
+    updateOfflineQueueBadge(failed);
+
+    if (failed === 0) {
+        showSuccess('Todos os ' + synced + ' itens foram sincronizados!');
     } else {
-        showWarning(remaining + ' itens ainda precisam ser sincronizados.');
+        showWarning(synced + ' sincronizados, ' + failed + ' falharam. Tentaremos novamente.');
     }
+}
+
+// =====================================================
+// Sync Progress UI
+// =====================================================
+
+function showSyncProgress(total, synced, failed) {
+    var container = document.getElementById('sync-progress');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'sync-progress';
+        container.className = 'fixed bottom-20 left-4 right-4 z-[9997] bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 transition-all duration-300';
+        document.body.appendChild(container);
+    }
+    container.classList.remove('hidden');
+    updateSyncProgress(total, synced, failed);
+}
+
+function updateSyncProgress(total, synced, failed) {
+    var container = document.getElementById('sync-progress');
+    if (!container) return;
+
+    var progress = total > 0 ? Math.round(((synced + failed) / total) * 100) : 0;
+
+    container.innerHTML =
+        '<div class="flex items-center gap-3 mb-2">' +
+            '<div class="size-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">' +
+                '<span class="material-symbols-outlined text-blue-500 text-lg" style="animation: spin 1s linear infinite">sync</span>' +
+            '</div>' +
+            '<div class="flex-1">' +
+                '<p class="text-sm font-medium text-gray-900 dark:text-white">Sincronizando dados...</p>' +
+                '<p class="text-xs text-gray-500 dark:text-gray-400">' + (synced + failed) + ' de ' + total + ' itens</p>' +
+            '</div>' +
+            '<span class="text-sm font-bold text-blue-500">' + progress + '%</span>' +
+        '</div>' +
+        '<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">' +
+            '<div class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: ' + progress + '%"></div>' +
+        '</div>' +
+        (failed > 0 ? '<p class="text-xs text-red-500 mt-1">' + failed + ' item(ns) falharam</p>' : '');
+}
+
+function hideSyncProgress() {
+    var container = document.getElementById('sync-progress');
+    if (container) {
+        setTimeout(function() {
+            container.classList.add('hidden');
+        }, 2000);
+    }
+}
+
+// =====================================================
+// Offline Queue Badge
+// =====================================================
+
+function updateOfflineQueueBadge(count) {
+    if (count === undefined) {
+        count = getOfflineQueue().length;
+    }
+    var badge = document.getElementById('offline-queue-badge');
+    if (count === 0) {
+        if (badge) badge.remove();
+        return;
+    }
+    if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'offline-queue-badge';
+        badge.className = 'fixed top-20 left-4 z-[9998] flex items-center gap-2 px-3 py-2 rounded-full bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 cursor-pointer transition-all hover:scale-105';
+        badge.onclick = function() { syncOfflineQueue(); };
+        document.body.appendChild(badge);
+    }
+    badge.innerHTML =
+        '<span class="material-symbols-outlined text-yellow-600 text-sm">cloud_upload</span>' +
+        '<span class="text-xs font-medium text-yellow-700 dark:text-yellow-400">' + count + ' pendente(s)</span>' +
+        '<span class="text-xs text-yellow-500">Tocar para sincronizar</span>';
 }
 
 // =====================================================

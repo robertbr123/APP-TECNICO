@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'config.php';
+require_once 'Logger.php';
 
 // Função auxiliar para obter username do usuário
 function getUserUsername($db, $userId) {
@@ -211,7 +212,7 @@ try {
             }
         } catch (Exception $e) {
             // Não falha a vinculação se a integração com estoque falhar
-            error_log('Erro ao integrar com estoque: ' . $e->getMessage());
+            Logger::logException($e, ['context' => 'integracao estoque', 'cpf' => $cpf]);
         }
         // ==== FIM INTEGRAÇÃO COM ESTOQUE ====
         
@@ -242,7 +243,7 @@ try {
             ]);
         } catch (Exception $e) {
             // Não falha a vinculação se o auditoria falhar
-            error_log('Erro ao registrar auditoria: ' . $e->getMessage());
+            Logger::logException($e, ['context' => 'auditoria vincular']);
         }
         
         echo json_encode([
@@ -261,9 +262,9 @@ try {
     }
     
 } catch (PDOException $e) {
-    error_log('Erro PDO em vincular.php: ' . $e->getMessage());
+    Logger::logException($e, ['endpoint' => 'vincular.php', 'type' => 'PDO']);
     echo json_encode(['success' => false, 'message' => 'Erro de banco de dados']);
 } catch (Exception $e) {
-    error_log('Erro em vincular.php: ' . $e->getMessage());
+    Logger::logException($e, ['endpoint' => 'vincular.php']);
     echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
 }

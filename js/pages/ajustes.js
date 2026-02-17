@@ -149,7 +149,14 @@ App.initAjustesPage = async function() {
     const clearCacheBtn = document.getElementById('btn-clear-cache');
     if (clearCacheBtn) {
         clearCacheBtn.addEventListener('click', async () => {
-            if (confirm('Limpar todo o cache e dados do app?\n\nIsso deslogará você e recarregará a página.')) {
+            const confirmed = await Components.showConfirmModal({
+                title: 'Limpar Cache',
+                message: 'Limpar todo o cache e dados do app? Isso deslogara voce e recarregara a pagina.',
+                confirmText: 'Limpar',
+                icon: 'delete_sweep',
+                type: 'danger'
+            });
+            if (confirmed) {
                 App.showLoading(true);
 
                 try {

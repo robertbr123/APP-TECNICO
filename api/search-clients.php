@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'config.php';
+require_once 'Logger.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
@@ -51,11 +52,9 @@ try {
             $cityStmt->execute([$userData['user_id']]);
             $userCity = $cityStmt->fetch()['city'] ?? null;
             
-            // Log para debug
-            error_log("Filtro cidade: user_id={$userData['user_id']}, role={$userData['role']}, city=$userCity");
+            Logger::debug("Filtro cidade", ['user_id' => $userData['user_id'], 'role' => $userData['role'], 'city' => $userCity]);
         } catch (Exception $e) {
-            // Se falhar, não filtra
-            error_log("Erro ao buscar cidade: " . $e->getMessage());
+            Logger::logException($e, ['context' => 'buscar cidade usuario']);
         }
     }
     
@@ -108,40 +107,27 @@ try {
     
     $sql .= " LIMIT $limit OFFSET $offset";
     
-    // Log detalhado para debug
-    error_log("=== DEBUG SEARCH-CLIENTS ===");
-    error_log("SQL Final: " . $sql);
-    error_log("Params: " . json_encode($params));
-    error_log("userCity: " . ($userCity ?? 'NULL'));
-    error_log("role: " . $userData['role']);
+    Logger::debug("Search clients query", ['sql' => $sql, 'params' => $params, 'userCity' => $userCity, 'role' => $userData['role']]);
     
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
     $clients = $stmt->fetchAll();
     
-    // Log das cidades retornadas
     $cities = array_unique(array_column($clients, 'city'));
-    error_log("Cidades retornadas: " . json_encode($cities));
-    error_log("=== FIM DEBUG ===");
-    
+    Logger::debug("Search results", ['count' => count($clients), 'cities' => $cities]);
+
     jsonResponse([
         'success' => true,
         'data' => $clients,
         'count' => count($clients),
         'search' => $search,
-        'filtered_by_city' => $userCity ? true : false,
-        'debug' => [
-            'user_city' => $userCity,
-            'role' => $userData['role'],
-            'cities_returned' => $cities
-        ]
+        'filtered_by_city' => $userCity ? true : false
     ]);
     
 } catch (PDOException $e) {
-    error_log('Erro em search-clients.php: ' . $e->getMessage());
+    Logger::logException($e, ['endpoint' => 'search-clients.php']);
     jsonResponse([
         'success' => false,
-        'message' => 'Erro ao buscar clientes',
-        'error' => $e->getMessage()
+        'message' => 'Erro ao buscar clientes'
     ], 500);
 }

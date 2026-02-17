@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'config.php';
+require_once 'Logger.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     echo json_encode(['success' => false, 'message' => 'Método não permitido']);
@@ -65,6 +66,6 @@ try {
     ]);
     
 } catch (Exception $e) {
-    error_log('Erro get-fotos.php: ' . $e->getMessage());
+    Logger::logException($e, ['endpoint' => 'get-fotos.php']);
     echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
 }

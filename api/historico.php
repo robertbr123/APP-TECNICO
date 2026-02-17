@@ -5,6 +5,7 @@
  */
 
 require_once 'config.php';
+require_once 'Logger.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $userData = requireAuth();
@@ -33,7 +34,7 @@ try {
     }
     
     // Log para debug
-    error_log("[Historico] User: $username, Role: $role, WeekStart: $weekStart");
+    Logger::debug("Historico request", ['user' => $username, 'role' => $role, 'weekStart' => $weekStart]);
 
     // Cadastros hoje
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM clients WHERE DATE(created_at) = ?" . $installerFilter);
@@ -43,11 +44,11 @@ try {
     // Cadastros esta semana
     $weekSql = "SELECT COUNT(*) as total FROM clients WHERE DATE(created_at) >= ?" . $installerFilter;
     $weekParams = array_merge([$weekStart], $installerParam);
-    error_log("[Historico] Week SQL: $weekSql, Params: " . json_encode($weekParams));
+    Logger::debug("Historico week query", ['sql' => $weekSql, 'params' => $weekParams]);
     $stmt = $db->prepare($weekSql);
     $stmt->execute($weekParams);
     $weekInstallations = (int)$stmt->fetch()['total'];
-    error_log("[Historico] Week result: $weekInstallations");
+    Logger::debug("Historico week result", ['count' => $weekInstallations]);
 
     // Cadastros este mes
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM clients WHERE DATE(created_at) >= ?" . $installerFilter);

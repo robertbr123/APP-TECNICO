@@ -5,6 +5,7 @@
  */
 
 require_once 'config.php';
+require_once 'Logger.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -85,7 +86,7 @@ try {
         ]);
     } catch (Exception $e) {
         // Não falha o login se o auditoria falhar
-        error_log('Erro ao registrar auditoria: ' . $e->getMessage());
+        Logger::logException($e, ['context' => 'auditoria login']);
     }
 
     jsonResponse([

@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'config.php';
+require_once 'Logger.php';
 
 // Apenas GET
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
@@ -86,10 +87,10 @@ try {
     ]);
     
 } catch (PDOException $e) {
-    error_log('Erro PDO em get-serial-history.php: ' . $e->getMessage());
+    Logger::logException($e, ['endpoint' => 'get-serial-history.php', 'type' => 'PDO']);
     echo json_encode(['success' => false, 'message' => 'Erro de banco de dados']);
 } catch (Exception $e) {
-    error_log('Erro em get-serial-history.php: ' . $e->getMessage());
+    Logger::logException($e, ['endpoint' => 'get-serial-history.php']);
     echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
 }
 

@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'config.php';
+require_once 'Logger.php';
 
 // Configurações de upload
 define('UPLOAD_DIR', __DIR__ . '/../uploads/');
@@ -54,7 +55,7 @@ try {
     }
     
 } catch (Exception $e) {
-    error_log('Erro upload-foto.php: ' . $e->getMessage());
+    Logger::logException($e, ['endpoint' => 'upload-foto.php']);
     echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
 }
 

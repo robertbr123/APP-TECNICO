@@ -5,6 +5,7 @@
  */
 
 require_once 'config.php';
+require_once 'Logger.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -133,7 +134,7 @@ if (isset($data['action']) && $data['action'] === 'consultar_cliente') {
             'contrato' => (string)$contrato
         ]);
         
-        error_log("consultacliente [{$server['name']}] raw response: " . substr($result, 0, 1000));
+        Logger::debug("SGP consultacliente response", ['server' => $server['name'], 'response' => substr($result, 0, 500)]);
         
         if ($result !== false) {
             $decoded = json_decode($result, true);
@@ -225,11 +226,11 @@ function callSgpApi($url, $data) {
     curl_close($ch);
     
     if ($error) {
-        error_log("SGP API Error: " . $error);
+        Logger::error("SGP API Error", ['error' => $error, 'url' => $url]);
         return false;
     }
     
-    error_log("SGP API Response (HTTP $httpCode): " . substr($response, 0, 500));
+    Logger::debug("SGP API Response", ['httpCode' => $httpCode, 'response' => substr($response, 0, 500)]);
     
     return $response;
 }

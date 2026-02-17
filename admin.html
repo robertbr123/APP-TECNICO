@@ -15,7 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="css/transitions.css"/>
-    <script>
+<script>
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -39,7 +39,7 @@
             },
         }
     </script>
-    <style type="text/tailwindcss">
+<style type="text/tailwindcss">
         @layer base {
             body {
                 @apply bg-background-light dark:bg-background-dark font-display text-[#000000] dark:text-white antialiased;
@@ -56,9 +56,9 @@
         .safe-top {
             padding-top: env(safe-area-inset-top);
         }
-        .tab-active { 
-            border-bottom: 2px solid #135bec; 
-            color: #135bec; 
+        .tab-active {
+            border-bottom: 2px solid #135bec;
+            color: #135bec;
         }
     </style>
 </head>
@@ -101,6 +101,7 @@
                 <button onclick="showTab('templates')" id="tab-templates" class="tab-btn flex-1 px-4 py-3 text-sm font-medium tab-active">Templates</button>
                 <button onclick="showTab('users')" id="tab-users" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Usuários</button>
                 <button onclick="showTab('checklists')" id="tab-checklists" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Checklists</button>
+                <button onclick="showTab('push')" id="tab-push" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Push</button>
                 <button onclick="showTab('config')" id="tab-config" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Config</button>
             </div>
         </div>
@@ -145,6 +146,49 @@
             </div>
         </div>
 
+        <!-- Push Notifications Panel -->
+        <div id="panel-push" class="tab-content hidden">
+            <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm space-y-4">
+                <h3 class="font-semibold text-gray-900 dark:text-white">Enviar Notificação Push</h3>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs text-gray-500">Título</label>
+                        <input type="text" id="push-title" value="Ondeline Tech" class="w-full px-3 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500">Mensagem *</label>
+                        <textarea id="push-body" rows="3" placeholder="Digite a mensagem..." class="w-full px-3 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 text-sm resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500">URL (ao clicar)</label>
+                        <input type="text" id="push-url" value="/dashboard.html" class="w-full px-3 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500">Destinatário</label>
+                        <select id="push-target" class="w-full px-3 py-2 rounded-lg border dark:bg-gray-700 dark:border-gray-600 text-sm">
+                            <option value="">Todos os técnicos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="sendPushNotification()" class="w-full py-3 bg-primary text-white rounded-xl font-medium flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-sm">notifications_active</span>
+                    Enviar Notificação
+                </button>
+
+                <div class="mt-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Dispositivos com push ativo</p>
+                        <button onclick="loadPushSubscriptions()" class="text-xs text-primary">Atualizar</button>
+                    </div>
+                    <div id="push-subs-list" class="space-y-1">
+                        <p class="text-xs text-gray-500 text-center py-2">Carregando...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Config Panel -->
         <div id="panel-config" class="tab-content hidden">
             <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm space-y-4">
@@ -163,7 +207,7 @@
                         <span class="material-symbols-outlined text-orange-500">cleaning_services</span>
                         <p class="text-xs font-medium mt-1">Limpar Cache</p>
                     </button>
-                    <button onclick="alert('Backup em desenvolvimento')" class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-center">
+                    <button onclick="showInfo('Backup em desenvolvimento.')" class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-center">
                         <span class="material-symbols-outlined text-purple-500">backup</span>
                         <p class="text-xs font-medium mt-1">Backup BD</p>
                     </button>
@@ -260,12 +304,12 @@
     <nav id="bottom-nav"></nav>
 
     <script src="js/api.js"></script>
+    <script src="js/feedback.js"></script>
     <script src="js/components.js"></script>
     <script>
         // Verifica admin
         const user = API.getUser();
         if (!user || user.role !== 'admin') {
-            alert('Acesso restrito');
             location.href = 'dashboard.html';
         }
 
@@ -278,6 +322,7 @@
             if (tab === 'templates') loadTemplates();
             if (tab === 'users') loadUsers();
             if (tab === 'checklists') loadChecklists();
+            if (tab === 'push') loadPushSubscriptions();
         }
 
         let templatesData = [];
@@ -326,8 +371,7 @@
                 const templateId = parseInt(id);
                 const t = templatesData.find(x => parseInt(x.id) === templateId);
                 if (!t) {
-                    console.error('Template não encontrado:', id);
-                    alert('Template não encontrado');
+                    showError('Template não encontrado.');
                     return;
                 }
                 document.getElementById('tmpl-title').textContent = 'Editar Template';
@@ -357,7 +401,7 @@
             const types = Array.from(document.querySelectorAll('.tmpl-type:checked')).map(cb => cb.value).join(',');
             
             if (!name) {
-                alert('Nome é obrigatório');
+                showError('Nome é obrigatório.');
                 return;
             }
             
@@ -379,33 +423,40 @@
                 }
                 
                 if (res.success) {
-                    alert('Template salvo!');
+                    showSuccess('Template salvo!');
                     closeTemplateModal();
                     loadTemplates();
                 } else {
-                    alert('Erro: ' + res.message);
+                    showError('Erro: ' + res.message);
                 }
             } catch (e) {
-                alert('Erro ao salvar');
+                showError('Erro ao salvar template.');
             }
         }
-        
+
         async function editTemplate(id) {
             openTemplateModal(id);
         }
-        
+
         async function deleteTemplate(id) {
-            if (!confirm('Excluir este template?')) return;
+            const confirmed = await Components.showConfirmModal({
+                title: 'Excluir Template',
+                message: 'Tem certeza que deseja excluir este template? Esta acao nao pode ser desfeita.',
+                confirmText: 'Excluir',
+                icon: 'delete',
+                type: 'danger'
+            });
+            if (!confirmed) return;
             try {
                 const res = await API.deleteTemplate(id);
                 if (res.success) {
-                    alert('Template excluído!');
+                    showSuccess('Template excluído!');
                     loadTemplates();
                 } else {
-                    alert('Erro: ' + res.message);
+                    showError('Erro: ' + res.message);
                 }
             } catch (e) {
-                alert('Erro ao excluir');
+                showError('Erro ao excluir template.');
             }
         }
 
@@ -428,19 +479,25 @@
             }
         }
 
-        function runSetup() {
-            if (confirm('Reconfigurar templates?')) {
-                fetch('/api/setup-checklist.php')
-                    .then(r => r.json())
-                    .then(d => alert(d.message));
-            }
+        async function runSetup() {
+            const confirmed = await Components.showConfirmModal({
+                title: 'Reconfigurar Templates',
+                message: 'Deseja reconfigurar todos os templates? Isso pode sobrescrever configuracoes existentes.',
+                confirmText: 'Reconfigurar',
+                icon: 'settings_backup_restore',
+                type: 'warning'
+            });
+            if (!confirmed) return;
+            fetch('/api/setup-checklist.php')
+                .then(r => r.json())
+                .then(d => showSuccess(d.message));
         }
 
         function clearCache() {
             localStorage.clear();
             caches.keys().then(names => names.forEach(n => caches.delete(n)));
-            alert('Cache limpo!');
-            location.reload();
+            showSuccess('Cache limpo!');
+            setTimeout(() => location.reload(), 800);
         }
 
         // Users
@@ -491,8 +548,7 @@
                 const u = usersData.find(x => parseInt(x.id) === userId);
                 
                 if (!u) {
-                    console.error('Usuário não encontrado:', id, usersData);
-                    alert('Usuário não encontrado');
+                    showError('Usuário não encontrado.');
                     return;
                 }
                 
@@ -538,18 +594,18 @@
             };
             
             if (!data.full_name) {
-                alert('Nome completo é obrigatório');
+                showError('Nome completo é obrigatório.');
                 return;
             }
-            
+
             if (!id) {
                 data.username = document.getElementById('user-username').value;
                 if (!data.username || !data.password) {
-                    alert('Usuário e senha são obrigatórios');
+                    showError('Usuário e senha são obrigatórios.');
                     return;
                 }
                 if (data.password.length < 6) {
-                    alert('Senha deve ter no mínimo 6 caracteres');
+                    showError('Senha deve ter no mínimo 6 caracteres.');
                     return;
                 }
             }
@@ -565,33 +621,40 @@
                 }
                 
                 if (res.success) {
-                    alert('Usuário salvo!');
+                    showSuccess('Usuário salvo!');
                     closeUserModal();
                     loadUsers();
                 } else {
-                    alert('Erro: ' + res.message);
+                    showError('Erro: ' + res.message);
                 }
             } catch (e) {
-                alert('Erro ao salvar usuário');
+                showError('Erro ao salvar usuário.');
             }
         }
-        
+
         async function editUser(id) {
             openUserModal(id);
         }
-        
+
         async function deleteUser(id) {
-            if (!confirm('Desativar este usuário?')) return;
+            const confirmed = await Components.showConfirmModal({
+                title: 'Desativar Usuario',
+                message: 'Tem certeza que deseja desativar este usuario? Ele nao podera mais acessar o sistema.',
+                confirmText: 'Desativar',
+                icon: 'person_off',
+                type: 'danger'
+            });
+            if (!confirmed) return;
             try {
                 const res = await API.deleteUser(id);
                 if (res.success) {
-                    alert('Usuário desativado!');
+                    showSuccess('Usuário desativado!');
                     loadUsers();
                 } else {
-                    alert('Erro: ' + res.message);
+                    showError('Erro: ' + res.message);
                 }
             } catch (e) {
-                alert('Erro ao desativar usuário');
+                showError('Erro ao desativar usuário.');
             }
         }
 
@@ -614,6 +677,76 @@
         loadStats();
         loadTemplates();
         loadUsers();
+        loadPushSubscriptions();
+
+        // ==============================
+        // Push Notifications
+        // ==============================
+
+        async function loadPushSubscriptions() {
+            const list = document.getElementById('push-subs-list');
+            if (!list) return;
+            try {
+                const res = await API.listPushSubscriptions();
+                if (res.success && res.data.length > 0) {
+                    list.innerHTML = res.data.map(s => `
+                        <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div>
+                                <p class="text-xs font-medium text-gray-900 dark:text-white">${s.full_name || s.username}</p>
+                                <p class="text-[10px] text-gray-500">${new Date(s.created_at).toLocaleDateString('pt-BR')}</p>
+                            </div>
+                            <span class="size-2 rounded-full bg-green-500"></span>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<p class="text-xs text-gray-500 text-center py-2">Nenhum dispositivo registrado</p>';
+                }
+            } catch (e) {
+                list.innerHTML = '<p class="text-xs text-red-500 text-center py-2">Erro ao carregar</p>';
+            }
+        }
+
+        // Preenche select de destinatários com usuários cadastrados
+        async function loadPushTargets() {
+            try {
+                const res = await API.getUsers();
+                if (res.success) {
+                    const select = document.getElementById('push-target');
+                    res.data.forEach(u => {
+                        const opt = document.createElement('option');
+                        opt.value = u.id;
+                        opt.textContent = u.full_name || u.username;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) {}
+        }
+        loadPushTargets();
+
+        async function sendPushNotification() {
+            const title = document.getElementById('push-title').value.trim() || 'Ondeline Tech';
+            const body = document.getElementById('push-body').value.trim();
+            const url = document.getElementById('push-url').value.trim() || '/dashboard.html';
+            const userId = document.getElementById('push-target').value || null;
+
+            if (!body) {
+                showError('Digite uma mensagem para enviar.');
+                return;
+            }
+
+            try {
+                const res = await API.sendPush(title, body, url, userId ? parseInt(userId) : null);
+                if (res.success) {
+                    showSuccess(res.message);
+                    document.getElementById('push-body').value = '';
+                } else {
+                    showError('Erro: ' + res.message);
+                }
+            } catch (e) {
+                showError('Erro ao enviar notificação.');
+            }
+        }
+
     </script>
 </body>
 </html>

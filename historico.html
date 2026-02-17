@@ -14,48 +14,48 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="css/transitions.css"/>
-<script id="tailwind-config">
-    tailwind.config = {
-        darkMode: "class",
-        theme: {
-            extend: {
-                colors: {
-                    "primary": "#135bec",
-                    "background-light": "#F2F2F7",
-                    "background-dark": "#000000",
-                    "card-light": "#FFFFFF",
-                    "card-dark": "#1C1C1E"
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#F2F2F7",
+                        "background-dark": "#000000",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#1C1C1E"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "ios": "12px",
+                        "ios-lg": "16px",
+                        "ios-xl": "20px"
+                    }
                 },
-                fontFamily: {
-                    "display": ["Inter", "sans-serif"]
-                },
-                borderRadius: {
-                    "ios": "12px",
-                    "ios-lg": "16px",
-                    "ios-xl": "20px"
-                }
             },
-        },
-    }
-</script>
-<style type="text/tailwindcss">
-    @layer base {
-        body {
-            @apply bg-background-light dark:bg-background-dark font-display text-[#000000] dark:text-white antialiased;
-            -webkit-tap-highlight-color: transparent;
         }
-    }
-    .ios-blur {
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-    }
-    .safe-bottom {
-        padding-bottom: env(safe-area-inset-bottom);
-    }
-    .safe-top {
-        padding-top: env(safe-area-inset-top);
-    }
-</style>
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-background-light dark:bg-background-dark font-display text-[#000000] dark:text-white antialiased;
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .safe-top {
+            padding-top: env(safe-area-inset-top);
+        }
+    </style>
 <style>
     body { min-height: max(884px, 100dvh); }
     .progress-ring {

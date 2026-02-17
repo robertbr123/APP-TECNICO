@@ -92,8 +92,60 @@ const App = {
                 });
                 if (registration.waiting) registration.waiting.postMessage('skipWaiting');
                 registration.update();
+
+                // Escuta mensagens do SW para sync offline
+                navigator.serviceWorker.addEventListener('message', function(event) {
+                    if (event.data && event.data.type === 'SYNC_OFFLINE' && typeof syncOfflineQueue === 'function') {
+                        syncOfflineQueue();
+                    }
+                });
+
+                // Tenta registrar push subscription após login
+                if (API.isAuthenticated()) {
+                    this.subscribePush(registration);
+                }
             } catch (error) { /* SW registration failed */ }
         }
+    },
+
+    // Registra subscription de push notifications
+    async subscribePush(registration) {
+        if (!('PushManager' in window)) return;
+        if (!('Notification' in window)) return;
+
+        try {
+            // Solicita permissão apenas se ainda não foi decidido
+            if (Notification.permission === 'denied') return;
+
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') return;
+
+            const vapidPublicKey = 'COLE_SUA_CHAVE_PUBLICA_AQUI';
+            if (vapidPublicKey === 'COLE_SUA_CHAVE_PUBLICA_AQUI') return; // Chaves não configuradas
+
+            let subscription = await registration.pushManager.getSubscription();
+            if (!subscription) {
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
+                });
+            }
+
+            await API.subscribePush(subscription);
+        } catch (err) {
+            // Push subscription falhou silenciosamente (normal em alguns browsers)
+        }
+    },
+
+    urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; i++) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
     },
 
     // ==========================================
