@@ -120,8 +120,7 @@ const App = {
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') return;
 
-            const vapidPublicKey = 'COLE_SUA_CHAVE_PUBLICA_AQUI';
-            if (vapidPublicKey === 'COLE_SUA_CHAVE_PUBLICA_AQUI') return; // Chaves não configuradas
+            const vapidPublicKey = 'BCxBeZ9LpHe2nfk3QMHYdNrXdxB7E2hyIefVm7u6yGN5js0nvxXiNGRQE8FZC5E5MiHzqHDSAl1JIkvRrw25iMU';
 
             let subscription = await registration.pushManager.getSubscription();
             if (!subscription) {

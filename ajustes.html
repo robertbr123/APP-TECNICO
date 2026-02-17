@@ -215,35 +215,36 @@
 <script>
 // Carregar versão do Service Worker
 async function loadAppVersion() {
+    const el = document.getElementById('app-version');
+    if (!el) return;
     try {
-        const registration = await navigator.serviceWorker?.getRegistration();
+        if (!('serviceWorker' in navigator)) {
+            el.textContent = 'v25.0';
+            return;
+        }
+        // Aguarda o SW ficar ativo (até 3 segundos)
+        const registration = await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+        ]);
+
         if (registration && registration.active) {
-            // Criar um canal de mensagem para perguntar ao SW a versão
             const messageChannel = new MessageChannel();
             const versionPromise = new Promise((resolve) => {
                 messageChannel.port1.onmessage = (event) => {
-                    if (event.data && event.data.version) {
-                        resolve(event.data.version);
-                    } else {
-                        resolve('v16'); // fallback
-                    }
+                    resolve((event.data && event.data.version) ? event.data.version : 'v25.0');
                 };
             });
-            
-            // Timeout de 1 segundo
-            const timeoutPromise = new Promise((resolve) => {
-                setTimeout(() => resolve(null), 1000);
-            });
-            
+            const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 2000));
+
             registration.active.postMessage({ type: 'GET_VERSION' }, [messageChannel.port2]);
             const version = await Promise.race([versionPromise, timeoutPromise]);
-            document.getElementById('app-version').textContent = version || 'v24.3';
+            el.textContent = version || 'v25.0';
         } else {
-            document.getElementById('app-version').textContent = 'v18';
+            el.textContent = 'v25.0';
         }
     } catch (e) {
-        console.log('[Ajustes] Erro ao carregar versão:', e);
-        document.getElementById('app-version').textContent = 'v18';
+        el.textContent = 'v25.0';
     }
 }
 
