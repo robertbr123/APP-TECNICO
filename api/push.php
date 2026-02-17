@@ -201,6 +201,7 @@ function handleList() {
 
 // =====================================================
 // Envio de Push via Web Push Protocol (sem Composer)
+// Implementação completa com encriptação RFC 8291
 // =====================================================
 
 function sendPushNotification($endpoint, $p256dh, $auth, $payload) {
@@ -212,23 +213,34 @@ function sendPushNotification($endpoint, $p256dh, $auth, $payload) {
         return false;
     }
 
+    // Encripta o payload usando as chaves do cliente
+    $encrypted = encryptPayload($payload, $p256dh, $auth);
+    
+    if (!$encrypted) {
+        Logger::warning("Falha ao encriptar payload");
+        return false;
+    }
+
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_POSTFIELDS => $encrypted['ciphertext'],
         CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen($payload),
+            'Content-Type: application/octet-stream',
+            'Content-Encoding: aes128gcm',
+            'Content-Length: ' . strlen($encrypted['ciphertext']),
             'TTL: 86400',
+            'Urgency: normal',
             'Authorization: vapid t=' . $vapidHeaders['token'] . ', k=' . $vapidHeaders['publicKey'],
         ],
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 10,
-        CURLOPT_SSL_VERIFYPEER => false
+        CURLOPT_SSL_VERIFYPEER => true
     ]);
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
 
     if ($httpCode >= 200 && $httpCode < 300) {
@@ -237,8 +249,161 @@ function sendPushNotification($endpoint, $p256dh, $auth, $payload) {
         return 'expired'; // Subscription expirada
     }
 
-    Logger::warning("Push failed", ['httpCode' => $httpCode, 'endpoint' => substr($endpoint, 0, 80)]);
+    Logger::warning("Push failed", [
+        'httpCode' => $httpCode, 
+        'endpoint' => substr($endpoint, 0, 80),
+        'response' => substr($response, 0, 200),
+        'curlError' => $curlError
+    ]);
     return false;
+}
+
+/**
+ * Encripta o payload usando RFC 8291 (aes128gcm)
+ */
+function encryptPayload($payload, $userPublicKey, $userAuthToken) {
+    // Decodifica as chaves do cliente
+    $userPublicKeyBytes = base64_decode(strtr($userPublicKey, '-_', '+/'));
+    $userAuthTokenBytes = base64_decode(strtr($userAuthToken, '-_', '+/'));
+
+    if (strlen($userPublicKeyBytes) !== 65 || strlen($userAuthTokenBytes) !== 16) {
+        Logger::warning("Chaves do cliente inválidas", [
+            'pubKeyLen' => strlen($userPublicKeyBytes),
+            'authLen' => strlen($userAuthTokenBytes)
+        ]);
+        return null;
+    }
+
+    // Gera par de chaves ECDH do servidor
+    $serverKey = openssl_pkey_new([
+        'curve_name' => 'prime256v1',
+        'private_key_type' => OPENSSL_KEYTYPE_EC
+    ]);
+
+    if (!$serverKey) {
+        Logger::error("Falha ao gerar chave ECDH do servidor");
+        return null;
+    }
+
+    $serverKeyDetails = openssl_pkey_get_details($serverKey);
+    $serverPublicKeyBytes = chr(0x04) . str_pad($serverKeyDetails['ec']['x'], 32, "\x00", STR_PAD_LEFT) 
+                                      . str_pad($serverKeyDetails['ec']['y'], 32, "\x00", STR_PAD_LEFT);
+
+    // Extrai coordenadas da chave pública do cliente
+    $userX = substr($userPublicKeyBytes, 1, 32);
+    $userY = substr($userPublicKeyBytes, 33, 32);
+
+    // Cria chave pública do cliente no formato PEM para ECDH
+    $userPubKeyPem = createECPublicKeyPem($userX, $userY);
+    if (!$userPubKeyPem) {
+        return null;
+    }
+
+    // Deriva o shared secret via ECDH
+    $sharedSecret = '';
+    if (!openssl_pkey_derive($sharedSecret, $serverKey, openssl_pkey_get_public($userPubKeyPem))) {
+        Logger::error("Falha no ECDH derive");
+        return null;
+    }
+
+    // Gera salt aleatório (16 bytes)
+    $salt = random_bytes(16);
+
+    // Deriva as chaves usando HKDF (RFC 8291)
+    // IKM = ECDH(server_private, user_public)
+    // PRK = HKDF-Extract(auth_secret, IKM)
+    $ikm = $sharedSecret;
+    $prk = hash_hmac('sha256', $ikm, $userAuthTokenBytes, true);
+
+    // info = "WebPush: info\x00" || user_public || server_public
+    $keyInfo = "WebPush: info\x00" . $userPublicKeyBytes . $serverPublicKeyBytes;
+    $ikm2 = hkdfExpand($prk, $keyInfo, 32);
+
+    // Deriva CEK e nonce
+    $prk2 = hash_hmac('sha256', $ikm2, $salt, true);
+    
+    $cekInfo = "Content-Encoding: aes128gcm\x00";
+    $cek = hkdfExpand($prk2, $cekInfo, 16);
+    
+    $nonceInfo = "Content-Encoding: nonce\x00";
+    $nonce = hkdfExpand($prk2, $nonceInfo, 12);
+
+    // Adiciona padding ao payload (1 byte de delimitador + padding)
+    $paddedPayload = $payload . "\x02";
+
+    // Encripta com AES-128-GCM
+    $tag = '';
+    $ciphertext = openssl_encrypt(
+        $paddedPayload,
+        'aes-128-gcm',
+        $cek,
+        OPENSSL_RAW_DATA,
+        $nonce,
+        $tag,
+        '',
+        16
+    );
+
+    if ($ciphertext === false) {
+        Logger::error("Falha na encriptação AES-GCM");
+        return null;
+    }
+
+    // Monta o header do aes128gcm: salt (16) + rs (4) + idlen (1) + keyid (65)
+    $rs = pack('N', 4096); // record size
+    $idlen = chr(65); // length of public key
+    
+    $header = $salt . $rs . $idlen . $serverPublicKeyBytes;
+    $body = $ciphertext . $tag;
+
+    return [
+        'ciphertext' => $header . $body,
+        'serverPublicKey' => base64_encode($serverPublicKeyBytes)
+    ];
+}
+
+/**
+ * HKDF-Expand (RFC 5869)
+ */
+function hkdfExpand($prk, $info, $length) {
+    $t = '';
+    $output = '';
+    $counter = 1;
+    
+    while (strlen($output) < $length) {
+        $t = hash_hmac('sha256', $t . $info . chr($counter), $prk, true);
+        $output .= $t;
+        $counter++;
+    }
+    
+    return substr($output, 0, $length);
+}
+
+/**
+ * Cria uma chave pública EC no formato PEM
+ */
+function createECPublicKeyPem($x, $y) {
+    // OID para P-256 (prime256v1/secp256r1)
+    $oid = "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07";
+    $algo = "\x06\x07\x2a\x86\x48\xce\x3d\x02\x01";
+    
+    // Public key point (uncompressed)
+    $point = "\x04" . $x . $y;
+    
+    // BitString wrapper
+    $bitString = "\x03" . chr(strlen($point) + 1) . "\x00" . $point;
+    
+    // AlgorithmIdentifier
+    $algId = "\x30" . chr(strlen($algo) + strlen($oid)) . $algo . $oid;
+    
+    // SubjectPublicKeyInfo
+    $spki = "\x30" . chr(strlen($algId) + strlen($bitString)) . $algId . $bitString;
+    
+    $pem = "-----BEGIN PUBLIC KEY-----\n" .
+           chunk_split(base64_encode($spki), 64) .
+           "-----END PUBLIC KEY-----\n";
+    
+    return $pem;
 }
 
 function generateVapidHeaders($endpoint) {

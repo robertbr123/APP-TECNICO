@@ -100,9 +100,13 @@ const App = {
                     }
                 });
 
-                // Mostra banner para ativar notificações (requer gesto do usuário)
-                if (API.isAuthenticated() && Notification.permission === 'default') {
-                    this.showPushBanner(registration);
+                // Mostra banner para ativar notificações após pequeno delay (requer gesto do usuário)
+                // Só mostra no dashboard para não ser intrusivo
+                const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+                if (API.isAuthenticated() && currentPage === 'dashboard.html') {
+                    setTimeout(() => {
+                        this.showPushBanner(registration);
+                    }, 1500); // Delay de 1.5s para não parecer spam
                 }
             } catch (error) { /* SW registration failed */ }
         }
@@ -138,13 +142,30 @@ const App = {
 
     // Exibe banner fixo pedindo permissão para notificações (requer clique do usuário)
     showPushBanner(registration) {
+        // Verifica se o navegador suporta push
         if (!('PushManager' in window) || !('Notification' in window)) return;
+        
+        // Não mostra se já existe banner
         if (document.getElementById('push-banner')) return;
-        if (localStorage.getItem('push-banner-dismissed')) return;
+        
+        // Não mostra se permissão já foi concedida ou negada definitivamente
+        if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
+        
+        // Limpa flag antiga se existir
+        if (localStorage.getItem('push-banner-dismissed')) {
+            localStorage.removeItem('push-banner-dismissed');
+        }
+        
+        // Verifica se o usuário já dismissiu o banner recentemente (24 horas)
+        const dismissedAt = localStorage.getItem('push-banner-dismissed-at');
+        if (dismissedAt) {
+            const hoursSinceDismiss = (Date.now() - parseInt(dismissedAt)) / (1000 * 60 * 60);
+            if (hoursSinceDismiss < 24) return; // Espera 24h antes de mostrar novamente
+        }
 
         const banner = document.createElement('div');
         banner.id = 'push-banner';
-        banner.className = 'fixed bottom-20 left-4 right-4 bg-blue-600 text-white rounded-2xl p-4 z-40 flex items-center gap-3 shadow-lg';
+        banner.className = 'fixed bottom-20 left-4 right-4 bg-blue-600 text-white rounded-2xl p-4 z-40 flex items-center gap-3 shadow-lg animate-slide-up';
         banner.innerHTML = `
             <span class="material-symbols-outlined text-2xl flex-shrink-0">notifications</span>
             <div class="flex-1">
@@ -158,10 +179,12 @@ const App = {
 
         document.getElementById('push-banner-dismiss').addEventListener('click', () => {
             banner.remove();
-            localStorage.setItem('push-banner-dismissed', '1');
+            localStorage.setItem('push-banner-dismissed-at', Date.now().toString());
         });
         document.getElementById('push-banner-allow').addEventListener('click', async () => {
             banner.remove();
+            localStorage.removeItem('push-banner-dismissed'); // Remove flag antiga
+            localStorage.removeItem('push-banner-dismissed-at');
             await this.subscribePush(registration);
         });
     },

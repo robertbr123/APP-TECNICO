@@ -149,6 +149,24 @@
         <!-- Push Notifications Panel -->
         <div id="panel-push" class="tab-content hidden">
             <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm space-y-4">
+                <!-- Status e Ativar Notificações -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-blue-500">notifications</span>
+                            <span class="font-medium text-sm">Notificações neste dispositivo</span>
+                        </div>
+                        <span id="push-permission-status" class="text-xs px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-600">Verificando...</span>
+                    </div>
+                    <p id="push-permission-help" class="text-xs text-gray-500 mb-3"></p>
+                    <button id="btn-enable-push" onclick="enablePushNotifications()" class="w-full py-2 bg-blue-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50">
+                        <span class="material-symbols-outlined text-sm">notifications_active</span>
+                        Ativar Notificações
+                    </button>
+                </div>
+
+                <hr class="border-gray-200 dark:border-gray-700">
+
                 <h3 class="font-semibold text-gray-900 dark:text-white">Enviar Notificação Push</h3>
 
                 <div class="space-y-3">
@@ -307,6 +325,13 @@
     <script src="js/feedback.js"></script>
     <script src="js/components.js"></script>
     <script>
+        // Registra Service Worker (necessário para push notifications)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(err => {
+                console.warn('SW registration failed:', err);
+            });
+        }
+
         // Verifica admin
         const user = API.getUser();
         if (!user || user.role !== 'admin') {
@@ -682,6 +707,114 @@
         // ==============================
         // Push Notifications
         // ==============================
+
+        // VAPID Public Key (deve ser a mesma do servidor)
+        const VAPID_PUBLIC_KEY = 'BCxBeZ9LpHe2nfk3QMHYdNrXdxB7E2hyIefVm7u6yGN5js0nvxXiNGRQE8FZC5E5MiHzqHDSAl1JIkvRrw25iMU';
+
+        // Verifica o status da permissão de notificações
+        function checkPushPermission() {
+            const statusEl = document.getElementById('push-permission-status');
+            const helpEl = document.getElementById('push-permission-help');
+            const btnEl = document.getElementById('btn-enable-push');
+
+            if (!('Notification' in window) || !('PushManager' in window)) {
+                statusEl.textContent = 'Não suportado';
+                statusEl.className = 'text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+                helpEl.textContent = 'Seu navegador não suporta notificações push.';
+                btnEl.disabled = true;
+                btnEl.classList.add('hidden');
+                return;
+            }
+
+            const permission = Notification.permission;
+
+            if (permission === 'granted') {
+                statusEl.textContent = 'Ativado';
+                statusEl.className = 'text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+                helpEl.textContent = 'Notificações ativas neste dispositivo.';
+                btnEl.textContent = 'Reativar Notificações';
+                btnEl.innerHTML = '<span class="material-symbols-outlined text-sm">refresh</span> Reativar Notificações';
+            } else if (permission === 'denied') {
+                statusEl.textContent = 'Bloqueado';
+                statusEl.className = 'text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+                helpEl.textContent = 'Permissão bloqueada. Vá em Configurações do navegador > Site > Notificações para desbloquear.';
+                btnEl.disabled = true;
+                btnEl.classList.add('opacity-50');
+            } else {
+                statusEl.textContent = 'Desativado';
+                statusEl.className = 'text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+                helpEl.textContent = 'Clique no botão abaixo para ativar notificações.';
+            }
+        }
+
+        // Converte base64 para Uint8Array (para applicationServerKey)
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; i++) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        // Ativa notificações push
+        async function enablePushNotifications() {
+            const btnEl = document.getElementById('btn-enable-push');
+            btnEl.disabled = true;
+            btnEl.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">progress_activity</span> Ativando...';
+
+            try {
+                // 1. Solicita permissão
+                const permission = await Notification.requestPermission();
+                
+                if (permission !== 'granted') {
+                    showError('Permissão de notificação negada.');
+                    checkPushPermission();
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = '<span class="material-symbols-outlined text-sm">notifications_active</span> Ativar Notificações';
+                    return;
+                }
+
+                // 2. Verifica se Service Worker está registrado
+                const registration = await navigator.serviceWorker.ready;
+
+                // 3. Obtém ou cria subscription
+                let subscription = await registration.pushManager.getSubscription();
+                
+                if (!subscription) {
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                    });
+                }
+
+                // 4. Envia subscription para o servidor
+                const res = await API.subscribePush(subscription);
+
+                if (res.success) {
+                    showSuccess('Notificações ativadas com sucesso!');
+                    // Remove flags de dismissed do localStorage
+                    localStorage.removeItem('push-banner-dismissed');
+                    localStorage.removeItem('push-banner-dismissed-at');
+                    loadPushSubscriptions();
+                } else {
+                    showError('Erro ao registrar: ' + res.message);
+                }
+
+            } catch (err) {
+                console.error('Erro ao ativar push:', err);
+                showError('Erro ao ativar notificações: ' + err.message);
+            }
+
+            checkPushPermission();
+            btnEl.disabled = false;
+            btnEl.innerHTML = '<span class="material-symbols-outlined text-sm">notifications_active</span> Ativar Notificações';
+        }
+
+        // Verifica permissão ao carregar a página
+        checkPushPermission();
 
         async function loadPushSubscriptions() {
             const list = document.getElementById('push-subs-list');
