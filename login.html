@@ -484,8 +484,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (data.success && data.token) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                localStorage.setItem('auth_token', data.token);
+                localStorage.setItem('user_data', JSON.stringify(data.user));
                 showToast('Login realizado com sucesso!', true);
                 
                 // Haptic feedback
@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Check if already logged in
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     if (token) {
         window.location.href = 'dashboard.html';
     }
