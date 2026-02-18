@@ -7,7 +7,7 @@
 
 const AppComponents = {
     /**
-     * Renderiza a bottom navigation bar
+     * Renderiza a bottom navigation bar com estilo Glassmorphism/Bento Grid
      * Substitui <nav id="bottom-nav"></nav> com a nav completa
      */
     renderBottomNav() {
@@ -26,40 +26,59 @@ const AppComponents = {
 
         const links = items.map(item => {
             const isActive = currentPage === item.href;
-            const colorClass = isActive ? 'text-primary' : 'text-gray-400 dark:text-gray-500';
-            const fontClass = isActive ? 'font-semibold' : 'font-medium';
-            const fillValue = isActive ? '1' : '0';
-            const scaleClass = isActive ? 'scale-110' : '';
-
-            return `<a class="nav-link flex flex-col items-center gap-0.5 ${colorClass} transition-all duration-200" href="${item.href}" data-nav-item>` +
-                `<span class="material-symbols-outlined text-[26px] nav-icon ${scaleClass}" style="font-variation-settings: 'FILL' ${fillValue}; transition: font-variation-settings 0.3s ease, transform 0.2s ease">${item.icon}</span>` +
-                `<span class="text-[10px] ${fontClass} transition-all duration-200">${item.label}</span>` +
-                `</a>`;
+            
+            if (isActive) {
+                // Item ativo com pill glassmorphism
+                return `<a class="nav-item-active relative flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-gradient-to-br from-primary/20 to-blue-500/10 border border-primary/30 shadow-lg shadow-primary/20 transition-all duration-300" href="${item.href}" data-nav-item>` +
+                    `<div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-transparent"></div>` +
+                    `<span class="material-symbols-outlined text-primary text-[26px] relative z-10 drop-shadow-sm" style="font-variation-settings: 'FILL' 1">${item.icon}</span>` +
+                    `<span class="text-[10px] font-bold text-primary relative z-10 mt-0.5">${item.label}</span>` +
+                    `</a>`;
+            } else {
+                // Item inativo minimalista
+                return `<a class="nav-item flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-all duration-300 hover:bg-gray-100 dark:hover:bg-white/5 active:scale-95" href="${item.href}" data-nav-item>` +
+                    `<span class="material-symbols-outlined nav-icon text-gray-400 dark:text-gray-500 text-[24px] transition-all duration-300" style="font-variation-settings: 'FILL' 0">${item.icon}</span>` +
+                    `<span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 mt-0.5 transition-colors duration-300">${item.label}</span>` +
+                    `</a>`;
+            }
         }).join('\n');
 
-        // Link de admin (oculto por padrão)
-        const adminLink = `<a id="nav-admin" class="hidden flex flex-col items-center gap-0.5 text-gray-400 dark:text-gray-500" href="admin.html">` +
-            `<span class="material-symbols-outlined text-[26px]">admin_panel_settings</span>` +
-            `<span class="text-[10px] font-medium">Admin</span>` +
-            `</a>`;
+        // Container com glassmorphism
+        container.className = 'fixed bottom-0 left-0 right-0 z-50 safe-bottom';
+        container.innerHTML = `
+            <div class="mx-3 mb-3 px-2 py-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-white/10 rounded-3xl shadow-2xl shadow-black/10 dark:shadow-black/40">
+                <div class="flex justify-around items-center">
+                    ${links}
+                </div>
+            </div>
+        `;
 
-        container.className = 'fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-black/80 ios-blur border-t border-gray-200 dark:border-white/10 safe-bottom z-50';
-        container.innerHTML = `<div class="flex justify-around items-center h-16">\n${links}\n${adminLink}\n</div>`;
-
-        // Adiciona efeito de hover/touch nos links
-        container.querySelectorAll('[data-nav-item]').forEach(link => {
+        // Adiciona efeitos de hover/touch nos links inativos
+        container.querySelectorAll('.nav-item:not(.nav-item-active)').forEach(link => {
             link.addEventListener('mouseenter', () => {
                 const icon = link.querySelector('.nav-icon');
-                if (icon && !link.classList.contains('text-primary')) {
+                const label = link.querySelector('span:last-child');
+                if (icon) {
                     icon.style.fontVariationSettings = "'FILL' 0.5";
-                    icon.style.transform = 'scale(1.05)';
+                    icon.classList.remove('text-gray-400', 'dark:text-gray-500');
+                    icon.classList.add('text-gray-600', 'dark:text-gray-300');
+                }
+                if (label) {
+                    label.classList.remove('text-gray-400', 'dark:text-gray-500');
+                    label.classList.add('text-gray-600', 'dark:text-gray-300');
                 }
             });
             link.addEventListener('mouseleave', () => {
                 const icon = link.querySelector('.nav-icon');
-                if (icon && !link.classList.contains('text-primary')) {
+                const label = link.querySelector('span:last-child');
+                if (icon) {
                     icon.style.fontVariationSettings = "'FILL' 0";
-                    icon.style.transform = 'scale(1)';
+                    icon.classList.add('text-gray-400', 'dark:text-gray-500');
+                    icon.classList.remove('text-gray-600', 'dark:text-gray-300');
+                }
+                if (label) {
+                    label.classList.add('text-gray-400', 'dark:text-gray-500');
+                    label.classList.remove('text-gray-600', 'dark:text-gray-300');
                 }
             });
             // Haptic feedback ao clicar
@@ -70,14 +89,46 @@ const AppComponents = {
             });
         });
 
-        // Mostra admin se for administrador
+        // Haptic no item ativo também
+        container.querySelectorAll('.nav-item-active').forEach(link => {
+            link.addEventListener('click', () => {
+                if (typeof UIEnhancements !== 'undefined') {
+                    UIEnhancements.hapticLight();
+                }
+            });
+        });
+
+        // Verifica admin e adiciona link se necessário
+        this._checkAdminAccess(container);
+    },
+
+    /**
+     * Verifica se usuário é admin e adiciona link de admin na nav
+     */
+    _checkAdminAccess(container) {
         try {
-            var userData = localStorage.getItem('user_data');
+            const userData = localStorage.getItem('user') || localStorage.getItem('user_data');
             if (userData) {
-                var user = JSON.parse(userData);
+                const user = JSON.parse(userData);
                 if (user.role === 'admin') {
-                    var adminEl = document.getElementById('nav-admin');
-                    if (adminEl) adminEl.classList.remove('hidden');
+                    const navContainer = container.querySelector('.flex.justify-around');
+                    if (navContainer) {
+                        const currentPage = window.location.pathname.split('/').pop();
+                        const isActive = currentPage === 'admin.html';
+                        
+                        const adminLink = isActive 
+                            ? `<a class="nav-item-active relative flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-gradient-to-br from-purple-500/20 to-violet-500/10 border border-purple-500/30 shadow-lg shadow-purple-500/20 transition-all duration-300" href="admin.html" data-nav-item>` +
+                                `<div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500/5 to-transparent"></div>` +
+                                `<span class="material-symbols-outlined text-purple-500 text-[26px] relative z-10 drop-shadow-sm" style="font-variation-settings: 'FILL' 1">admin_panel_settings</span>` +
+                                `<span class="text-[10px] font-bold text-purple-500 relative z-10 mt-0.5">Admin</span>` +
+                                `</a>`
+                            : `<a class="nav-item flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-all duration-300 hover:bg-gray-100 dark:hover:bg-white/5 active:scale-95" href="admin.html" data-nav-item>` +
+                                `<span class="material-symbols-outlined nav-icon text-gray-400 dark:text-gray-500 text-[24px] transition-all duration-300" style="font-variation-settings: 'FILL' 0">admin_panel_settings</span>` +
+                                `<span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 mt-0.5 transition-colors duration-300">Admin</span>` +
+                                `</a>`;
+                        
+                        navContainer.insertAdjacentHTML('beforeend', adminLink);
+                    }
                 }
             }
         } catch (e) { /* ignore */ }

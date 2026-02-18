@@ -116,15 +116,35 @@
 </header>
 
 <main class="pb-32">
-<!-- Filtros -->
-<div class="bg-white dark:bg-card-dark px-4 py-3 border-b border-gray-100 dark:border-white/5 overflow-x-auto">
+<!-- Filtros com glassmorphism -->
+<div class="bg-white/80 dark:bg-card-dark/80 backdrop-blur-xl px-4 py-3 border-b border-gray-100/50 dark:border-white/5 overflow-x-auto">
 <div class="flex gap-2 min-w-max items-center">
-<button class="filter-btn active px-3 py-1.5 rounded-full text-sm font-medium bg-primary text-white" data-filter="all">Todos</button>
-<button class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="active">Ativos</button>
-<button class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="pending">Pendentes</button>
-<button class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="inactive">Inativos</button>
-<button id="btn-reload" class="ml-auto px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-600 flex items-center gap-1" onclick="loadClients()">
-    <span class="material-symbols-outlined text-base">refresh</span>
+<button class="filter-btn active px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-primary to-blue-500 text-white shadow-lg shadow-primary/30 transition-all" data-filter="all">
+    <span class="flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">grid_view</span>
+        Todos
+    </span>
+</button>
+<button class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 transition-all" data-filter="active">
+    <span class="flex items-center gap-1.5">
+        <span class="size-2 rounded-full bg-green-500"></span>
+        Ativos
+    </span>
+</button>
+<button class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 transition-all" data-filter="pending">
+    <span class="flex items-center gap-1.5">
+        <span class="size-2 rounded-full bg-orange-500"></span>
+        Pendentes
+    </span>
+</button>
+<button class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 transition-all" data-filter="inactive">
+    <span class="flex items-center gap-1.5">
+        <span class="size-2 rounded-full bg-red-500"></span>
+        Inativos
+    </span>
+</button>
+<button id="btn-reload" class="ml-auto px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/30 flex items-center gap-1.5 hover:shadow-blue-500/50 transition-all btn-press" onclick="loadClients()">
+    <span class="material-symbols-outlined text-lg">refresh</span>
     Atualizar
 </button>
 </div>
@@ -133,24 +153,26 @@
 <!-- Mapa -->
 <div id="map"></div>
 
-<!-- Estatísticas -->
-<div class="fixed bottom-16 left-0 right-0 bg-white/90 dark:bg-card-dark/80 backdrop-blur-md border-t border-gray-100 dark:border-white/5 p-4 z-30">
-<div class="flex items-center justify-around">
-<div class="text-center">
-<p class="text-2xl font-bold text-[#000000] dark:text-white" id="stat-total">0</p>
-<p class="text-xs text-gray-500 dark:text-gray-400">Total</p>
+<!-- Estatísticas com glassmorphism -->
+<div class="fixed bottom-20 left-3 right-3 z-30">
+<div class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/40 p-4">
+<div class="grid grid-cols-4 gap-3">
+<div class="text-center p-2 rounded-xl bg-gray-50/50 dark:bg-white/5">
+<p class="text-2xl font-bold bg-gradient-to-br from-gray-700 to-gray-900 dark:from-white dark:to-gray-300 bg-clip-text text-transparent" id="stat-total">0</p>
+<p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</p>
 </div>
-<div class="text-center">
+<div class="text-center p-2 rounded-xl bg-green-50/50 dark:bg-green-500/10">
 <p class="text-2xl font-bold text-green-600" id="stat-active">0</p>
-<p class="text-xs text-gray-500 dark:text-gray-400">Ativos</p>
+<p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ativos</p>
 </div>
-<div class="text-center">
+<div class="text-center p-2 rounded-xl bg-orange-50/50 dark:bg-orange-500/10">
 <p class="text-2xl font-bold text-orange-500" id="stat-pending">0</p>
-<p class="text-xs text-gray-500 dark:text-gray-400">Pendentes</p>
+<p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pendentes</p>
 </div>
-<div class="text-center">
+<div class="text-center p-2 rounded-xl bg-blue-50/50 dark:bg-blue-500/10">
 <p class="text-2xl font-bold text-blue-600" id="stat-with-location">0</p>
-<p class="text-xs text-gray-500 dark:text-gray-400">Com GPS</p>
+<p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Com GPS</p>
+</div>
 </div>
 </div>
 </div>
@@ -164,6 +186,7 @@
 <script src="js/components.js"></script>
 <script src="js/app.js"></script>
 <script src="js/feedback.js"></script>
+<script src="js/ui-enhancements.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
     let map = null;
@@ -299,16 +322,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         btn.addEventListener('click', () => {
             // Remove classe ativa de todos
             document.querySelectorAll('.filter-btn').forEach(b => {
-                b.classList.remove('active', 'bg-primary', 'text-white');
-                b.classList.add('bg-gray-100', 'text-gray-600');
+                b.classList.remove('active', 'bg-gradient-to-r', 'from-primary', 'to-blue-500', 'text-white', 'shadow-lg', 'shadow-primary/30', 'font-semibold');
+                b.classList.add('bg-white/60', 'dark:bg-gray-800/60', 'border', 'border-gray-200/50', 'dark:border-white/10', 'text-gray-600', 'dark:text-gray-400', 'font-medium');
             });
 
             // Adiciona classe ativa ao clicado
-            btn.classList.add('active', 'bg-primary', 'text-white');
-            btn.classList.remove('bg-gray-100', 'text-gray-600');
+            btn.classList.add('active', 'bg-gradient-to-r', 'from-primary', 'to-blue-500', 'text-white', 'shadow-lg', 'shadow-primary/30', 'font-semibold');
+            btn.classList.remove('bg-white/60', 'dark:bg-gray-800/60', 'border', 'border-gray-200/50', 'dark:border-white/10', 'text-gray-600', 'dark:text-gray-400', 'font-medium');
 
             currentFilter = btn.dataset.filter;
             filterClients();
+            
+            // Haptic feedback
+            if (typeof UIEnhancements !== 'undefined') {
+                UIEnhancements.hapticLight();
+            }
         });
     });
 
