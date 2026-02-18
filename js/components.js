@@ -28,11 +28,12 @@ const AppComponents = {
             const isActive = currentPage === item.href;
             const colorClass = isActive ? 'text-primary' : 'text-gray-400 dark:text-gray-500';
             const fontClass = isActive ? 'font-semibold' : 'font-medium';
-            const fillStyle = isActive ? ' style="font-variation-settings: \'FILL\' 1"' : '';
+            const fillValue = isActive ? '1' : '0';
+            const scaleClass = isActive ? 'scale-110' : '';
 
-            return `<a class="flex flex-col items-center gap-0.5 ${colorClass}" href="${item.href}">` +
-                `<span class="material-symbols-outlined text-[26px]"${fillStyle}>${item.icon}</span>` +
-                `<span class="text-[10px] ${fontClass}">${item.label}</span>` +
+            return `<a class="nav-link flex flex-col items-center gap-0.5 ${colorClass} transition-all duration-200" href="${item.href}" data-nav-item>` +
+                `<span class="material-symbols-outlined text-[26px] nav-icon ${scaleClass}" style="font-variation-settings: 'FILL' ${fillValue}; transition: font-variation-settings 0.3s ease, transform 0.2s ease">${item.icon}</span>` +
+                `<span class="text-[10px] ${fontClass} transition-all duration-200">${item.label}</span>` +
                 `</a>`;
         }).join('\n');
 
@@ -44,6 +45,30 @@ const AppComponents = {
 
         container.className = 'fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-black/80 ios-blur border-t border-gray-200 dark:border-white/10 safe-bottom z-50';
         container.innerHTML = `<div class="flex justify-around items-center h-16">\n${links}\n${adminLink}\n</div>`;
+
+        // Adiciona efeito de hover/touch nos links
+        container.querySelectorAll('[data-nav-item]').forEach(link => {
+            link.addEventListener('mouseenter', () => {
+                const icon = link.querySelector('.nav-icon');
+                if (icon && !link.classList.contains('text-primary')) {
+                    icon.style.fontVariationSettings = "'FILL' 0.5";
+                    icon.style.transform = 'scale(1.05)';
+                }
+            });
+            link.addEventListener('mouseleave', () => {
+                const icon = link.querySelector('.nav-icon');
+                if (icon && !link.classList.contains('text-primary')) {
+                    icon.style.fontVariationSettings = "'FILL' 0";
+                    icon.style.transform = 'scale(1)';
+                }
+            });
+            // Haptic feedback ao clicar
+            link.addEventListener('click', () => {
+                if (typeof UIEnhancements !== 'undefined') {
+                    UIEnhancements.hapticLight();
+                }
+            });
+        });
 
         // Mostra admin se for administrador
         try {

@@ -301,6 +301,8 @@ Salvar Cadastro
 <!-- Scripts do App -->
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
+<script src="js/animations.js"></script>
+<script src="js/ui-enhancements.js"></script>
 <script src="js/geolocation.js"></script>
 <script src="js/feedback.js"></script>
 
@@ -708,13 +710,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (isEditMode) {
                         // No modo edição, retorna para detalher.html
-                        showSuccess(mensagem + ' Redirecionando para detalhes...');
-                        setTimeout(function() {
+                        Animations.success({ message: mensagem, duration: 1500, onComplete: function() {
                             window.location.href = 'detalher.html?cpf=' + encodeURIComponent(data.cpf.replace(/\D/g, ''));
-                        }, 1500);
+                        }});
                     } else {
-                        // No modo novo, vai para vincular equipamento
-                        showSuccess(mensagem + ' Redirecionando para vincular equipamento...');
+                        // No modo novo, vai para vincular equipamento - celebra!
+                        Animations.celebrate(mensagem);
                         
                         // Redireciona para vincular equipamento com dados do cliente
                         var enderecoParts = [];

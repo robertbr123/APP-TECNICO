@@ -3,7 +3,7 @@
  * Ondeline Tech - App do Técnico
  */
 
-const APP_VERSION = 'v25.1';
+const APP_VERSION = 'v27.0';
 const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
 const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
@@ -29,6 +29,8 @@ const STATIC_ASSETS = [
     '/manifest.json',
     '/js/api.js',
     '/js/app.js',
+    '/js/animations.js',
+    '/js/ui-enhancements.js',
     '/js/feedback.js',
     '/js/utils.js',
     '/js/geolocation.js',

@@ -1,6 +1,13 @@
-/* Transições Suaves entre Páginas */
+/* ============================================
+   ONDELINE TECH - PREMIUM UI TRANSITIONS
+   Modern iOS-style animations & effects
+   ============================================ */
 
-/* Animação de fade in ao carregar página */
+/* =====================================
+   1. BASE ANIMATIONS
+   ===================================== */
+
+/* Fade In com movimento suave */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -12,7 +19,19 @@
     }
 }
 
-/* Animação de slide in da direita */
+/* Fade In Scale - para modais e cards */
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Slide In Direita */
 @keyframes slideInRight {
     from {
         opacity: 0;
@@ -24,7 +43,7 @@
     }
 }
 
-/* Animação de slide in da esquerda */
+/* Slide In Esquerda */
 @keyframes slideInLeft {
     from {
         opacity: 0;
@@ -36,7 +55,7 @@
     }
 }
 
-/* Animação de scale in */
+/* Scale In */
 @keyframes scaleIn {
     from {
         opacity: 0;
@@ -48,37 +67,312 @@
     }
 }
 
-/* Aplica animação fade in no body */
+/* Bounce In - para elementos de destaque */
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Pop In - entrada com elasticidade */
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    80% {
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* =====================================
+   2. BODY & PAGE TRANSITIONS
+   ===================================== */
+
 body {
     animation: fadeIn 0.3s ease-out;
 }
 
-/* Classe para aplicar fade in */
 .fade-in {
     animation: fadeIn 0.3s ease-out forwards;
 }
 
-/* Classe para slide in da direita */
+.fade-in-scale {
+    animation: fadeInScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
 .slide-in-right {
     animation: slideInRight 0.3s ease-out forwards;
 }
 
-/* Classe para slide in da esquerda */
 .slide-in-left {
     animation: slideInLeft 0.3s ease-out forwards;
 }
 
-/* Classe para scale in */
 .scale-in {
     animation: scaleIn 0.25s ease-out forwards;
 }
 
-/* Transições em elementos interativos */
-a, button {
-    transition: all 0.2s ease;
+.bounce-in {
+    animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
 }
 
-/* Efeito hover suave em cards */
+.pop-in {
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* =====================================
+   3. SKELETON LOADING - PREMIUM
+   ===================================== */
+
+@keyframes skeletonShimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes skeletonPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Skeleton base com shimmer effect */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.06) 0%,
+        rgba(0, 0, 0, 0.03) 20%,
+        rgba(0, 0, 0, 0.06) 40%,
+        rgba(0, 0, 0, 0.06) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+.dark .skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.06) 0%,
+        rgba(255, 255, 255, 0.1) 20%,
+        rgba(255, 255, 255, 0.06) 40%,
+        rgba(255, 255, 255, 0.06) 100%
+    );
+    background-size: 200% 100%;
+}
+
+/* Skeleton Card completo */
+.skeleton-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    padding: 16px;
+    animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+.dark .skeleton-card {
+    background: rgba(28, 28, 30, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Skeleton Line */
+.skeleton-line {
+    height: 12px;
+    background: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.08) 0%,
+        rgba(0, 0, 0, 0.04) 50%,
+        rgba(0, 0, 0, 0.08) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s ease-in-out infinite;
+    border-radius: 6px;
+}
+
+.dark .skeleton-line {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0.1) 100%
+    );
+    background-size: 200% 100%;
+}
+
+/* Skeleton Circle (Avatar) */
+.skeleton-circle {
+    border-radius: 50%;
+    background: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.08) 0%,
+        rgba(0, 0, 0, 0.04) 50%,
+        rgba(0, 0, 0, 0.08) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+
+.dark .skeleton-circle {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0.1) 100%
+    );
+    background-size: 200% 100%;
+}
+
+/* =====================================
+   4. STAGGER ANIMATIONS - CASCATA
+   ===================================== */
+
+/* Lista com entrada em cascata */
+.stagger-list > * {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.stagger-list.loaded > * {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Delays para até 20 itens */
+.stagger-list.loaded > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger-list.loaded > *:nth-child(2) { animation-delay: 0.04s; }
+.stagger-list.loaded > *:nth-child(3) { animation-delay: 0.06s; }
+.stagger-list.loaded > *:nth-child(4) { animation-delay: 0.08s; }
+.stagger-list.loaded > *:nth-child(5) { animation-delay: 0.1s; }
+.stagger-list.loaded > *:nth-child(6) { animation-delay: 0.12s; }
+.stagger-list.loaded > *:nth-child(7) { animation-delay: 0.14s; }
+.stagger-list.loaded > *:nth-child(8) { animation-delay: 0.16s; }
+.stagger-list.loaded > *:nth-child(9) { animation-delay: 0.18s; }
+.stagger-list.loaded > *:nth-child(10) { animation-delay: 0.2s; }
+.stagger-list.loaded > *:nth-child(11) { animation-delay: 0.22s; }
+.stagger-list.loaded > *:nth-child(12) { animation-delay: 0.24s; }
+.stagger-list.loaded > *:nth-child(13) { animation-delay: 0.26s; }
+.stagger-list.loaded > *:nth-child(14) { animation-delay: 0.28s; }
+.stagger-list.loaded > *:nth-child(15) { animation-delay: 0.3s; }
+
+/* Stagger para Bento Grid */
+.bento-grid > * {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+}
+
+.bento-grid.loaded > * {
+    animation: fadeInScale 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.bento-grid.loaded > *:nth-child(1) { animation-delay: 0.05s; }
+.bento-grid.loaded > *:nth-child(2) { animation-delay: 0.1s; }
+.bento-grid.loaded > *:nth-child(3) { animation-delay: 0.15s; }
+.bento-grid.loaded > *:nth-child(4) { animation-delay: 0.2s; }
+.bento-grid.loaded > *:nth-child(5) { animation-delay: 0.25s; }
+.bento-grid.loaded > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* Classe legada mantida para compatibilidade */
+.stagger-item {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0.05s; }
+.stagger-item:nth-child(2) { animation-delay: 0.1s; }
+.stagger-item:nth-child(3) { animation-delay: 0.15s; }
+.stagger-item:nth-child(4) { animation-delay: 0.2s; }
+.stagger-item:nth-child(5) { animation-delay: 0.25s; }
+.stagger-item:nth-child(6) { animation-delay: 0.3s; }
+
+/* =====================================
+   5. MICRO-INTERAÇÕES
+   ===================================== */
+
+/* Transições base em elementos interativos */
+a, button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Botão com efeito de pressionar */
+.btn-press {
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.15s ease,
+                background-color 0.15s ease;
+}
+
+.btn-press:active {
+    transform: scale(0.96);
+}
+
+/* Efeito Ripple */
+.ripple {
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 50%;
+    left: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 60%);
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    transition: transform 0.5s ease, opacity 0.3s ease;
+}
+
+.ripple:active::after {
+    transform: translate(-50%, -50%) scale(4);
+    opacity: 1;
+    transition: transform 0s, opacity 0s;
+}
+
+/* Card interativo */
+.card-interactive {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.2s ease,
+                border-color 0.2s ease;
+    cursor: pointer;
+}
+
+.card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1),
+                0 4px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.card-interactive:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* Efeito hover suave em cards (legado) */
 .card-hover {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -88,20 +382,167 @@ a, button {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Transição de página suave */
-.page-transition {
-    opacity: 0;
-    animation: fadeIn 0.4s ease-out forwards;
+/* =====================================
+   6. GLASSMORPHISM 2.0
+   ===================================== */
+
+.glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
 }
 
-/* Transição de conteúdo */
-.content-transition {
-    opacity: 0;
-    transform: translateY(20px);
-    animation: fadeIn 0.5s ease-out 0.1s forwards;
+.dark .glass {
+    background: rgba(28, 28, 30, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Loading spinner suave */
+/* Glass Premium com gradiente sutil */
+.glass-premium {
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.8) 0%,
+        rgba(255, 255, 255, 0.6) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+        0 4px 30px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.dark .glass-premium {
+    background: linear-gradient(
+        135deg,
+        rgba(45, 45, 50, 0.8) 0%,
+        rgba(28, 28, 30, 0.6) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0 4px 30px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Glass com borda glow */
+.glass-glow {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(19, 91, 236, 0.2);
+    box-shadow: 
+        0 0 20px rgba(19, 91, 236, 0.1),
+        0 4px 30px rgba(0, 0, 0, 0.05);
+}
+
+.dark .glass-glow {
+    background: rgba(28, 28, 30, 0.7);
+    border: 1px solid rgba(19, 91, 236, 0.3);
+    box-shadow: 
+        0 0 20px rgba(19, 91, 236, 0.15),
+        0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* =====================================
+   7. SUCCESS & CELEBRATION ANIMATIONS
+   ===================================== */
+
+/* Check animado */
+@keyframes checkmark {
+    0% {
+        stroke-dashoffset: 100;
+    }
+    100% {
+        stroke-dashoffset: 0;
+    }
+}
+
+.animate-checkmark {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: checkmark 0.5s ease-out forwards;
+    animation-delay: 0.2s;
+}
+
+/* Circle fill para success */
+@keyframes circleFill {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-circle-fill {
+    animation: circleFill 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Confetti animation */
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+.confetti {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    top: 0;
+    z-index: 9999;
+    pointer-events: none;
+    animation: confetti-fall 3s ease-in forwards;
+}
+
+/* Pulse para badges/notificações */
+@keyframes pulse-ring {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1);
+        opacity: 0.4;
+    }
+    100% {
+        transform: scale(0.8);
+        opacity: 0.8;
+    }
+}
+
+.pulse-ring {
+    animation: pulse-ring 2s ease-in-out infinite;
+}
+
+/* Success shake (opcional) */
+@keyframes successShake {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-5deg); }
+    75% { transform: rotate(5deg); }
+}
+
+.animate-success-shake {
+    animation: successShake 0.3s ease;
+}
+
+/* =====================================
+   8. LOADING STATES
+   ===================================== */
+
+/* Spinner suave */
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -111,7 +552,106 @@ a, button {
     animation: spin 1s linear infinite;
 }
 
-/* Transições de navegação */
+/* Dots loading */
+@keyframes dotsLoading {
+    0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.loading-dots > span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: dotsLoading 1.4s ease-in-out infinite;
+}
+
+.loading-dots > span:nth-child(1) { animation-delay: 0s; }
+.loading-dots > span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots > span:nth-child(3) { animation-delay: 0.4s; }
+
+/* Progress bar shimmer */
+@keyframes progressShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.progress-shimmer {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: progressShimmer 1.5s infinite;
+}
+
+/* =====================================
+   9. MODAL & OVERLAY ANIMATIONS
+   ===================================== */
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+}
+
+@keyframes fadeInOverlay {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.animate-slide-down {
+    animation: slideDown 0.3s ease-in forwards;
+}
+
+.animate-overlay {
+    animation: fadeInOverlay 0.3s ease-out forwards;
+}
+
+/* Modal com backdrop */
+.modal-backdrop {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* =====================================
+   10. NAVIGATION & PAGE TRANSITIONS
+   ===================================== */
+
 .nav-item {
     position: relative;
     transition: color 0.2s ease;
@@ -134,43 +674,17 @@ a, button {
     width: 100%;
 }
 
-/* Stagger animation para listas */
-.stagger-item {
+.page-transition {
     opacity: 0;
-    transform: translateY(20px);
     animation: fadeIn 0.4s ease-out forwards;
 }
 
-.stagger-item:nth-child(1) { animation-delay: 0.05s; }
-.stagger-item:nth-child(2) { animation-delay: 0.1s; }
-.stagger-item:nth-child(3) { animation-delay: 0.15s; }
-.stagger-item:nth-child(4) { animation-delay: 0.2s; }
-.stagger-item:nth-child(5) { animation-delay: 0.25s; }
-.stagger-item:nth-child(6) { animation-delay: 0.3s; }
-
-/* Transição de scroll suave */
-html {
-    scroll-behavior: smooth;
+.content-transition {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeIn 0.5s ease-out 0.1s forwards;
 }
 
-/* Skeleton loading animation */
-@keyframes skeleton-loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-.skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: skeleton-loading 1.5s infinite;
-}
-
-.dark .skeleton {
-    background: linear-gradient(90deg, #2d2d2d 25%, #3d3d3d 50%, #2d2d2d 75%);
-    background-size: 200% 100%;
-}
-
-/* Previne flash branco durante navegação */
 .page-enter {
     opacity: 0;
 }
@@ -180,11 +694,38 @@ html {
     transition: opacity 0.3s ease;
 }
 
-/* Animação slide up para banners e modais */
-@keyframes slideUp {
+/* =====================================
+   11. SPARKLINE & CHART ANIMATIONS
+   ===================================== */
+
+@keyframes barGrow {
+    from {
+        transform: scaleY(0);
+        opacity: 0;
+    }
+    to {
+        transform: scaleY(1);
+        opacity: 1;
+    }
+}
+
+.sparkline-bar {
+    transform-origin: bottom;
+    animation: barGrow 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.sparkline-bar:nth-child(1) { animation-delay: 0.05s; }
+.sparkline-bar:nth-child(2) { animation-delay: 0.1s; }
+.sparkline-bar:nth-child(3) { animation-delay: 0.15s; }
+.sparkline-bar:nth-child(4) { animation-delay: 0.2s; }
+.sparkline-bar:nth-child(5) { animation-delay: 0.25s; }
+.sparkline-bar:nth-child(6) { animation-delay: 0.3s; }
+
+/* Animação de número contando */
+@keyframes countUp {
     from {
         opacity: 0;
-        transform: translateY(100%);
+        transform: translateY(10px);
     }
     to {
         opacity: 1;
@@ -192,6 +733,167 @@ html {
     }
 }
 
-.animate-slide-up {
-    animation: slideUp 0.4s ease-out forwards;
+.animate-count {
+    animation: countUp 0.4s ease-out forwards;
 }
+
+/* =====================================
+   12. UTILITIES
+   ===================================== */
+
+/* Scroll suave */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Disable animations para prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Touch feedback para mobile */
+@media (hover: none) {
+    .card-interactive:hover {
+        transform: none;
+        box-shadow: none;
+    }
+}
+
+/* Transição de tema suave */
+.theme-transition {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* =====================================
+   13. MATERIAL SYMBOLS FILL ANIMATION
+   ===================================== */
+
+/* Transição suave do fill nos ícones */
+.material-symbols-outlined {
+    transition: font-variation-settings 0.3s ease;
+}
+
+/* Ícone preenchido */
+.icon-filled {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Ícone outline */
+.icon-outline {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Animação de preenchimento ao hover */
+.icon-fill-on-hover:hover {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Bottom nav icons */
+.nav-icon {
+    transition: font-variation-settings 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.2s ease;
+}
+
+/* =====================================
+   14. AVATAR STYLES
+   ===================================== */
+
+/* Avatar com inicial */
+.avatar-initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    user-select: none;
+}
+
+/* Avatar com foto */
+.avatar-photo {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Avatar sizes */
+.avatar-sm { width: 32px; height: 32px; font-size: 12px; }
+.avatar-md { width: 40px; height: 40px; font-size: 14px; }
+.avatar-lg { width: 48px; height: 48px; font-size: 16px; }
+.avatar-xl { width: 64px; height: 64px; font-size: 20px; }
+
+/* Avatar ring (status indicator) */
+.avatar-ring {
+    position: relative;
+}
+
+.avatar-ring::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 25%;
+    height: 25%;
+    border-radius: 50%;
+    border: 2px solid white;
+    background: #22c55e;
+}
+
+.dark .avatar-ring::after {
+    border-color: #1c1c1e;
+}
+
+/* =====================================
+   15. EMPTY STATE ANIMATIONS
+   ===================================== */
+
+@keyframes emptyStateFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.empty-state-illustration {
+    animation: emptyStateFloat 3s ease-in-out infinite;
+}
+
+.empty-state-illustration svg {
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+}
+
+/* =====================================
+   16. DYNAMIC GRADIENT OVERLAY
+   ===================================== */
+
+#dynamic-gradient {
+    pointer-events: none;
+    transition: background 2s ease;
+}
+
+/* Gradient mesh effect */
+.gradient-mesh {
+    background: 
+        radial-gradient(at 40% 20%, rgba(19, 91, 236, 0.1) 0, transparent 50%),
+        radial-gradient(at 80% 0%, rgba(139, 92, 246, 0.1) 0, transparent 50%),
+        radial-gradient(at 0% 50%, rgba(34, 197, 94, 0.1) 0, transparent 50%),
+        radial-gradient(at 80% 50%, rgba(236, 72, 153, 0.1) 0, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.1) 0, transparent 50%);
+}
+
+.dark .gradient-mesh {
+    background: 
+        radial-gradient(at 40% 20%, rgba(19, 91, 236, 0.15) 0, transparent 50%),
+        radial-gradient(at 80% 0%, rgba(139, 92, 246, 0.1) 0, transparent 50%),
+        radial-gradient(at 0% 50%, rgba(34, 197, 94, 0.08) 0, transparent 50%);
+}
+

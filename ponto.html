@@ -208,6 +208,8 @@
 <script src="js/api.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/components.js"></script>
+<script src="js/animations.js"></script>
+<script src="js/ui-enhancements.js"></script>
 <script src="js/app.js"></script>
 <script src="js/feedback.js"></script>
 <script>
@@ -474,7 +476,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const response = await API.clockIn(photoData, locationData.latitude, locationData.longitude, locationData.accuracy);
             
             if (response.success) {
-                App.showToast('Entrada registrada com sucesso!', 'success');
+                // Animação de sucesso com confetti!
+                Animations.celebrate('Entrada Registrada!');
                 loadTodayRecord();
                 loadHistory();
                 
@@ -520,7 +523,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const response = await API.clockOut(photoData, locationData.latitude, locationData.longitude, locationData.accuracy);
             
             if (response.success) {
-                App.showToast('Saída registrada com sucesso!', 'success');
+                // Animação de sucesso com confetti!
+                Animations.celebrate('Saída Registrada!');
                 loadTodayRecord();
                 loadHistory();
                 
