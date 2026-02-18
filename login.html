@@ -190,19 +190,34 @@
 
     /* Glass input */
     .glass-input {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.1) !important;
         border: 1px solid rgba(255, 255, 255, 0.2);
-        color: white;
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
         transition: all 0.3s ease;
+        caret-color: #60a5fa;
     }
     .glass-input::placeholder {
         color: rgba(255, 255, 255, 0.5);
+        -webkit-text-fill-color: rgba(255, 255, 255, 0.5);
     }
     .glass-input:focus {
-        background: rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.15) !important;
         border-color: rgba(59, 130, 246, 0.5);
         box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
         outline: none;
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+    /* Fix autofill background */
+    .glass-input:-webkit-autofill,
+    .glass-input:-webkit-autofill:hover,
+    .glass-input:-webkit-autofill:focus,
+    .glass-input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 30px rgba(30, 58, 95, 0.9) inset !important;
+        -webkit-text-fill-color: #ffffff !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        caret-color: #60a5fa !important;
     }
 
     /* Animated button */
