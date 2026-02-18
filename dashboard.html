@@ -325,7 +325,7 @@
 </script>
 <script>
 // Dashboard animations init
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Configura saudação dinâmica com nome do usuário
     const greetingEl = document.getElementById('greeting-text');
     const avatarEl = document.getElementById('user-avatar');
@@ -333,11 +333,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Pega dados do usuário do localStorage
     let userName = 'Técnico';
+    let userPhoto = null;
     try {
         const userData = localStorage.getItem('user_data');
         if (userData) {
             const user = JSON.parse(userData);
             userName = user.full_name || user.name || user.username || 'Técnico';
+            userPhoto = user.photo || null;
         }
     } catch (e) {}
     
@@ -349,14 +351,34 @@ document.addEventListener('DOMContentLoaded', function() {
         greetingEl.innerHTML = `${greeting}, ${firstName}! ${emoji}`;
     }
     
-    // Atualiza avatar com inicial colorida
+    // Atualiza avatar - usa foto se tiver, senão inicial colorida
     if (avatarEl && typeof UIEnhancements !== 'undefined') {
-        UIEnhancements.setAvatar(avatarEl, userName);
+        UIEnhancements.setAvatar(avatarEl, userName, userPhoto);
     }
     
     // Atualiza nome no header
     if (userNameEl) {
         userNameEl.textContent = userName;
+    }
+    
+    // Tenta buscar foto atualizada do perfil (async)
+    if (typeof API !== 'undefined' && API.isAuthenticated && API.isAuthenticated()) {
+        try {
+            const response = await API.getProfile();
+            if (response && response.success && response.data) {
+                const profile = response.data;
+                // Atualiza localStorage com dados do perfil
+                const currentUser = JSON.parse(localStorage.getItem('user_data') || '{}');
+                localStorage.setItem('user_data', JSON.stringify({...currentUser, ...profile}));
+                
+                // Se tiver foto, atualiza o avatar
+                if (profile.photo && avatarEl && typeof UIEnhancements !== 'undefined') {
+                    UIEnhancements.setAvatar(avatarEl, userName, profile.photo);
+                }
+            }
+        } catch (e) {
+            // Busca de perfil falhou silenciosamente
+        }
     }
     
     // Anima os stats quando carregarem
