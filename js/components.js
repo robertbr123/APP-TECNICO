@@ -16,23 +16,33 @@ const AppComponents = {
 
         const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
+        // Ícones modernos estilo iOS com cores individuais
         const items = [
-            { href: 'dashboard.html', icon: 'home', label: 'Início' },
-            { href: 'mapa.html', icon: 'map', label: 'Rotas' },
-            { href: 'ponto.html', icon: 'punch_clock', label: 'Ponto' },
-            { href: 'consultar.html', icon: 'groups', label: 'Clientes' },
-            { href: 'ajustes.html', icon: 'settings', label: 'Ajustes' }
+            { href: 'dashboard.html', icon: 'cottage', label: 'Início', color: 'primary', gradient: 'from-blue-500 to-indigo-600' },
+            { href: 'mapa.html', icon: 'explore', label: 'Rotas', color: 'emerald', gradient: 'from-emerald-500 to-teal-600' },
+            { href: 'ponto.html', icon: 'schedule', label: 'Ponto', color: 'orange', gradient: 'from-orange-500 to-amber-600' },
+            { href: 'consultar.html', icon: 'group', label: 'Clientes', color: 'purple', gradient: 'from-purple-500 to-violet-600' },
+            { href: 'ajustes.html', icon: 'tune', label: 'Ajustes', color: 'gray', gradient: 'from-gray-500 to-slate-600' }
         ];
+
+        const colorMap = {
+            primary: { active: 'text-blue-600', bg: 'from-blue-500/20 to-indigo-500/10', border: 'border-blue-500/30', shadow: 'shadow-blue-500/20' },
+            emerald: { active: 'text-emerald-600', bg: 'from-emerald-500/20 to-teal-500/10', border: 'border-emerald-500/30', shadow: 'shadow-emerald-500/20' },
+            orange: { active: 'text-orange-600', bg: 'from-orange-500/20 to-amber-500/10', border: 'border-orange-500/30', shadow: 'shadow-orange-500/20' },
+            purple: { active: 'text-purple-600', bg: 'from-purple-500/20 to-violet-500/10', border: 'border-purple-500/30', shadow: 'shadow-purple-500/20' },
+            gray: { active: 'text-gray-600 dark:text-gray-300', bg: 'from-gray-500/20 to-slate-500/10', border: 'border-gray-500/30', shadow: 'shadow-gray-500/20' }
+        };
 
         const links = items.map(item => {
             const isActive = currentPage === item.href;
+            const colors = colorMap[item.color];
             
             if (isActive) {
-                // Item ativo com pill glassmorphism
-                return `<a class="nav-item-active relative flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-gradient-to-br from-primary/20 to-blue-500/10 border border-primary/30 shadow-lg shadow-primary/20 transition-all duration-300" href="${item.href}" data-nav-item>` +
-                    `<div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-transparent"></div>` +
-                    `<span class="material-symbols-outlined text-primary text-[26px] relative z-10 drop-shadow-sm" style="font-variation-settings: 'FILL' 1">${item.icon}</span>` +
-                    `<span class="text-[10px] font-bold text-primary relative z-10 mt-0.5">${item.label}</span>` +
+                // Item ativo com pill glassmorphism colorido
+                return `<a class="nav-item-active relative flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-gradient-to-br ${colors.bg} border ${colors.border} shadow-lg ${colors.shadow} transition-all duration-300" href="${item.href}" data-nav-item>` +
+                    `<div class="absolute inset-0 rounded-2xl bg-gradient-to-br ${colors.bg} opacity-50"></div>` +
+                    `<span class="material-symbols-outlined ${colors.active} text-[26px] relative z-10 drop-shadow-sm" style="font-variation-settings: 'FILL' 1">${item.icon}</span>` +
+                    `<span class="text-[10px] font-bold ${colors.active} relative z-10 mt-0.5">${item.label}</span>` +
                     `</a>`;
             } else {
                 // Item inativo minimalista
@@ -117,13 +127,13 @@ const AppComponents = {
                         const isActive = currentPage === 'admin.html';
                         
                         const adminLink = isActive 
-                            ? `<a class="nav-item-active relative flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-gradient-to-br from-purple-500/20 to-violet-500/10 border border-purple-500/30 shadow-lg shadow-purple-500/20 transition-all duration-300" href="admin.html" data-nav-item>` +
-                                `<div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500/5 to-transparent"></div>` +
-                                `<span class="material-symbols-outlined text-purple-500 text-[26px] relative z-10 drop-shadow-sm" style="font-variation-settings: 'FILL' 1">admin_panel_settings</span>` +
-                                `<span class="text-[10px] font-bold text-purple-500 relative z-10 mt-0.5">Admin</span>` +
+                            ? `<a class="nav-item-active relative flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-gradient-to-br from-rose-500/20 to-pink-500/10 border border-rose-500/30 shadow-lg shadow-rose-500/20 transition-all duration-300" href="admin.html" data-nav-item>` +
+                                `<div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-rose-500/5 to-transparent"></div>` +
+                                `<span class="material-symbols-outlined text-rose-600 text-[26px] relative z-10 drop-shadow-sm" style="font-variation-settings: 'FILL' 1">shield_person</span>` +
+                                `<span class="text-[10px] font-bold text-rose-600 relative z-10 mt-0.5">Admin</span>` +
                                 `</a>`
                             : `<a class="nav-item flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-all duration-300 hover:bg-gray-100 dark:hover:bg-white/5 active:scale-95" href="admin.html" data-nav-item>` +
-                                `<span class="material-symbols-outlined nav-icon text-gray-400 dark:text-gray-500 text-[24px] transition-all duration-300" style="font-variation-settings: 'FILL' 0">admin_panel_settings</span>` +
+                                `<span class="material-symbols-outlined nav-icon text-gray-400 dark:text-gray-500 text-[24px] transition-all duration-300" style="font-variation-settings: 'FILL' 0">shield_person</span>` +
                                 `<span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 mt-0.5 transition-colors duration-300">Admin</span>` +
                                 `</a>`;
                         
