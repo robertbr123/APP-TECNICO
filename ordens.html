@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Ordens de Serviço - Ondeline</title>
+<meta name="theme-color" content="#135bec"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Ondeline Tech"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" type="image/png" href="logo.png"/>
+<link rel="apple-touch-icon" href="logo.png"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/transitions.css"/>
+<script>
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#135bec",
+                    "background-light": "#F2F2F7",
+                    "background-dark": "#000000",
+                    "card-light": "#FFFFFF",
+                    "card-dark": "#1C1C1E"
+                },
+                fontFamily: {
+                    "display": ["Inter", "sans-serif"]
+                },
+                borderRadius: {
+                    "ios": "12px",
+                    "ios-lg": "16px",
+                    "ios-xl": "20px"
+                }
+            },
+        },
+    }
+</script>
+<style type="text/tailwindcss">
+    @layer base {
+        body {
+            @apply bg-background-light dark:bg-background-dark font-display text-[#000000] dark:text-white antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+    }
+    .ios-blur {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+    .safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .safe-top {
+        padding-top: env(safe-area-inset-top);
+    }
+</style>
+<style>
+    body { min-height: max(884px, 100dvh); }
+</style>
+</head>
+<body class="min-h-screen">
+<header class="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top">
+<div class="flex items-center justify-between px-4 h-16">
+<div class="flex items-center gap-3">
+<a href="dashboard.html" class="flex items-center justify-center size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+    <span class="material-symbols-outlined text-[22px]">arrow_back</span>
+</a>
+<div class="flex flex-col">
+    <span class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white leading-none">Ordens de Serviço</span>
+    <span id="os-count" class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Carregando...</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button id="btn-filter-toggle" class="flex items-center justify-center size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+    <span class="material-symbols-outlined text-[22px]">filter_list</span>
+</button>
+<button id="btn-notification" class="flex items-center justify-center size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 relative">
+    <span class="material-symbols-outlined text-[22px]">notifications</span>
+    <span id="notif-badge" class="hidden absolute -top-0.5 -right-0.5 size-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
+</button>
+</div>
+</div>
+</header>
+
+<!-- Search Bar -->
+<div class="bg-white/80 dark:bg-card-dark/80 backdrop-blur-xl px-4 py-3 border-b border-gray-100/50 dark:border-white/5">
+<div class="relative">
+    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
+    <input type="text" id="search-input" placeholder="Buscar OS por número, cliente..." class="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 border-0 focus:ring-2 focus:ring-primary/50"/>
+</div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="bg-white/80 dark:bg-card-dark/80 backdrop-blur-xl px-4 py-3 border-b border-gray-100/50 dark:border-white/5 overflow-x-auto">
+<div class="flex gap-2 min-w-max">
+    <button class="os-filter-btn active px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-primary to-blue-500 text-white shadow-lg shadow-primary/30 transition-all" data-status="all">Todas</button>
+    <button class="os-filter-btn px-4 py-2 rounded-full text-sm font-medium bg-white/60 dark:bg-gray-800/60 border border-gray-200/50 dark:border-white/10 text-gray-600 dark:text-gray-400 transition-all" data-status="open">
+        <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-blue-500"></span>Abertas</span>
+    </button>
+    <button class="os-filter-btn px-4 py-2 rounded-full text-sm font-medium bg-white/60 dark:bg-gray-800/60 border border-gray-200/50 dark:border-white/10 text-gray-600 dark:text-gray-400 transition-all" data-status="in_progress">
+        <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-orange-500"></span>Em Andamento</span>
+    </button>
+    <button class="os-filter-btn px-4 py-2 rounded-full text-sm font-medium bg-white/60 dark:bg-gray-800/60 border border-gray-200/50 dark:border-white/10 text-gray-600 dark:text-gray-400 transition-all" data-status="completed">
+        <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-green-500"></span>Concluídas</span>
+    </button>
+</div>
+</div>
+
+<!-- Stats Cards -->
+<div class="px-4 pt-4">
+<div class="grid grid-cols-4 gap-2">
+    <div class="bg-white dark:bg-card-dark p-3 rounded-xl text-center shadow-sm">
+        <p class="text-xl font-bold text-blue-600" id="stat-open">0</p>
+        <p class="text-[10px] text-gray-500 font-medium">Abertas</p>
+    </div>
+    <div class="bg-white dark:bg-card-dark p-3 rounded-xl text-center shadow-sm">
+        <p class="text-xl font-bold text-orange-500" id="stat-progress">0</p>
+        <p class="text-[10px] text-gray-500 font-medium">Andamento</p>
+    </div>
+    <div class="bg-white dark:bg-card-dark p-3 rounded-xl text-center shadow-sm">
+        <p class="text-xl font-bold text-green-600" id="stat-completed">0</p>
+        <p class="text-[10px] text-gray-500 font-medium">Concluídas</p>
+    </div>
+    <div class="bg-white dark:bg-card-dark p-3 rounded-xl text-center shadow-sm">
+        <p class="text-xl font-bold text-primary" id="stat-today-os">0</p>
+        <p class="text-[10px] text-gray-500 font-medium">Hoje</p>
+    </div>
+</div>
+</div>
+
+<main class="px-4 pb-40 pt-4">
+<!-- Orders List -->
+<div id="orders-list" class="space-y-3">
+    <!-- Skeleton loading -->
+    <div class="animate-pulse space-y-3">
+        <div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 h-28"></div>
+        <div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 h-28"></div>
+        <div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 h-28"></div>
+    </div>
+</div>
+
+<!-- Empty State -->
+<div id="empty-state" class="hidden text-center py-16">
+    <span class="material-symbols-outlined text-[64px] text-gray-300 dark:text-gray-600">assignment</span>
+    <p class="text-lg font-bold text-gray-400 dark:text-gray-500 mt-4">Nenhuma OS encontrada</p>
+    <p class="text-sm text-gray-400 dark:text-gray-600 mt-1">Crie uma nova ordem de serviço</p>
+</div>
+</main>
+
+<!-- FAB - New OS -->
+<button id="btn-new-os" class="fixed bottom-24 right-4 z-30 size-14 bg-gradient-to-br from-primary to-blue-600 text-white rounded-2xl shadow-xl shadow-primary/40 flex items-center justify-center active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[28px]">add</span>
+</button>
+
+<!-- Modal: Nova OS -->
+<div id="modal-new-os" class="fixed inset-0 z-[9999] hidden">
+<div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-overlay"></div>
+<div class="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl max-h-[90vh] overflow-y-auto transform transition-transform safe-bottom">
+<div class="sticky top-0 bg-white dark:bg-gray-900 z-10 px-4 pt-4 pb-3 border-b border-gray-200/50 dark:border-white/10">
+    <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold text-gray-900 dark:text-white">Nova Ordem de Serviço</h2>
+        <button id="modal-close" class="size-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <span class="material-symbols-outlined text-gray-500 text-xl">close</span>
+        </button>
+    </div>
+</div>
+<form id="form-new-os" class="p-4 space-y-4">
+    <!-- Client -->
+    <div>
+        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1">Cliente *</label>
+        <input type="text" id="os-client-name" placeholder="Nome do cliente" required class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm border-0 focus:ring-2 focus:ring-primary/50"/>
+    </div>
+    <div>
+        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1">CPF do Cliente</label>
+        <input type="text" id="os-client-cpf" placeholder="000.000.000-00" maxlength="14" class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm border-0 focus:ring-2 focus:ring-primary/50"/>
+    </div>
+    <!-- Type -->
+    <div>
+        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1">Tipo</label>
+        <select id="os-type" class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm border-0 focus:ring-2 focus:ring-primary/50">
+            <option value="repair">Reparo</option>
+            <option value="installation">Instalação</option>
+            <option value="maintenance">Manutenção</option>
+            <option value="migration">Migração</option>
+            <option value="removal">Remoção</option>
+            <option value="other">Outro</option>
+        </select>
+    </div>
+    <!-- Priority -->
+    <div>
+        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1">Prioridade</label>
+        <div class="grid grid-cols-4 gap-2">
+            <label class="cursor-pointer">
+                <input type="radio" name="priority" value="low" class="sr-only peer"/>
+                <div class="text-center py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-500 transition-all">Baixa</div>
+            </label>
+            <label class="cursor-pointer">
+                <input type="radio" name="priority" value="medium" class="sr-only peer" checked/>
+                <div class="text-center py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 peer-checked:bg-yellow-500 peer-checked:text-white peer-checked:border-yellow-500 transition-all">Média</div>
+            </label>
+            <label class="cursor-pointer">
+                <input type="radio" name="priority" value="high" class="sr-only peer"/>
+                <div class="text-center py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 peer-checked:bg-orange-500 peer-checked:text-white peer-checked:border-orange-500 transition-all">Alta</div>
+            </label>
+            <label class="cursor-pointer">
+                <input type="radio" name="priority" value="urgent" class="sr-only peer"/>
+                <div class="text-center py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 peer-checked:bg-red-500 peer-checked:text-white peer-checked:border-red-500 transition-all">Urgente</div>
+            </label>
+        </div>
+    </div>
+    <!-- Description -->
+    <div>
+        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1">Descrição *</label>
+        <textarea id="os-description" rows="3" placeholder="Descreva o problema ou serviço..." required class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm border-0 focus:ring-2 focus:ring-primary/50 resize-none"></textarea>
+    </div>
+    <!-- Schedule -->
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label class="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1">Data Agendada</label>
+            <input type="date" id="os-date" class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm border-0 focus:ring-2 focus:ring-primary/50"/>
+        </div>
+        <div>
+            <label class="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1">Horário</label>
+            <input type="time" id="os-time" class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm border-0 focus:ring-2 focus:ring-primary/50"/>
+        </div>
+    </div>
+    <!-- Submit -->
+    <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-primary to-blue-600 text-white font-bold rounded-xl shadow-lg shadow-primary/30 active:scale-[0.98] transition-transform text-sm">
+        Criar Ordem de Serviço
+    </button>
+</form>
+</div>
+</div>
+
+<!-- Modal: Detalhes da OS -->
+<div id="modal-detail" class="fixed inset-0 z-[9999] hidden">
+<div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="detail-overlay"></div>
+<div class="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl max-h-[90vh] overflow-y-auto safe-bottom">
+<div class="sticky top-0 bg-white dark:bg-gray-900 z-10 px-4 pt-4 pb-3 border-b border-gray-200/50 dark:border-white/10">
+    <div class="flex items-center justify-between">
+        <h2 id="detail-title" class="text-lg font-bold text-gray-900 dark:text-white">OS #</h2>
+        <button id="detail-close" class="size-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <span class="material-symbols-outlined text-gray-500 text-xl">close</span>
+        </button>
+    </div>
+</div>
+<div id="detail-content" class="p-4">
+    <!-- Dynamic content -->
+</div>
+</div>
+</div>
+
+<nav id="bottom-nav"></nav>
+
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/components.js"></script>
+<script src="js/animations.js"></script>
+<script src="js/ui-enhancements.js"></script>
+<script src="js/feedback.js"></script>
+<script src="js/app.js"></script>
+<script src="js/pages/ordens.js"></script>
+</body></html>

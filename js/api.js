@@ -761,6 +761,82 @@ const API = {
 
     async listPushSubscriptions() {
         return this.get('push.php');
+    },
+
+    // ==========================================
+    // ORDENS DE SERVIÇO
+    // ==========================================
+
+    async getWorkOrders(params = {}) {
+        return this.get('work-orders.php', params);
+    },
+
+    async getWorkOrder(id) {
+        return this.get('work-orders.php', { action: 'get', id });
+    },
+
+    async getWorkOrderStats() {
+        return this.get('work-orders.php', { action: 'stats' });
+    },
+
+    async createWorkOrder(data) {
+        return this.post('work-orders.php', { action: 'create', ...data });
+    },
+
+    async updateWorkOrder(id, data) {
+        return this.put('work-orders.php', { id, ...data });
+    },
+
+    async startWorkOrder(id, latitude, longitude) {
+        return this.put('work-orders.php', { id, action: 'start', latitude, longitude });
+    },
+
+    async completeWorkOrder(id, resolution) {
+        return this.put('work-orders.php', { id, action: 'complete', resolution });
+    },
+
+    async cancelWorkOrder(id, resolution) {
+        return this.put('work-orders.php', { id, action: 'cancel', resolution });
+    },
+
+    async deleteWorkOrder(id) {
+        return this.delete('work-orders.php', { id });
+    },
+
+    // ==========================================
+    // NOTIFICAÇÕES IN-APP
+    // ==========================================
+
+    async getNotifications(params = {}) {
+        return this.get('notifications.php', params);
+    },
+
+    async getUnreadCount() {
+        return this.get('notifications.php', { action: 'unread_count' });
+    },
+
+    async markNotificationRead(id) {
+        return this.put('notifications.php', { action: 'mark_read', id });
+    },
+
+    async markAllNotificationsRead() {
+        return this.put('notifications.php', { action: 'mark_all_read' });
+    },
+
+    async createNotification(data) {
+        return this.post('notifications.php', data);
+    },
+
+    async deleteNotification(id) {
+        return this.delete('notifications.php', { id });
+    },
+
+    // ==========================================
+    // RELATÓRIOS
+    // ==========================================
+
+    async getReport(reportType, dateFrom, dateTo) {
+        return this.get('reports.php', { report: reportType, date_from: dateFrom, date_to: dateTo });
     }
 };
 

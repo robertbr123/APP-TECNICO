@@ -492,6 +492,41 @@ CREATE TABLE IF NOT EXISTS `push_subscriptions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
+-- 20. TABELA DE ORDENS DE SERVIÇO
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `work_orders` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `order_number` varchar(20) NOT NULL,
+  `client_cpf` varchar(11) DEFAULT NULL,
+  `client_name` varchar(255) NOT NULL,
+  `type` enum('installation','repair','maintenance','migration','removal','other') DEFAULT 'repair',
+  `priority` enum('low','medium','high','urgent') DEFAULT 'medium',
+  `status` enum('open','assigned','in_progress','completed','cancelled') DEFAULT 'open',
+  `assigned_to` int(11) DEFAULT NULL,
+  `assigned_name` varchar(150) DEFAULT NULL,
+  `description` text NOT NULL,
+  `resolution` text DEFAULT NULL,
+  `scheduled_date` date DEFAULT NULL,
+  `scheduled_time` time DEFAULT NULL,
+  `started_at` timestamp NULL DEFAULT NULL,
+  `completed_at` timestamp NULL DEFAULT NULL,
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `created_by` int(11) NOT NULL,
+  `created_by_name` varchar(150) DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `order_number` (`order_number`),
+  KEY `client_cpf` (`client_cpf`),
+  KEY `assigned_to` (`assigned_to`),
+  KEY `status` (`status`),
+  KEY `priority` (`priority`),
+  KEY `scheduled_date` (`scheduled_date`),
+  KEY `created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Ordens de serviço';
+
+-- =====================================================
 -- FIM DO SCRIPT
 -- =====================================================
 SELECT 'Banco de dados onde2292_erp configurado com sucesso!' as status;

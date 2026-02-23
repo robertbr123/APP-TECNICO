@@ -209,10 +209,218 @@ const AppComponents = {
     },
 
     /**
+     * Centro de Notificações In-App
+     * Configura o botão de notificações do header e renderiza o painel
+     */
+    setupNotifications() {
+        // Find the notification bell button in header
+        var buttons = document.querySelectorAll('header button');
+        var notifBtn = null;
+        buttons.forEach(function(btn) {
+            var icon = btn.querySelector('.material-symbols-outlined');
+            if (icon && icon.textContent.trim() === 'notifications') {
+                notifBtn = btn;
+            }
+        });
+
+        if (!notifBtn) return;
+
+        // Add relative positioning and badge
+        notifBtn.style.position = 'relative';
+        if (!notifBtn.querySelector('.notif-badge-dot')) {
+            var badge = document.createElement('span');
+            badge.className = 'notif-badge-dot hidden absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1';
+            badge.textContent = '0';
+            notifBtn.appendChild(badge);
+        }
+
+        // Fetch unread count
+        this._updateNotifBadge(notifBtn);
+
+        // Poll every 60 seconds
+        setInterval(function() {
+            AppComponents._updateNotifBadge(notifBtn);
+        }, 60000);
+
+        // Open notification center on click
+        notifBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            AppComponents._openNotificationCenter();
+        });
+    },
+
+    async _updateNotifBadge(btn) {
+        try {
+            if (typeof API === 'undefined' || !API.isAuthenticated()) return;
+            var response = await API.get('notifications.php', { action: 'unread_count' });
+            if (response.success) {
+                var count = response.data.count;
+                var badge = btn.querySelector('.notif-badge-dot');
+                if (badge) {
+                    if (count > 0) {
+                        badge.textContent = count > 9 ? '9+' : count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            }
+        } catch (e) { /* badge update failed */ }
+    },
+
+    async _openNotificationCenter() {
+        // Remove existing
+        var existing = document.getElementById('notification-center');
+        if (existing) { existing.remove(); return; }
+
+        var panel = document.createElement('div');
+        panel.id = 'notification-center';
+        panel.className = 'fixed inset-0 z-[9998]';
+        panel.innerHTML =
+            '<div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="notif-backdrop"></div>' +
+            '<div class="absolute top-0 right-0 w-full max-w-md h-full bg-white dark:bg-gray-900 shadow-2xl transform transition-transform">' +
+                '<div class="flex items-center justify-between px-4 h-16 border-b border-gray-200 dark:border-gray-800 safe-top">' +
+                    '<h2 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">' +
+                        '<span class="material-symbols-outlined text-primary">notifications</span>Notificações' +
+                    '</h2>' +
+                    '<div class="flex items-center gap-2">' +
+                        '<button id="notif-mark-all" class="text-xs font-bold text-primary px-3 py-1.5 bg-primary/10 rounded-lg">Ler Todas</button>' +
+                        '<button id="notif-close" class="size-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">' +
+                            '<span class="material-symbols-outlined text-gray-500 text-xl">close</span>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div id="notif-list" class="overflow-y-auto h-[calc(100%-4rem)] p-4 space-y-2">' +
+                    '<div class="animate-pulse space-y-2">' +
+                        '<div class="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>' +
+                        '<div class="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        document.body.appendChild(panel);
+
+        // Close handlers
+        document.getElementById('notif-backdrop').addEventListener('click', function() { panel.remove(); });
+        document.getElementById('notif-close').addEventListener('click', function() { panel.remove(); });
+
+        // Mark all read
+        document.getElementById('notif-mark-all').addEventListener('click', async function() {
+            try {
+                await API.put('notifications.php', { action: 'mark_all_read' });
+                AppComponents._loadNotifications();
+                // Update badge
+                var buttons = document.querySelectorAll('header button');
+                buttons.forEach(function(btn) {
+                    var icon = btn.querySelector('.material-symbols-outlined');
+                    if (icon && icon.textContent.trim() === 'notifications') {
+                        AppComponents._updateNotifBadge(btn);
+                    }
+                });
+                if (typeof showSuccess === 'function') showSuccess('Todas marcadas como lidas');
+            } catch (e) { /* failed */ }
+        });
+
+        // Load notifications
+        this._loadNotifications();
+    },
+
+    async _loadNotifications() {
+        var container = document.getElementById('notif-list');
+        if (!container) return;
+
+        try {
+            var response = await API.get('notifications.php', { limit: 30 });
+            if (!response.success) return;
+
+            var notifications = response.data;
+
+            if (notifications.length === 0) {
+                container.innerHTML =
+                    '<div class="text-center py-16">' +
+                        '<span class="material-symbols-outlined text-[48px] text-gray-300 dark:text-gray-600">notifications_off</span>' +
+                        '<p class="text-sm text-gray-400 dark:text-gray-500 mt-3 font-medium">Nenhuma notificação</p>' +
+                    '</div>';
+                return;
+            }
+
+            var typeIcons = {
+                info: { icon: 'info', color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                success: { icon: 'check_circle', color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-900/20' },
+                warning: { icon: 'warning', color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
+                error: { icon: 'error', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' }
+            };
+
+            var html = '';
+            notifications.forEach(function(notif) {
+                var t = typeIcons[notif.type] || typeIcons.info;
+                var isRead = notif.read == 1;
+                var timeAgo = AppComponents._timeAgo(notif.created_at);
+
+                html += '<div class="flex items-start gap-3 p-3 rounded-xl transition-colors cursor-pointer ' +
+                    (isRead ? 'bg-gray-50/50 dark:bg-gray-800/30' : 'bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700') +
+                    '" data-notif-id="' + notif.id + '"' +
+                    (notif.action_url ? ' data-url="' + notif.action_url + '"' : '') + '>' +
+                    '<div class="size-9 rounded-full ' + t.bg + ' flex items-center justify-center flex-shrink-0 mt-0.5">' +
+                        '<span class="material-symbols-outlined ' + t.color + ' text-lg">' + t.icon + '</span>' +
+                    '</div>' +
+                    '<div class="flex-1 min-w-0">' +
+                        '<p class="text-sm font-' + (isRead ? 'medium' : 'bold') + ' text-gray-900 dark:text-white truncate">' + notif.title + '</p>' +
+                        '<p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">' + notif.message + '</p>' +
+                        '<p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">' + timeAgo + '</p>' +
+                    '</div>' +
+                    (!isRead ? '<div class="size-2 rounded-full bg-primary flex-shrink-0 mt-2"></div>' : '') +
+                '</div>';
+            });
+
+            container.innerHTML = html;
+
+            // Click handlers
+            container.querySelectorAll('[data-notif-id]').forEach(function(el) {
+                el.addEventListener('click', async function() {
+                    var id = el.dataset.notifId;
+                    var url = el.dataset.url;
+
+                    // Mark as read
+                    try {
+                        await API.put('notifications.php', { action: 'mark_read', id: id });
+                    } catch (e) { /* failed */ }
+
+                    if (url) {
+                        window.location.href = url;
+                    } else {
+                        // Just mark read visually
+                        el.classList.remove('bg-white', 'dark:bg-gray-800', 'shadow-sm', 'border', 'border-gray-100', 'dark:border-gray-700');
+                        el.classList.add('bg-gray-50/50', 'dark:bg-gray-800/30');
+                        var dot = el.querySelector('.bg-primary');
+                        if (dot) dot.remove();
+                    }
+                });
+            });
+        } catch (e) {
+            container.innerHTML = '<p class="text-sm text-red-500 text-center py-8">Erro ao carregar notificações</p>';
+        }
+    },
+
+    _timeAgo(dateStr) {
+        var now = new Date();
+        var date = new Date(dateStr);
+        var diff = Math.floor((now - date) / 1000);
+
+        if (diff < 60) return 'Agora mesmo';
+        if (diff < 3600) return Math.floor(diff / 60) + ' min atrás';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h atrás';
+        if (diff < 604800) return Math.floor(diff / 86400) + 'd atrás';
+        return date.toLocaleDateString('pt-BR');
+    },
+
+    /**
      * Inicializa todos os componentes compartilhados
      */
     init() {
         this.renderBottomNav();
+        this.setupNotifications();
     }
 };
 

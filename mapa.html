@@ -116,6 +116,18 @@
 </header>
 
 <main class="pb-32">
+<!-- Busca de Clientes -->
+<div class="bg-white/80 dark:bg-card-dark/80 backdrop-blur-xl px-4 py-3 border-b border-gray-100/50 dark:border-white/5">
+<div class="relative">
+    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
+    <input type="text" id="map-search" placeholder="Buscar por nome, CPF ou PPPoE..." class="w-full pl-10 pr-10 py-2.5 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 border-0 focus:ring-2 focus:ring-primary/50"/>
+    <button id="map-search-clear" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+        <span class="material-symbols-outlined text-xl">close</span>
+    </button>
+</div>
+<div id="search-results" class="hidden mt-2 max-h-48 overflow-y-auto rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg"></div>
+</div>
+
 <!-- Filtros com glassmorphism -->
 <div class="bg-white/80 dark:bg-card-dark/80 backdrop-blur-xl px-4 py-3 border-b border-gray-100/50 dark:border-white/5 overflow-x-auto">
 <div class="flex gap-2 min-w-max items-center">
@@ -448,10 +460,119 @@ document.addEventListener('DOMContentLoaded', async function() {
         );
     }
 
+    // ==========================================
+    // BUSCA DE CLIENTES NO MAPA
+    // ==========================================
+    var searchInput = document.getElementById('map-search');
+    var searchResults = document.getElementById('search-results');
+    var searchClear = document.getElementById('map-search-clear');
+    var searchTimeout = null;
+
+    searchInput.addEventListener('input', function() {
+        var query = searchInput.value.trim().toLowerCase();
+        clearTimeout(searchTimeout);
+
+        if (query.length === 0) {
+            searchResults.classList.add('hidden');
+            searchClear.classList.add('hidden');
+            return;
+        }
+
+        searchClear.classList.remove('hidden');
+
+        searchTimeout = setTimeout(function() {
+            var results = clients.filter(function(c) {
+                var name = (c.name || '').toLowerCase();
+                var cpf = (c.cpf || '').replace(/\D/g, '');
+                var pppoe = (c.pppoe_user || '').toLowerCase();
+                var queryClean = query.replace(/\D/g, '');
+
+                return name.indexOf(query) !== -1 ||
+                       (queryClean.length > 2 && cpf.indexOf(queryClean) !== -1) ||
+                       pppoe.indexOf(query) !== -1;
+            }).slice(0, 10);
+
+            if (results.length === 0) {
+                searchResults.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Nenhum cliente encontrado</div>';
+                searchResults.classList.remove('hidden');
+                return;
+            }
+
+            var html = '';
+            results.forEach(function(client) {
+                var hasLocation = client.latitude && client.longitude &&
+                    parseFloat(client.latitude) !== 0 && parseFloat(client.longitude) !== 0;
+
+                html += '<div class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0" data-search-cpf="' + client.cpf + '">' +
+                    '<div class="size-8 rounded-full ' + (hasLocation ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-800') + ' flex items-center justify-center flex-shrink-0">' +
+                        '<span class="material-symbols-outlined text-sm ' + (hasLocation ? 'text-green-600' : 'text-gray-400') + '">' + (hasLocation ? 'location_on' : 'location_off') + '</span>' +
+                    '</div>' +
+                    '<div class="flex-1 min-w-0">' +
+                        '<p class="text-sm font-medium text-gray-900 dark:text-white truncate">' + client.name + '</p>' +
+                        '<p class="text-[11px] text-gray-500">' +
+                            (client.cpf ? 'CPF: ' + client.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '') +
+                            (client.pppoe_user ? ' | PPPoE: ' + client.pppoe_user : '') +
+                        '</p>' +
+                    '</div>' +
+                    (hasLocation ? '<span class="material-symbols-outlined text-primary text-lg">my_location</span>' : '') +
+                '</div>';
+            });
+
+            searchResults.innerHTML = html;
+            searchResults.classList.remove('hidden');
+
+            // Click handlers
+            searchResults.querySelectorAll('[data-search-cpf]').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    var cpf = el.dataset.searchCpf;
+                    var client = clients.find(function(c) { return c.cpf === cpf; });
+
+                    if (client) {
+                        var lat = parseFloat(client.latitude);
+                        var lng = parseFloat(client.longitude);
+
+                        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                            // Fly to client on map
+                            map.flyTo([lat, lng], 17, { duration: 1.5 });
+
+                            // Find and open marker popup
+                            markers.forEach(function(marker) {
+                                if (marker.clientData && marker.clientData.cpf === cpf) {
+                                    setTimeout(function() {
+                                        marker.openPopup();
+                                    }, 1600);
+                                }
+                            });
+                        } else {
+                            showWarning('Cliente "' + client.name + '" não possui localização GPS registrada');
+                        }
+                    }
+
+                    searchResults.classList.add('hidden');
+                    searchInput.value = client ? client.name : '';
+                });
+            });
+        }, 200);
+    });
+
+    searchClear.addEventListener('click', function() {
+        searchInput.value = '';
+        searchResults.classList.add('hidden');
+        searchClear.classList.add('hidden');
+        searchInput.focus();
+    });
+
+    // Close results when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.add('hidden');
+        }
+    });
+
     // Inicializa
     initMap();
     loadClients();
-    
+
     // Expõe funções globalmente
     window.initMap = initMap;
     window.loadClients = loadClients;

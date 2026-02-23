@@ -32,7 +32,9 @@ const App = {
             'detalher.html': 'detalhes',
             'vincular-equipamento.html': 'vincular',
             'ajustes.html': 'ajustes',
-            'historico.html': 'historico'
+            'historico.html': 'historico',
+            'ordens.html': 'ordens',
+            'relatorios.html': 'relatorios'
         };
 
         const initMap = {
