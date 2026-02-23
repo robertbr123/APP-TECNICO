@@ -222,9 +222,14 @@ App.initPhotoUpload = function() {
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                preview.src = e.target.result;
+            try {
+                const compressed = await Utils.compressImage(file, {
+                    maxWidth: 1200,
+                    maxHeight: 1200,
+                    quality: 0.7
+                });
+
+                preview.src = compressed;
                 preview.classList.remove('hidden');
                 icon.classList.add('hidden');
                 addBtn.classList.add('hidden');
@@ -235,10 +240,12 @@ App.initPhotoUpload = function() {
                 App.pendingPhotos.push({
                     type: photoType,
                     file: file,
-                    base64: e.target.result
+                    base64: compressed
                 });
-            };
-            reader.readAsDataURL(file);
+            } catch (err) {
+                console.error('Erro ao comprimir imagem:', err);
+                App.showToast('Erro ao processar imagem', 'error');
+            }
         });
 
         if (removeBtn) {

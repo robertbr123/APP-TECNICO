@@ -183,15 +183,22 @@ function handlePost($db, $userData) {
     $action = $data['action'] ?? 'create';
 
     if ($action === 'create') {
+        // Only admin can create OS
+        if ($userData['role'] !== 'admin') {
+            jsonResponse(['success' => false, 'message' => 'Apenas administradores podem criar OS'], 403);
+        }
+
         if (empty($data['client_name']) || empty($data['description'])) {
             jsonResponse(['success' => false, 'message' => 'Nome do cliente e descrição são obrigatórios'], 400);
         }
 
         $orderNumber = generateOrderNumber($db);
 
+        $initialStatus = !empty($data['assigned_to']) ? 'assigned' : 'open';
+
         $stmt = $db->prepare("
             INSERT INTO work_orders (order_number, client_cpf, client_name, type, priority, status, assigned_to, assigned_name, description, scheduled_date, scheduled_time, created_by, created_by_name)
-            VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
@@ -200,6 +207,7 @@ function handlePost($db, $userData) {
             $data['client_name'],
             $data['type'] ?? 'repair',
             $data['priority'] ?? 'medium',
+            $initialStatus,
             $data['assigned_to'] ?? null,
             $data['assigned_name'] ?? null,
             $data['description'],

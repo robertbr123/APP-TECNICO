@@ -11,6 +11,11 @@ require_once 'config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $userData = requireAuth();
 
+// Only admin can access reports
+if ($userData['role'] !== 'admin') {
+    jsonResponse(['success' => false, 'message' => 'Acesso restrito a administradores'], 403);
+}
+
 if ($method !== 'GET') {
     jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
 }

@@ -90,6 +90,28 @@ try {
     $stmt->execute($cityParam);
     $dailyChart = $stmt->fetchAll();
 
+    // Meta mensal - busca da tabela settings ou usa padrão
+    $monthlyTarget = 100; // padrão
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS `settings` (
+            `key` varchar(100) NOT NULL,
+            `value` text NOT NULL,
+            `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`key`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        $stmt = $db->prepare("SELECT `value` FROM settings WHERE `key` = 'monthly_target'");
+        $stmt->execute();
+        $row = $stmt->fetch();
+        if ($row) {
+            $monthlyTarget = intval($row['value']);
+        } else {
+            $db->prepare("INSERT INTO settings (`key`, `value`) VALUES ('monthly_target', ?)")->execute([$monthlyTarget]);
+        }
+    } catch (Exception $e) { /* usa padrão */ }
+
+    $metaPercent = $monthlyTarget > 0 ? min(round(($monthRegistrations / $monthlyTarget) * 100), 100) : 0;
+
     jsonResponse([
         'success' => true,
         'data' => [
@@ -98,6 +120,11 @@ try {
                 'today' => $todayRegistrations,
                 'week' => $weekRegistrations,
                 'month' => $monthRegistrations
+            ],
+            'meta' => [
+                'target' => $monthlyTarget,
+                'current' => $monthRegistrations,
+                'percent' => $metaPercent
             ],
             'lastRegistration' => $lastRegistration,
             'byInstaller' => $byInstaller,

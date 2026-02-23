@@ -422,14 +422,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (statTotal && statTotal.textContent === '-') {
             Animations.countUp(statTotal, 847, 1200);
         }
-        if (statMeta) {
-            Animations.countUp(statMeta, 85, 1000, '%');
-        }
-        if (metaProgress) {
-            setTimeout(() => {
-                metaProgress.style.width = '85%';
-            }, 300);
-        }
+        // Meta agora é carregada via dashboard.js (dados reais da API)
         if (statTrend) {
             setTimeout(() => {
                 statTrend.style.opacity = '1';
