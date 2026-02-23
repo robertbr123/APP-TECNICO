@@ -33,7 +33,8 @@
 
     function setupEventListeners() {
         // New OS modal
-        document.getElementById('btn-new-os').addEventListener('click', openNewModal);
+        var btnNew = document.getElementById('btn-new-os');
+        if (btnNew) btnNew.addEventListener('click', openNewModal);
         document.getElementById('modal-close').addEventListener('click', closeNewModal);
         document.getElementById('modal-overlay').addEventListener('click', closeNewModal);
 
@@ -44,15 +45,8 @@
         // Form
         document.getElementById('form-new-os').addEventListener('submit', handleCreateOS);
 
-        // CPF mask
-        document.getElementById('os-client-cpf').addEventListener('input', function(e) {
-            var v = e.target.value.replace(/\D/g, '');
-            if (v.length > 11) v = v.slice(0, 11);
-            if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
-            else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
-            else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
-            e.target.value = v;
-        });
+        // Client autocomplete
+        setupClientAutocomplete();
 
         // Filter tabs
         document.querySelectorAll('.os-filter-btn').forEach(function(btn) {
@@ -366,7 +360,7 @@
         var description = document.getElementById('os-description').value.trim();
 
         if (!clientName || !description) {
-            showError('Preencha o nome do cliente e a descrição');
+            showError('Selecione um cliente e preencha a descrição');
             return;
         }
 
@@ -398,6 +392,11 @@
                 showSuccess('OS ' + response.data.order_number + ' criada!');
                 closeNewModal();
                 document.getElementById('form-new-os').reset();
+                document.getElementById('os-client-name').value = '';
+                document.getElementById('os-client-cpf').value = '';
+                document.getElementById('os-client-selected').classList.add('hidden');
+                var searchEl = document.getElementById('os-client-search');
+                if (searchEl) { searchEl.classList.remove('hidden'); searchEl.value = ''; }
                 loadOrders();
                 loadStats();
             } else {
@@ -431,6 +430,8 @@
                 var select = document.getElementById('os-assigned');
                 if (!select) return;
                 response.data.forEach(function(u) {
+                    // Only show non-admin users (technicians)
+                    if (u.role === 'admin') return;
                     var opt = document.createElement('option');
                     opt.value = u.id;
                     opt.textContent = u.full_name || u.username;
@@ -439,6 +440,92 @@
                 });
             }
         } catch (e) { /* failed to load technicians */ }
+    }
+
+    function setupClientAutocomplete() {
+        var searchInput = document.getElementById('os-client-search');
+        var resultsDiv = document.getElementById('os-client-results');
+        var selectedDiv = document.getElementById('os-client-selected');
+        var clearBtn = document.getElementById('os-client-clear');
+        if (!searchInput) return;
+
+        var clientSearchTimeout;
+
+        searchInput.addEventListener('input', function(e) {
+            clearTimeout(clientSearchTimeout);
+            var query = e.target.value.trim();
+            if (query.length < 2) {
+                resultsDiv.classList.add('hidden');
+                resultsDiv.innerHTML = '';
+                return;
+            }
+            clientSearchTimeout = setTimeout(async function() {
+                try {
+                    var token = localStorage.getItem('auth_token');
+                    var resp = await fetch('/api/search-clients.php?search=' + encodeURIComponent(query) + '&limit=8', {
+                        headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                    });
+                    var result = await resp.json();
+                    if (result.success && result.data && result.data.length > 0) {
+                        resultsDiv.innerHTML = result.data.map(function(c) {
+                            var cpf = c.cpf || '';
+                            var cpfFmt = cpf.length === 11 ? cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : cpf;
+                            return '<div class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" ' +
+                                'data-name="' + (c.name || '').replace(/"/g, '&quot;') + '" data-cpf="' + cpf + '">' +
+                                '<div class="size-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">' +
+                                    '<span class="material-symbols-outlined text-blue-500 text-sm">person</span>' +
+                                '</div>' +
+                                '<div class="flex-1 min-w-0">' +
+                                    '<p class="text-sm font-medium text-gray-900 dark:text-white truncate">' + (c.name || 'Sem nome') + '</p>' +
+                                    '<p class="text-[11px] text-gray-400">' + cpfFmt + '</p>' +
+                                '</div></div>';
+                        }).join('');
+                        resultsDiv.classList.remove('hidden');
+
+                        resultsDiv.querySelectorAll('[data-name]').forEach(function(el) {
+                            el.addEventListener('click', function() {
+                                selectOsClient(el.dataset.name, el.dataset.cpf);
+                            });
+                        });
+                    } else {
+                        resultsDiv.innerHTML = '<p class="px-4 py-3 text-sm text-gray-400 text-center">Nenhum cliente encontrado</p>';
+                        resultsDiv.classList.remove('hidden');
+                    }
+                } catch (err) {
+                    resultsDiv.innerHTML = '<p class="px-4 py-3 text-sm text-red-400 text-center">Erro na busca</p>';
+                    resultsDiv.classList.remove('hidden');
+                }
+            }, 300);
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                resultsDiv.classList.add('hidden');
+            }
+        });
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                document.getElementById('os-client-name').value = '';
+                document.getElementById('os-client-cpf').value = '';
+                selectedDiv.classList.add('hidden');
+                searchInput.value = '';
+                searchInput.classList.remove('hidden');
+                searchInput.focus();
+            });
+        }
+    }
+
+    function selectOsClient(name, cpf) {
+        document.getElementById('os-client-name').value = name;
+        document.getElementById('os-client-cpf').value = cpf;
+        document.getElementById('os-client-selected-name').textContent = name;
+        var cpfFmt = cpf.length === 11 ? cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : cpf;
+        document.getElementById('os-client-selected-cpf').textContent = cpfFmt;
+        document.getElementById('os-client-selected').classList.remove('hidden');
+        document.getElementById('os-client-search').classList.add('hidden');
+        document.getElementById('os-client-results').classList.add('hidden');
     }
 
     async function setupNotificationBadge() {

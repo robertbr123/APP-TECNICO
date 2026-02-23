@@ -17,6 +17,11 @@ App.initDashboardPage = async function() {
     // Hide admin-only links for non-admin users
     if (!user || user.role !== 'admin') {
         document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+        // Show "Minhas OS" for technicians instead of "Gerenciar OS"
+        const ordensTitle = document.getElementById('link-ordens-title');
+        const ordensSubtitle = document.getElementById('link-ordens-subtitle');
+        if (ordensTitle) ordensTitle.textContent = 'Minhas OS';
+        if (ordensSubtitle) ordensSubtitle.textContent = 'Ver ordens atribuídas';
     }
 
     // Hide real items initially to show skeleton
