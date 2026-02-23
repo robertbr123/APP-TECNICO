@@ -5,6 +5,13 @@
 
 (function() {
     document.addEventListener('DOMContentLoaded', function() {
+        // Admin-only access
+        var user = JSON.parse(localStorage.getItem('user_data') || '{}');
+        if (user.role !== 'admin') {
+            document.body.innerHTML = '<div class="flex items-center justify-center min-h-screen bg-background-light dark:bg-background-dark"><div class="text-center p-8"><span class="material-symbols-outlined text-5xl text-gray-300 mb-4 block">lock</span><h2 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Acesso Restrito</h2><p class="text-sm text-gray-500 mb-4">Apenas administradores podem acessar os relatórios.</p><a href="dashboard.html" class="text-primary font-semibold text-sm">Voltar ao Dashboard</a></div></div>';
+            return;
+        }
+
         // Default dates: first of month to today
         var today = new Date().toISOString().split('T')[0];
         var firstDay = today.substring(0, 8) + '01';

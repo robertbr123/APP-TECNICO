@@ -81,6 +81,24 @@ App.updateDashboardStats = function(data) {
         }
     }
 
+    // Meta mensal real
+    if (data.meta) {
+        const statMeta = document.getElementById('stat-meta');
+        const metaProgress = document.getElementById('meta-progress');
+        if (statMeta) {
+            if (typeof Animations !== 'undefined' && Animations.countUp) {
+                Animations.countUp(statMeta, data.meta.percent, 1000, '%');
+            } else {
+                statMeta.textContent = data.meta.percent + '%';
+            }
+        }
+        if (metaProgress) {
+            setTimeout(() => {
+                metaProgress.style.width = data.meta.percent + '%';
+            }, 300);
+        }
+    }
+
     if (data.lastRegistration) {
         const lastRegInfo = document.getElementById('last-reg-info');
         if (lastRegInfo) {

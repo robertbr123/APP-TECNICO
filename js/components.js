@@ -416,9 +416,48 @@ const AppComponents = {
     },
 
     /**
+     * Renderiza o header compartilhado
+     * Substitui <header id="shared-header" data-title="Título" data-back="dashboard.html"></header>
+     * Atributos opcionais:
+     *   data-title: título da página
+     *   data-back: URL para o botão voltar (se omitido, não mostra botão voltar)
+     *   data-notif: "true" para mostrar botão de notificações
+     */
+    renderHeader() {
+        var header = document.getElementById('shared-header');
+        if (!header) return;
+
+        var title = header.dataset.title || '';
+        var backUrl = header.dataset.back || '';
+        var showNotif = header.dataset.notif === 'true';
+
+        var leftBtn = backUrl
+            ? '<a href="' + backUrl + '" class="flex items-center justify-center size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 btn-press">' +
+                '<span class="material-symbols-outlined">arrow_back_ios</span>' +
+              '</a>'
+            : '<div class="size-10"></div>';
+
+        var rightBtn = showNotif
+            ? '<button class="flex items-center justify-center size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 btn-press relative">' +
+                '<span class="material-symbols-outlined">notifications</span>' +
+                '<span id="notif-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">0</span>' +
+              '</button>'
+            : '<div class="size-10"></div>';
+
+        header.className = 'sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top';
+        header.innerHTML =
+            '<div class="flex items-center justify-between px-4 h-16">' +
+                leftBtn +
+                '<h2 class="text-gray-900 dark:text-white text-lg font-bold flex-1 text-center">' + title + '</h2>' +
+                rightBtn +
+            '</div>';
+    },
+
+    /**
      * Inicializa todos os componentes compartilhados
      */
     init() {
+        this.renderHeader();
         this.renderBottomNav();
         this.setupNotifications();
     }

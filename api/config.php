@@ -180,3 +180,29 @@ function getRequestBody() {
     $json = file_get_contents('php://input');
     return json_decode($json, true) ?? [];
 }
+
+/**
+ * Registra log de auditoria
+ */
+function logAudit($db, $userData, $actionType, $description, $entityType, $entityId, $entityName) {
+    try {
+        $stmt = $db->prepare("
+            INSERT INTO audit_logs
+            (user_id, username, action_type, action_description, entity_type, entity_id, entity_name, ip_address, user_agent)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([
+            $userData['user_id'],
+            $userData['username'],
+            $actionType,
+            $description,
+            $entityType,
+            $entityId,
+            $entityName,
+            $_SERVER['REMOTE_ADDR'] ?? null,
+            $_SERVER['HTTP_USER_AGENT'] ?? null
+        ]);
+    } catch (Exception $e) {
+        error_log('Erro ao registrar auditoria: ' . $e->getMessage());
+    }
+}

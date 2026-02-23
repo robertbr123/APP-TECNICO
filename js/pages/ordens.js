@@ -9,10 +9,20 @@
     var searchTimeout = null;
 
     document.addEventListener('DOMContentLoaded', function() {
+        var user = JSON.parse(localStorage.getItem('user_data') || '{}');
+        var isAdmin = user.role === 'admin';
+
+        // Only admin can create OS
+        var fabBtn = document.getElementById('btn-new-os');
+        if (fabBtn && !isAdmin) {
+            fabBtn.classList.add('hidden');
+        }
+
         loadStats();
         loadOrders();
         setupEventListeners();
         setupNotificationBadge();
+        if (isAdmin) loadTechnicians();
 
         // Check URL params for detail view
         var params = new URLSearchParams(window.location.search);
@@ -362,6 +372,9 @@
 
         var cpfRaw = document.getElementById('os-client-cpf').value.replace(/\D/g, '');
         var priority = document.querySelector('input[name="priority"]:checked');
+        var assignedSelect = document.getElementById('os-assigned');
+        var assignedTo = assignedSelect ? assignedSelect.value : null;
+        var assignedName = assignedTo ? assignedSelect.options[assignedSelect.selectedIndex].dataset.name : null;
 
         var data = {
             action: 'create',
@@ -371,7 +384,9 @@
             priority: priority ? priority.value : 'medium',
             description: description,
             scheduled_date: document.getElementById('os-date').value || null,
-            scheduled_time: document.getElementById('os-time').value || null
+            scheduled_time: document.getElementById('os-time').value || null,
+            assigned_to: assignedTo || null,
+            assigned_name: assignedName || null
         };
 
         try {
@@ -407,6 +422,23 @@
     function closeDetailModal() {
         document.getElementById('modal-detail').classList.add('hidden');
         document.body.style.overflow = '';
+    }
+
+    async function loadTechnicians() {
+        try {
+            var response = await API.get('users.php');
+            if (response.success) {
+                var select = document.getElementById('os-assigned');
+                if (!select) return;
+                response.data.forEach(function(u) {
+                    var opt = document.createElement('option');
+                    opt.value = u.id;
+                    opt.textContent = u.full_name || u.username;
+                    opt.dataset.name = u.full_name || u.username;
+                    select.appendChild(opt);
+                });
+            }
+        } catch (e) { /* failed to load technicians */ }
     }
 
     async function setupNotificationBadge() {
