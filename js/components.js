@@ -172,15 +172,15 @@ const AppComponents = {
                         '<div class="size-10 rounded-full ' + colors.bg + ' flex items-center justify-center">' +
                             '<span class="material-symbols-outlined ' + colors.text + '">' + (options.icon || 'warning') + '</span>' +
                         '</div>' +
-                        '<h3 class="text-lg font-bold text-gray-900 dark:text-white">' + (options.title || 'Confirmar') + '</h3>' +
+                        '<h3 class="text-lg font-bold text-gray-900 dark:text-white">' + escapeHtml(options.title || 'Confirmar') + '</h3>' +
                     '</div>' +
-                    '<p class="text-gray-600 dark:text-gray-400 text-sm mb-6 leading-relaxed">' + (options.message || 'Tem certeza?') + '</p>' +
+                    '<p class="text-gray-600 dark:text-gray-400 text-sm mb-6 leading-relaxed">' + escapeHtml(options.message || 'Tem certeza?') + '</p>' +
                     '<div class="flex gap-3">' +
                         '<button id="confirm-modal-cancel" class="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700">' +
-                            (options.cancelText || 'Cancelar') +
+                            escapeHtml(options.cancelText || 'Cancelar') +
                         '</button>' +
                         '<button id="confirm-modal-confirm" class="flex-1 px-4 py-2.5 rounded-xl ' + colors.btn + ' text-white font-medium text-sm transition-colors">' +
-                            (options.confirmText || 'Confirmar') +
+                            escapeHtml(options.confirmText || 'Confirmar') +
                         '</button>' +
                     '</div>' +
                 '</div>';
@@ -361,13 +361,13 @@ const AppComponents = {
                 html += '<div class="flex items-start gap-3 p-3 rounded-xl transition-colors cursor-pointer ' +
                     (isRead ? 'bg-gray-50/50 dark:bg-gray-800/30' : 'bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700') +
                     '" data-notif-id="' + notif.id + '"' +
-                    (notif.action_url ? ' data-url="' + notif.action_url + '"' : '') + '>' +
+                    (notif.action_url ? ' data-url="' + escapeHtml(notif.action_url) + '"' : '') + '>' +
                     '<div class="size-9 rounded-full ' + t.bg + ' flex items-center justify-center flex-shrink-0 mt-0.5">' +
                         '<span class="material-symbols-outlined ' + t.color + ' text-lg">' + t.icon + '</span>' +
                     '</div>' +
                     '<div class="flex-1 min-w-0">' +
-                        '<p class="text-sm font-' + (isRead ? 'medium' : 'bold') + ' text-gray-900 dark:text-white truncate">' + notif.title + '</p>' +
-                        '<p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">' + notif.message + '</p>' +
+                        '<p class="text-sm font-' + (isRead ? 'medium' : 'bold') + ' text-gray-900 dark:text-white truncate">' + escapeHtml(notif.title) + '</p>' +
+                        '<p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">' + escapeHtml(notif.message) + '</p>' +
                         '<p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">' + timeAgo + '</p>' +
                     '</div>' +
                     (!isRead ? '<div class="size-2 rounded-full bg-primary flex-shrink-0 mt-2"></div>' : '') +
@@ -460,6 +460,66 @@ const AppComponents = {
         this.renderHeader();
         this.renderBottomNav();
         this.setupNotifications();
+    },
+
+    // ==========================================
+    // SKELETON LOADERS
+    // ==========================================
+
+    /**
+     * Gera HTML de skeleton loader para listas de cards
+     * @param {number} count - Quantidade de skeletons
+     * @param {string} type - Tipo: 'card', 'list', 'stat'
+     */
+    skeleton(count = 3, type = 'card') {
+        const items = [];
+        for (let i = 0; i < count; i++) {
+            if (type === 'card') {
+                items.push(`
+                    <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm animate-pulse">
+                        <div class="flex items-center gap-3">
+                            <div class="size-11 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                            <div class="flex-1 space-y-2">
+                                <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                                <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                            </div>
+                            <div class="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                        </div>
+                    </div>
+                `);
+            } else if (type === 'list') {
+                items.push(`
+                    <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg animate-pulse">
+                        <div class="size-9 rounded-full bg-gray-200 dark:bg-gray-600"></div>
+                        <div class="flex-1 space-y-2">
+                            <div class="h-3.5 bg-gray-200 dark:bg-gray-600 rounded w-2/3"></div>
+                            <div class="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/3"></div>
+                        </div>
+                    </div>
+                `);
+            } else if (type === 'stat') {
+                items.push(`
+                    <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm animate-pulse">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="size-6 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                            <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                        </div>
+                        <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-12 mt-2"></div>
+                    </div>
+                `);
+            }
+        }
+        return items.join('');
+    },
+
+    /**
+     * Mostra skeleton em um container
+     */
+    showSkeleton(containerId, count = 3, type = 'card') {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.innerHTML = this.skeleton(count, type);
+        }
     }
 };
 

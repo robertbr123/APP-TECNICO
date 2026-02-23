@@ -51,7 +51,7 @@ try {
             jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
     }
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados', 'error' => $e->getMessage()], 500);
+    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados'], 500);
 }
 
 /**
@@ -66,7 +66,7 @@ function handleGet($db, $userData) {
         jsonResponse(['success' => false, 'message' => 'Usuário não encontrado'], 404);
     }
 
-    jsonResponse(['success' => true, 'data' => $user]);
+    jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => $user]);
 }
 
 /**

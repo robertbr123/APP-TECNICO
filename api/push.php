@@ -26,7 +26,7 @@ set_exception_handler(function($e) {
         'file' => $e->getFile(),
         'line' => $e->getLine()
     ]);
-    jsonResponse(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()], 500);
+    jsonResponse(['success' => false, 'message' => 'Erro interno do servidor'], 500);
 });
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -143,8 +143,11 @@ function handleTest() {
     
     jsonResponse([
         'success' => true,
-        'tests' => $tests,
-        'all_passed' => !in_array(false, $tests, true)
+        'message' => 'Testes executados com sucesso',
+        'data' => [
+            'tests' => $tests,
+            'all_passed' => !in_array(false, $tests, true)
+        ]
     ]);
 }
 
@@ -212,7 +215,7 @@ function handleUnsubscribe($userData) {
 function handleSend($data) {
     $title = $data['title'] ?? 'Ondeline Tech';
     $body = $data['body'] ?? 'Nova notificacao';
-    $url = $data['url'] ?? '/dashboard.html';
+    $url = $data['url'] ?? '/dashboard.php';
     $targetUserId = $data['user_id'] ?? null; // null = enviar para todos
 
     try {
@@ -228,7 +231,7 @@ function handleSend($data) {
         $subscriptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($subscriptions)) {
-            jsonResponse(['success' => false, 'message' => 'Nenhuma subscription encontrada']);
+            jsonResponse(['success' => false, 'message' => 'Nenhuma subscription encontrada'], 404);
         }
 
         $payload = json_encode([
@@ -271,8 +274,10 @@ function handleSend($data) {
         jsonResponse([
             'success' => true,
             'message' => "$sent enviadas, $failed falharam",
-            'sent' => $sent,
-            'failed' => $failed
+            'data' => [
+                'sent' => $sent,
+                'failed' => $failed
+            ]
         ]);
 
     } catch (Exception $e) {
@@ -292,7 +297,7 @@ function handleList() {
         ");
         $subs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        jsonResponse(['success' => true, 'data' => $subs, 'count' => count($subs)]);
+        jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => $subs, 'count' => count($subs)]);
 
     } catch (PDOException $e) {
         Logger::logException($e, ['context' => 'push list']);

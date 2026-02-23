@@ -67,12 +67,14 @@ function handleGet($db, $userData) {
     if ($date && count($records) > 0) {
         jsonResponse([
             'success' => true,
+            'message' => 'Dados carregados com sucesso',
             'data' => $records[0]
         ]);
     }
 
     jsonResponse([
         'success' => true,
+        'message' => 'Dados carregados com sucesso',
         'data' => $records,
         'count' => count($records)
     ]);

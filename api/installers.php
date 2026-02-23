@@ -21,9 +21,10 @@ try {
 
     jsonResponse([
         'success' => true,
+        'message' => 'Dados carregados com sucesso',
         'data' => $installers
     ]);
 
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro ao buscar instaladores', 'error' => $e->getMessage()], 500);
+    jsonResponse(['success' => false, 'message' => 'Erro ao buscar instaladores'], 500);
 }

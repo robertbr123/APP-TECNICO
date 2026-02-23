@@ -17,8 +17,7 @@ require_once 'config.php';
 require_once 'Logger.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    echo json_encode(['success' => false, 'message' => 'Método não permitido']);
-    exit;
+    jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
 }
 
 try {
@@ -27,20 +26,19 @@ try {
     $cpf = preg_replace('/\D/', '', $_GET['cpf'] ?? '');
     
     if (empty($cpf)) {
-        echo json_encode(['success' => false, 'message' => 'CPF é obrigatório']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'CPF é obrigatório'], 400);
     }
     
     // Verifica se a tabela existe
     $tableExists = $db->query("SHOW TABLES LIKE 'client_photos'")->rowCount() > 0;
     
     if (!$tableExists) {
-        echo json_encode([
+        jsonResponse([
             'success' => true,
+            'message' => 'Dados carregados com sucesso',
             'data' => [],
             'count' => 0
         ]);
-        exit;
     }
     
     // Busca as fotos do cliente
@@ -59,13 +57,14 @@ try {
         $photo['thumb_url'] = '/uploads/' . $photo['filename']; // Mesma imagem por enquanto
     }
     
-    echo json_encode([
+    jsonResponse([
         'success' => true,
+        'message' => 'Dados carregados com sucesso',
         'data' => $photos,
         'count' => count($photos)
     ]);
     
 } catch (Exception $e) {
     Logger::logException($e, ['endpoint' => 'get-fotos.php']);
-    echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
+    jsonResponse(['success' => false, 'message' => 'Erro interno do servidor'], 500);
 }

@@ -57,7 +57,7 @@ if (isset($data['action']) && $data['action'] === 'buscar_cliente') {
         if ($result !== false) {
             $decoded = json_decode($result, true);
             if ($decoded && isset($decoded['clientes']) && !empty($decoded['clientes'])) {
-                jsonResponse(['success' => true, 'data' => $decoded, 'servidor' => $server['name']]);
+                jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => $decoded, 'servidor' => $server['name']]);
             }
         }
     }
@@ -97,7 +97,7 @@ if (isset($data['action']) && $data['action'] === 'verificar_acesso') {
         if ($result !== false) {
             $decoded = json_decode($result, true);
             if ($decoded && isset($decoded['msg'])) {
-                jsonResponse(['success' => true, 'data' => $decoded, 'servidor' => $server['name']]);
+                jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => $decoded, 'servidor' => $server['name']]);
             }
         }
     }
@@ -139,7 +139,7 @@ if (isset($data['action']) && $data['action'] === 'consultar_cliente') {
         if ($result !== false) {
             $decoded = json_decode($result, true);
             if ($decoded && !isset($decoded['detail'])) {
-                jsonResponse(['success' => true, 'data' => $decoded, 'servidor' => $server['name']]);
+                jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => $decoded, 'servidor' => $server['name']]);
             }
         }
     }
@@ -193,7 +193,7 @@ if (isset($data['action']) && $data['action'] === 'salvar_contrato') {
         jsonResponse(['success' => true, 'message' => 'Contrato e MAC salvos com sucesso']);
         
     } catch (PDOException $e) {
-        jsonResponse(['success' => false, 'message' => 'Erro no banco de dados', 'error' => $e->getMessage()], 500);
+        jsonResponse(['success' => false, 'message' => 'Erro no banco de dados'], 500);
     }
 }
 

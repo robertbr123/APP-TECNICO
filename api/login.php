@@ -26,38 +26,55 @@ $password = $data['password'];
 try {
     $db = Database::getInstance()->getConnection();
 
-    // Auto-migrate: adiciona colunas city e photo se não existirem
-    try {
-        $db->exec("ALTER TABLE users ADD COLUMN city VARCHAR(100) DEFAULT NULL");
-    } catch (PDOException $e) { /* coluna já existe */ }
-    try {
-        $db->exec("ALTER TABLE users ADD COLUMN photo VARCHAR(255) DEFAULT NULL");
-    } catch (PDOException $e) { /* coluna já existe */ }
-
-    // Busca o usuário no banco
-    $stmt = $db->prepare("SELECT id, username, password, full_name, email, role, city, photo FROM users WHERE username = ? LIMIT 1");
+    // Verifica se a coluna 'active' existe (necessário para verificar usuários desativados)
+    $stmt = $db->prepare("SELECT id, username, password, full_name, email, role, city, photo, active FROM users WHERE username = ? LIMIT 1");
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
     if (!$user) {
-        jsonResponse(['success' => false, 'message' => 'Usuário não encontrado'], 401);
+        jsonResponse(['success' => false, 'message' => 'Usuário ou senha incorretos'], 401);
     }
 
-    // Verifica a senha
-    // Se a senha está em hash (bcrypt), usa password_verify
-    // Se a senha está em texto puro (como no exemplo do dump), compara diretamente
+    // Verifica se o usuário está ativo
+    if (isset($user['active']) && $user['active'] == 0) {
+        jsonResponse(['success' => false, 'message' => 'Usuário desativado. Contate o administrador.'], 403);
+    }
+
+    // Verifica a senha com bcrypt
     $passwordValid = false;
-    
+    $needsRehash = false;
+
     if (password_get_info($user['password'])['algo'] !== 0) {
-        // Senha está em hash bcrypt
+        // Senha em hash bcrypt - verificação segura
         $passwordValid = password_verify($password, $user['password']);
+        
+        // Verifica se precisa re-hash (custo atualizado)
+        if ($passwordValid && password_needs_rehash($user['password'], PASSWORD_BCRYPT, ['cost' => 12])) {
+            $needsRehash = true;
+        }
     } else {
-        // Senha em texto puro (não recomendado, mas para compatibilidade)
+        // Senha legada em texto puro - verifica e migra automaticamente
         $passwordValid = ($password === $user['password']);
+        if ($passwordValid) {
+            $needsRehash = true;
+        }
     }
 
     if (!$passwordValid) {
-        jsonResponse(['success' => false, 'message' => 'Senha incorreta'], 401);
+        jsonResponse(['success' => false, 'message' => 'Usuário ou senha incorretos'], 401);
+    }
+
+    // Migra senha para bcrypt automaticamente se necessário
+    if ($needsRehash) {
+        try {
+            $newHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+            $updateStmt = $db->prepare("UPDATE users SET password = ? WHERE id = ?");
+            $updateStmt->execute([$newHash, $user['id']]);
+            Logger::info('Senha migrada para bcrypt', ['user_id' => $user['id'], 'username' => $user['username']]);
+        } catch (Exception $e) {
+            // Não falha o login se o rehash falhar
+            Logger::warning('Falha ao migrar senha', ['user_id' => $user['id'], 'error' => $e->getMessage()]);
+        }
     }
 
     // Gera o token JWT
@@ -67,35 +84,21 @@ try {
     unset($user['password']);
 
     // Registra o login no log de auditoria
-    try {
-        $auditStmt = $db->prepare("
-            INSERT INTO audit_logs 
-            (user_id, username, action_type, action_description, entity_type, entity_id, entity_name, ip_address, user_agent)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-        $auditStmt->execute([
-            $user['id'],
-            $user['username'],
-            'login',
-            'Usuário fez login no sistema',
-            'user',
-            $user['id'],
-            $user['full_name'] ?? $user['username'],
-            $_SERVER['REMOTE_ADDR'] ?? null,
-            $_SERVER['HTTP_USER_AGENT'] ?? null
-        ]);
-    } catch (Exception $e) {
-        // Não falha o login se o auditoria falhar
-        Logger::logException($e, ['context' => 'auditoria login']);
-    }
+    logAudit($db, [
+        'user_id' => $user['id'],
+        'username' => $user['username']
+    ], 'login', 'Usuário fez login no sistema', 'user', $user['id'], $user['full_name'] ?? $user['username']);
 
     jsonResponse([
         'success' => true,
         'message' => 'Login realizado com sucesso',
-        'token' => $token,
-        'user' => $user
+        'data' => [
+            'token' => $token,
+            'user' => $user
+        ]
     ]);
 
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro ao processar login', 'error' => $e->getMessage()], 500);
+    Logger::logException($e, ['context' => 'login']);
+    jsonResponse(['success' => false, 'message' => 'Erro ao processar login'], 500);
 }

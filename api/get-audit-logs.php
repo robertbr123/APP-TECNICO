@@ -93,6 +93,7 @@ try {
     
     jsonResponse([
         'success' => true,
+        'message' => 'Dados carregados com sucesso',
         'data' => $logs,
         'total' => $total,
         'limit' => $limit,
@@ -100,7 +101,7 @@ try {
     ]);
     
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados', 'error' => $e->getMessage()], 500);
+    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados'], 500);
 }
 
 /**

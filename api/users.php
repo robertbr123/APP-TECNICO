@@ -74,13 +74,13 @@ function handleGet($db) {
             jsonResponse(['success' => false, 'message' => 'Usuário não encontrado'], 404);
         }
         
-        jsonResponse(['success' => true, 'data' => $user]);
+        jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => $user]);
     } else {
         // Lista todos os usuários
         $stmt = $db->query("SELECT $selectFields FROM users ORDER BY id DESC");
         $users = $stmt->fetchAll();
         
-        jsonResponse(['success' => true, 'data' => $users, 'count' => count($users)]);
+        jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => $users, 'count' => count($users)]);
     }
 }
 

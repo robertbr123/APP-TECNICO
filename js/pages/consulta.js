@@ -58,11 +58,11 @@ App.renderClientsList = function(clients, container) {
                         <span class="inline-block w-2 h-2 rounded-full bg-${statusColor}-500"></span>
                         <p class="text-${statusColor}-600 dark:text-${statusColor}-400 text-xs font-bold uppercase tracking-wider leading-normal">${statusText}</p>
                     </div>
-                    <p class="text-[#111318] dark:text-white text-base font-bold leading-tight">${client.name}</p>
-                    <p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">CPF: ${App.formatCPF(client.cpf)}</p>
+                    <p class="text-[#111318] dark:text-white text-base font-bold leading-tight">${escapeHtml(client.name)}</p>
+                    <p class="text-[#616f89] dark:text-gray-400 text-sm font-normal leading-normal">CPF: ${escapeHtml(App.formatCPF(client.cpf))}</p>
                     <p class="text-[#616f89] dark:text-gray-400 text-xs font-normal leading-normal mt-1 flex items-center gap-1">
                         <span class="material-symbols-outlined text-sm">location_on</span>
-                        ${addressText}
+                        ${escapeHtml(addressText)}
                     </p>
                 </div>
                 <button class="mt-4 flex min-w-[140px] max-w-fit cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-primary text-white gap-1 text-sm font-semibold leading-normal btn-details">

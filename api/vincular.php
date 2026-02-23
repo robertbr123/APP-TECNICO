@@ -32,8 +32,7 @@ function getUserUsername($db, $userId) {
 
 // Apenas POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Método não permitido']);
-    exit;
+    jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
 }
 
 try {
@@ -60,8 +59,7 @@ try {
     $input = json_decode(file_get_contents('php://input'), true);
     
     if (json_last_error() !== JSON_ERROR_NONE) {
-        echo json_encode(['success' => false, 'message' => 'JSON inválido']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'JSON inválido'], 400);
     }
     
     $cpf = preg_replace('/\D/', '', $input['cpf'] ?? '');
@@ -71,18 +69,15 @@ try {
     
     // Validações
     if (empty($cpf)) {
-        echo json_encode(['success' => false, 'message' => 'CPF é obrigatório']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'CPF é obrigatório'], 400);
     }
     
     if (empty($serial)) {
-        echo json_encode(['success' => false, 'message' => 'Número de série é obrigatório']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'Número de série é obrigatório'], 400);
     }
     
     if (strlen($serial) < 3) {
-        echo json_encode(['success' => false, 'message' => 'Número de série deve ter pelo menos 3 caracteres']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'Número de série deve ter pelo menos 3 caracteres'], 400);
     }
     
     // Busca cidade do técnico/user para filtro
@@ -111,8 +106,7 @@ try {
     $client = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$client) {
-        echo json_encode(['success' => false, 'message' => 'Cliente não encontrado']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'Cliente não encontrado'], 404);
     }
     
     $oldSerial = $client['serial'];
@@ -246,7 +240,7 @@ try {
             Logger::logException($e, ['context' => 'auditoria vincular']);
         }
         
-        echo json_encode([
+        jsonResponse([
             'success' => true,
             'message' => 'Equipamento vinculado com sucesso',
             'data' => [
@@ -258,13 +252,13 @@ try {
             ]
         ]);
     } else {
-        echo json_encode(['success' => false, 'message' => 'Erro ao atualizar cliente']);
+        jsonResponse(['success' => false, 'message' => 'Erro ao atualizar cliente'], 500);
     }
     
 } catch (PDOException $e) {
     Logger::logException($e, ['endpoint' => 'vincular.php', 'type' => 'PDO']);
-    echo json_encode(['success' => false, 'message' => 'Erro de banco de dados']);
+    jsonResponse(['success' => false, 'message' => 'Erro de banco de dados'], 500);
 } catch (Exception $e) {
     Logger::logException($e, ['endpoint' => 'vincular.php']);
-    echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+    jsonResponse(['success' => false, 'message' => 'Erro interno do servidor'], 500);
 }

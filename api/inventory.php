@@ -56,13 +56,13 @@ try {
     Logger::logException($e, ['context' => 'database']);
     jsonResponse([
         'success' => false, 
-        'message' => 'Erro no banco de dados: ' . $e->getMessage()
+        'message' => 'Erro no banco de dados'
     ], 500);
 } catch (Exception $e) {
     Logger::logException($e);
     jsonResponse([
         'success' => false, 
-        'message' => 'Erro interno do servidor: ' . $e->getMessage()
+        'message' => 'Erro interno do servidor'
     ], 500);
 }
 
@@ -154,6 +154,7 @@ function handleGet($db, $userData) {
 
                 jsonResponse([
                     'success' => true,
+                    'message' => 'Dados carregados com sucesso',
                     'data' => $equipment,
                     'pagination' => [
                         'page' => $page,
@@ -197,6 +198,7 @@ function handleGet($db, $userData) {
 
                 jsonResponse([
                     'success' => true,
+                    'message' => 'Dados carregados com sucesso',
                     'data' => [
                         'by_status_type' => $stats,
                         'summary' => [
@@ -234,6 +236,7 @@ function handleGet($db, $userData) {
 
                 jsonResponse([
                     'success' => true,
+                    'message' => 'Dados carregados com sucesso',
                     'data' => $movements,
                     'count' => count($movements)
                 ]);
@@ -255,6 +258,7 @@ function handleGet($db, $userData) {
 
                 jsonResponse([
                     'success' => true,
+                    'message' => 'Dados carregados com sucesso',
                     'data' => $alerts,
                     'count' => count($alerts)
                 ]);

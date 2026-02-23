@@ -70,7 +70,7 @@ try {
             jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
     }
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados', 'error' => $e->getMessage()], 500);
+    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados'], 500);
 }
 
 function generateOrderNumber($db) {
@@ -97,7 +97,7 @@ function handleGet($db, $userData) {
         if (!$order) {
             jsonResponse(['success' => false, 'message' => 'OS não encontrada'], 404);
         }
-        jsonResponse(['success' => true, 'data' => $order]);
+        jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => $order]);
     }
 
     if ($action === 'stats') {
@@ -120,7 +120,7 @@ function handleGet($db, $userData) {
         $stmt->execute($cityParam);
         $stats['today'] = $stmt->fetch()['total'];
 
-        jsonResponse(['success' => true, 'data' => $stats]);
+        jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => $stats]);
     }
 
     // List with filters
@@ -177,6 +177,7 @@ function handleGet($db, $userData) {
 
     jsonResponse([
         'success' => true,
+        'message' => 'Dados carregados com sucesso',
         'data' => $orders,
         'total' => $total,
         'limit' => $limit,
@@ -235,7 +236,7 @@ function handlePost($db, $userData) {
                 $data['assigned_to'],
                 'Nova OS Atribuída',
                 "OS $orderNumber - " . $data['client_name'] . ": " . substr($data['description'], 0, 100),
-                "ordens.html?id=$orderId"
+                "ordens.php?id=$orderId"
             ]);
         }
 
@@ -282,7 +283,7 @@ function handlePut($db, $userData) {
                 $data['assigned_to'],
                 'OS Atribuída a Você',
                 "OS {$order['order_number']} - {$order['client_name']}",
-                "ordens.html?id={$data['id']}"
+                "ordens.php?id={$data['id']}"
             ]);
             break;
 
@@ -326,7 +327,7 @@ function handlePut($db, $userData) {
                     $order['created_by'],
                     'OS Concluída',
                     "OS {$order['order_number']} foi concluída por {$userData['username']}",
-                    "ordens.html?id={$data['id']}"
+                    "ordens.php?id={$data['id']}"
                 ]);
             }
             break;

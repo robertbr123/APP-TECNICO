@@ -29,7 +29,7 @@ try {
             jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
     }
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados', 'error' => $e->getMessage()], 500);
+    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados'], 500);
 }
 
 function handleGet($db, $userData) {
@@ -39,7 +39,7 @@ function handleGet($db, $userData) {
         $stmt = $db->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND `read` = 0");
         $stmt->execute([$userData['user_id']]);
         $count = $stmt->fetch()['count'];
-        jsonResponse(['success' => true, 'data' => ['count' => intval($count)]]);
+        jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => ['count' => intval($count)]]);
     }
 
     // List notifications
@@ -68,6 +68,7 @@ function handleGet($db, $userData) {
 
     jsonResponse([
         'success' => true,
+        'message' => 'Dados carregados com sucesso',
         'data' => $notifications,
         'total' => intval($total),
         'unread' => intval($unreadCount)

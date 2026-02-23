@@ -61,7 +61,7 @@ try {
             jsonResponse(['success' => false, 'message' => 'Tipo de relatório inválido'], 400);
     }
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro ao gerar relatório', 'error' => $e->getMessage()], 500);
+    jsonResponse(['success' => false, 'message' => 'Erro ao gerar relatório'], 500);
 }
 
 function handleClientsReport($db, $cityFilter, $cityParam, $dateFrom, $dateTo) {
@@ -86,6 +86,7 @@ function handleClientsReport($db, $cityFilter, $cityParam, $dateFrom, $dateTo) {
 
     jsonResponse([
         'success' => true,
+        'message' => 'Relatório gerado com sucesso',
         'data' => $data,
         'summary' => [
             'total_all_time' => intval($totalClients),
@@ -133,6 +134,7 @@ function handleTimeClockReport($db, $userData, $dateFrom, $dateTo) {
 
     jsonResponse([
         'success' => true,
+        'message' => 'Relatório gerado com sucesso',
         'data' => $data,
         'summary' => [
             'total_days' => intval($summary['total_days']),
@@ -172,6 +174,7 @@ function handleInventoryReport($db) {
 
     jsonResponse([
         'success' => true,
+        'message' => 'Relatório gerado com sucesso',
         'data' => $data,
         'summary' => [
             'total' => count($data),
@@ -216,6 +219,7 @@ function handleWorkOrdersReport($db, $userData, $dateFrom, $dateTo) {
 
     jsonResponse([
         'success' => true,
+        'message' => 'Relatório gerado com sucesso',
         'data' => $data,
         'summary' => [
             'total' => count($data),

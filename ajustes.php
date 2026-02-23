@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR"><head>
+<title>Ajustes - Ondeline</title>
+<?php include 'partials/head.php'; ?>
+</head>
+<body class="min-h-screen">
+<header class="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top">
+<div class="flex items-center justify-between px-4 h-16">
+    <div class="flex items-center gap-3">
+        <button onclick="window.history.back()" class="flex items-center justify-center size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+            <span class="material-symbols-outlined text-[22px]">arrow_back</span>
+        </button>
+        <h1 class="text-lg font-bold text-gray-900 dark:text-white">Ajustes</h1>
+    </div>
+</div>
+</header>
+
+<main class="px-4 pb-32">
+    <!-- Perfil -->
+    <section class="py-6">
+        <div class="flex flex-col items-center gap-3">
+            <div class="relative">
+                <div id="profile-avatar" class="size-24 rounded-full border-2 border-gray-200 dark:border-gray-700 bg-center bg-cover bg-primary/10 flex items-center justify-center cursor-pointer">
+                    <span class="material-symbols-outlined text-primary text-4xl">person</span>
+                </div>
+                <button id="profile-avatar-btn" class="absolute bottom-0 right-0 size-8 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-black">
+                    <span class="material-symbols-outlined text-[16px]">photo_camera</span>
+                </button>
+                <input type="file" id="photo-input" accept="image/*" class="hidden"/>
+            </div>
+            <div class="text-center">
+                <p id="profile-name" class="text-xl font-bold text-gray-900 dark:text-white">Carregando...</p>
+                <p id="profile-role" class="text-sm text-primary font-medium">Tecnico</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dados do Perfil -->
+    <section class="mb-6">
+        <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-3">Dados Pessoais</h2>
+        <div class="bg-white dark:bg-card-dark rounded-ios-xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 dark:border-white/5">
+                <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Nome Completo</label>
+                <input id="edit-name" type="text" class="w-full mt-1 text-[15px] font-medium text-gray-900 dark:text-white bg-transparent border-0 p-0 focus:ring-0" placeholder="Seu nome"/>
+            </div>
+            <div class="p-4 border-b border-gray-100 dark:border-white/5">
+                <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Email</label>
+                <input id="edit-email" type="email" class="w-full mt-1 text-[15px] font-medium text-gray-900 dark:text-white bg-transparent border-0 p-0 focus:ring-0" placeholder="seu@email.com"/>
+            </div>
+            <div class="p-4 border-b border-gray-100 dark:border-white/5">
+                <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Cidade</label>
+                <input id="edit-city" type="text" class="w-full mt-1 text-[15px] font-medium text-gray-900 dark:text-white bg-transparent border-0 p-0 focus:ring-0" placeholder="Sua cidade"/>
+            </div>
+            <div class="p-4 border-b border-gray-100 dark:border-white/5">
+                <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Cargo</label>
+                <input id="edit-cargo" type="text" class="w-full mt-1 text-[15px] font-medium text-gray-900 dark:text-white bg-transparent border-0 p-0 focus:ring-0" placeholder="Ex: Tecnico Telecom"/>
+            </div>
+            <div class="p-4 flex items-center justify-between">
+                <div>
+                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Funcao</label>
+                    <p id="profile-email" class="text-[15px] font-medium text-gray-900 dark:text-white mt-1">Carregando...</p>
+                </div>
+                <span class="material-symbols-outlined text-gray-300">lock</span>
+            </div>
+        </div>
+        <button id="btn-save-profile" class="w-full mt-4 h-12 bg-primary hover:bg-blue-600 active:scale-[0.98] transition-all text-white rounded-ios-xl flex items-center justify-center gap-2 font-semibold text-sm">
+            <span class="material-symbols-outlined text-[20px]">save</span>
+            Salvar Alteracoes
+        </button>
+    </section>
+
+    <!-- Aparencia -->
+    <section class="mb-6">
+        <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-3">Aparencia</h2>
+        <div class="grid grid-cols-3 gap-3">
+            <div data-theme-option="auto" class="bg-white dark:bg-card-dark rounded-ios-xl p-4 flex flex-col items-center gap-2 cursor-pointer border border-gray-100 dark:border-white/5 shadow-sm transition-all active:scale-95">
+                <div class="size-12 rounded-full bg-gradient-to-br from-yellow-400 to-indigo-900 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-white text-xl">schedule</span>
+                </div>
+                <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Auto</span>
+                <span class="text-[10px] text-gray-400">6h-18h</span>
+            </div>
+            <div data-theme-option="light" class="bg-white dark:bg-card-dark rounded-ios-xl p-4 flex flex-col items-center gap-2 cursor-pointer border border-gray-100 dark:border-white/5 shadow-sm transition-all active:scale-95">
+                <div class="size-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-yellow-600 text-xl">light_mode</span>
+                </div>
+                <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Claro</span>
+                <span class="text-[10px] text-gray-400">Sempre</span>
+            </div>
+            <div data-theme-option="dark" class="bg-white dark:bg-card-dark rounded-ios-xl p-4 flex flex-col items-center gap-2 cursor-pointer border border-gray-100 dark:border-white/5 shadow-sm transition-all active:scale-95">
+                <div class="size-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-indigo-600 dark:text-indigo-400 text-xl">dark_mode</span>
+                </div>
+                <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Escuro</span>
+                <span class="text-[10px] text-gray-400">Sempre</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Informacoes da Cidade -->
+    <section class="mb-6">
+        <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-3">Informacoes</h2>
+        <div class="bg-white dark:bg-card-dark rounded-ios-xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+            <div class="p-4 flex items-center gap-3 border-b border-gray-100 dark:border-white/5">
+                <div class="size-10 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary text-xl">location_city</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Cidade Vinculada</p>
+                    <p id="profile-city" class="text-[15px] font-semibold text-gray-900 dark:text-white">Nao definida</p>
+                </div>
+            </div>
+            <div class="p-4 flex items-center gap-3">
+                <div class="size-10 rounded-full bg-green-50 dark:bg-green-500/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-green-500 text-xl">info</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Versao do App</p>
+                    <p id="app-version" class="text-[15px] font-semibold text-gray-900 dark:text-white">Carregando...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sistema -->
+    <section class="mb-6">
+        <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-3">Sistema</h2>
+        <div class="bg-white dark:bg-card-dark rounded-ios-xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+            <button id="btn-clear-cache" class="w-full p-4 flex items-center gap-3 border-b border-gray-100 dark:border-white/5 text-left active:bg-gray-50 dark:active:bg-gray-800 transition-colors">
+                <div class="size-10 rounded-full bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-orange-500 text-xl">cached</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-[15px] font-medium text-gray-900 dark:text-white">Limpar Cache</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Remove dados armazenados localmente</p>
+                </div>
+                <span class="material-symbols-outlined text-gray-300">chevron_right</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- Logout -->
+    <button id="btn-logout" class="w-full h-12 bg-red-500 hover:bg-red-600 active:scale-[0.98] transition-all text-white rounded-ios-xl flex items-center justify-center gap-2 font-semibold text-sm shadow-lg shadow-red-500/25">
+        <span class="material-symbols-outlined text-[20px]">logout</span>
+        Sair da Conta
+    </button>
+</main>
+
+<?php $activePage = 'ajustes'; include 'partials/bottom-nav.php'; ?>
+
+<!-- Scripts do App -->
+<script src="js/api.js"></script>
+<script src="js/components.js"></script>
+<script src="js/app.js"></script>
+<script>
+// Carregar versão do Service Worker
+async function loadAppVersion() {
+    const el = document.getElementById('app-version');
+    if (!el) return;
+    try {
+        if (!('serviceWorker' in navigator)) {
+            el.textContent = 'v25.0';
+            return;
+        }
+        // Aguarda o SW ficar ativo (até 3 segundos)
+        const registration = await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+        ]);
+
+        if (registration && registration.active) {
+            const messageChannel = new MessageChannel();
+            const versionPromise = new Promise((resolve) => {
+                messageChannel.port1.onmessage = (event) => {
+                    resolve((event.data && event.data.version) ? event.data.version : 'v25.0');
+                };
+            });
+            const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 2000));
+
+            registration.active.postMessage({ type: 'GET_VERSION' }, [messageChannel.port2]);
+            const version = await Promise.race([versionPromise, timeoutPromise]);
+            el.textContent = version || 'v25.0';
+        } else {
+            el.textContent = 'v25.0';
+        }
+    } catch (e) {
+        el.textContent = 'v25.0';
+    }
+}
+
+// Carregar versão quando a página carregar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadAppVersion);
+} else {
+    loadAppVersion();
+}
+</script>
+</body></html>

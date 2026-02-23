@@ -3,6 +3,19 @@
  * Ondeline Tech - App do Técnico
  */
 
+/**
+ * Escapa HTML para prevenir XSS
+ * Uso: escapeHtml(userInput) antes de inserir em innerHTML
+ */
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    const s = String(str);
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+}
+window.escapeHtml = escapeHtml;
+
 const API = {
     // URL base da API - ALTERE PARA O SEU DOMÍNIO
     baseUrl: '/api',  // Em produção: 'https://seudominio.com/api'
@@ -90,20 +103,44 @@ const API = {
 
         try {
             const response = await fetch(url, config);
-            const data = await response.json();
+            
+            // Tenta parsear JSON
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                throw new Error('Resposta inválida do servidor');
+            }
 
             if (!response.ok) {
                 // Se token expirou, redireciona para login
                 if (response.status === 401) {
                     this.removeToken();
-                    window.location.href = 'login.html';
+                    window.location.href = 'login.php';
                     return;
                 }
-                throw new Error(data.message || 'Erro na requisição');
+                const errorMsg = data.message || 'Erro na requisição';
+                // Mostra toast de erro automaticamente se disponível
+                if (typeof showError === 'function') {
+                    showError(errorMsg);
+                } else if (typeof App !== 'undefined' && App.showToast) {
+                    App.showToast(errorMsg, 'error');
+                }
+                throw new Error(errorMsg);
             }
 
             return data;
         } catch (error) {
+            // Se é erro de rede (offline, timeout, etc.)
+            if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+                const offlineMsg = 'Sem conexão. Verifique sua internet.';
+                if (typeof showError === 'function') {
+                    showError(offlineMsg);
+                } else if (typeof App !== 'undefined' && App.showToast) {
+                    App.showToast(offlineMsg, 'error');
+                }
+                throw new Error(offlineMsg);
+            }
             throw error;
         }
     },
@@ -155,9 +192,9 @@ const API = {
      */
     async login(username, password) {
         const response = await this.post('login.php', { username, password });
-        if (response.success) {
-            this.setToken(response.token);
-            this.setUser(response.user);
+        if (response.success && response.data) {
+            this.setToken(response.data.token);
+            this.setUser(response.data.user);
         }
         return response;
     },
@@ -167,7 +204,7 @@ const API = {
      */
     logout() {
         this.removeToken();
-        window.location.href = 'login.html';
+        window.location.href = 'login.php';
     },
 
     /**

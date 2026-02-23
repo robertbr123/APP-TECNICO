@@ -157,6 +157,7 @@ function handleGet($db, $userData, $isAdmin) {
             
             jsonResponse([
                 'success' => true,
+                'message' => 'Dados carregados com sucesso',
                 'data' => $checklists,
                 'is_admin' => $isAdmin,
                 'counts' => $counts,
@@ -241,6 +242,7 @@ function handleGet($db, $userData, $isAdmin) {
             
             jsonResponse([
                 'success' => true,
+                'message' => 'Dados carregados com sucesso',
                 'data' => [
                     'checklist' => $checklist,
                     'items' => $items,
@@ -275,7 +277,7 @@ function handleGet($db, $userData, $isAdmin) {
             $stmt->execute($params);
             $templates = $stmt->fetchAll();
             
-            jsonResponse(['success' => true, 'data' => $templates, 'filter' => $installationType]);
+            jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => $templates, 'filter' => $installationType]);
             
         default:
             jsonResponse(['success' => false, 'message' => 'Ação inválida'], 400);

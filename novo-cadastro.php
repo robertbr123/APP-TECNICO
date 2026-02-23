@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR">
+<head>
+<title>Novo Cadastro de Cliente - Ondeline</title>
+<?php include 'partials/head.php'; ?>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden">
+<header class="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top">
+<div class="flex items-center justify-between px-4 h-16">
+<a href="dashboard.php" class="flex items-center justify-center size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 btn-press">
+<span class="material-symbols-outlined">arrow_back_ios</span>
+</a>
+<h2 class="text-gray-900 dark:text-white text-lg font-bold flex-1 text-center">Novo Cadastro</h2>
+<div class="size-10"></div>
+</div>
+</header>
+
+<div class="flex flex-col gap-2 pb-32">
+<div class="bg-white dark:bg-background-dark mt-2 border-b border-gray-50 dark:border-gray-900">
+<h3 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-6">Dados Pessoais</h3>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-40 flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Nome Completo</p>
+<input id="field-name" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Ex: João da Silva" type="text" value="" required/>
+</label>
+</div>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-[140px] flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">CPF</p>
+<input id="field-cpf" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="000.000.000-00" type="text" value="" required/>
+</label>
+<label class="flex flex-col min-w-[140px] flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Telefone</p>
+<input id="field-phone" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="(00) 00000-0000" type="tel" value="" required/>
+</label>
+</div>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-[140px] flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Data de Nascimento</p>
+<input id="field-dob" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" type="date" value=""/>
+</label>
+</div>
+<div class="h-4"></div>
+</div>
+
+<div class="bg-white dark:bg-background-dark border-b border-gray-50 dark:border-gray-900">
+<h3 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-6">Endereço</h3>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-[120px] w-1/3">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">CEP</p>
+<input id="field-cep" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="00000-000" type="text" value=""/>
+</label>
+<label class="flex flex-col min-w-[100px] w-1/4">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Estado</p>
+<select id="field-state" class="form-select flex w-full min-w-0 flex-1 rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 px-4 text-base font-normal leading-normal">
+<option value="">UF</option>
+<option value="AC">AC</option>
+<option value="AL">AL</option>
+<option value="AP">AP</option>
+<option value="AM">AM</option>
+<option value="BA">BA</option>
+<option value="CE">CE</option>
+<option value="DF">DF</option>
+<option value="ES">ES</option>
+<option value="GO">GO</option>
+<option value="MA">MA</option>
+<option value="MT">MT</option>
+<option value="MS">MS</option>
+<option value="MG">MG</option>
+<option value="PA">PA</option>
+<option value="PB">PB</option>
+<option value="PR">PR</option>
+<option value="PE">PE</option>
+<option value="PI">PI</option>
+<option value="RJ">RJ</option>
+<option value="RN">RN</option>
+<option value="RS">RS</option>
+<option value="RO">RO</option>
+<option value="RR">RR</option>
+<option value="SC">SC</option>
+<option value="SP">SP</option>
+<option value="SE">SE</option>
+<option value="TO">TO</option>
+</select>
+</label>
+<label class="flex flex-col min-w-[120px] flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Cidade</p>
+<input id="field-city" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Cidade" type="text" value="" required/>
+</label>
+</div>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-[140px] flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Bairro</p>
+<input id="field-neighborhood" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Nome do Bairro" type="text" value=""/>
+</label>
+</div>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-40 flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Rua</p>
+<input id="field-street" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Nome da Rua" type="text" value=""/>
+</label>
+</div>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-[80px] w-1/4">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Número</p>
+<input id="field-number" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="123" type="text" value=""/>
+</label>
+<label class="flex flex-col min-w-[160px] flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Complemento</p>
+<input id="field-complement" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="Ap, Bloco, etc." type="text" value=""/>
+</label>
+</div>
+<button id="btn-location" class="mx-4 my-3 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors font-medium">
+<span class="material-symbols-outlined">location_on</span>
+<span>Obter Minha Localização</span>
+</button>
+<div class="h-4"></div>
+</div>
+
+<div class="bg-white dark:bg-background-dark border-b border-gray-50 dark:border-gray-900">
+<h3 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-6">Dados do Plano</h3>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-40 flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Plano</p>
+<select id="field-plan" class="form-select flex w-full min-w-0 flex-1 rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 px-4 text-base font-normal leading-normal">
+<option value="6">Plano Básico - R$ 130</option>
+<option value="7">Plano 100 - R$ 100</option>
+<option value="9">Plano Intermediário - R$ 150</option>
+<option value="8">Plano Avançado - R$ 180</option>
+</select>
+</label>
+</div>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-40 flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Usuário PPPoE</p>
+<input id="field-pppoe-user" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="usuario@ondeline" type="text" value=""/>
+</label>
+</div>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-[140px] flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Senha PPPoE</p>
+<input id="field-pppoe-pass" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 placeholder:text-[#94a3b8] px-4 text-base font-normal leading-normal" placeholder="•••••••" type="password" value=""/>
+</label>
+<label class="flex flex-col min-w-[120px] w-1/3">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Vencimento</p>
+<select id="field-due-date" class="form-select flex w-full min-w-0 flex-1 rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary h-12 px-4 text-base font-normal leading-normal">
+<option value="10">Dia 10</option>
+<option value="20">Dia 20</option>
+<option value="30">Dia 30</option>
+</select>
+</label>
+</div>
+<div class="h-4"></div>
+</div>
+
+<div class="bg-white dark:bg-background-dark border-b border-gray-50 dark:border-gray-900">
+<h3 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-6">Observações</h3>
+<div class="flex max-w-full flex-wrap items-end gap-4 px-4 py-3">
+<label class="flex flex-col min-w-40 flex-1">
+<p class="text-[#111318] dark:text-gray-300 text-sm font-semibold leading-normal pb-1">Comentários Adicionais</p>
+<textarea id="field-observations" class="form-textarea flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#111318] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#dbdfe6] dark:border-gray-700 bg-white dark:bg-gray-800 focus:border-primary min-h-[100px] placeholder:text-[#94a3b8] p-4 text-base font-normal leading-normal" placeholder="Observações técnicas, detalhes de acesso, etc."></textarea>
+</label>
+</div>
+<div class="h-4"></div>
+</div>
+
+<div class="bg-white dark:bg-background-dark">
+<h3 class="text-[#111318] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-6">Fotos da Instalação</h3>
+<p class="text-[#616f89] text-xs px-4 pb-2">Toque para tirar foto ou selecionar da galeria</p>
+<div class="grid grid-cols-2 gap-4 px-4 py-4">
+<div class="flex flex-col gap-2">
+<p class="text-[#111318] dark:text-gray-300 text-xs font-semibold uppercase tracking-wider leading-tight">Roteador</p>
+<div class="photo-upload relative aspect-square w-full rounded-xl border-2 border-dashed border-[#dbdfe6] dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center cursor-pointer active:scale-[0.98] transition-transform overflow-hidden" data-type="router">
+<input type="file" accept="image/*" capture="environment" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+<span class="material-symbols-outlined text-[#616f89] text-3xl photo-icon">photo_camera</span>
+<img class="photo-preview absolute inset-0 w-full h-full object-cover hidden">
+<div class="absolute bottom-2 right-2 bg-primary text-white rounded-full size-7 flex items-center justify-center shadow-md photo-add-btn">
+<span class="material-symbols-outlined text-lg">add</span>
+</div>
+<button class="photo-remove-btn absolute top-2 right-2 bg-red-500 text-white rounded-full size-7 items-center justify-center shadow-md hidden">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<p class="text-[#111318] dark:text-gray-300 text-xs font-semibold uppercase tracking-wider leading-tight">Cabeamento</p>
+<div class="photo-upload relative aspect-square w-full rounded-xl border-2 border-dashed border-[#dbdfe6] dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center cursor-pointer active:scale-[0.98] transition-transform overflow-hidden" data-type="cabling">
+<input type="file" accept="image/*" capture="environment" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+<span class="material-symbols-outlined text-[#616f89] text-3xl photo-icon">router</span>
+<img class="photo-preview absolute inset-0 w-full h-full object-cover hidden">
+<div class="absolute bottom-2 right-2 bg-primary text-white rounded-full size-7 flex items-center justify-center shadow-md photo-add-btn">
+<span class="material-symbols-outlined text-lg">add</span>
+</div>
+<button class="photo-remove-btn absolute top-2 right-2 bg-red-500 text-white rounded-full size-7 items-center justify-center shadow-md hidden">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<p class="text-[#111318] dark:text-gray-300 text-xs font-semibold uppercase tracking-wider leading-tight">Teste de Sinal</p>
+<div class="photo-upload relative aspect-square w-full rounded-xl border-2 border-dashed border-[#dbdfe6] dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center cursor-pointer active:scale-[0.98] transition-transform overflow-hidden" data-type="signal">
+<input type="file" accept="image/*" capture="environment" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+<span class="material-symbols-outlined text-[#616f89] text-3xl photo-icon">speed</span>
+<img class="photo-preview absolute inset-0 w-full h-full object-cover hidden">
+<div class="absolute bottom-2 right-2 bg-primary text-white rounded-full size-7 flex items-center justify-center shadow-md photo-add-btn">
+<span class="material-symbols-outlined text-lg">add</span>
+</div>
+<button class="photo-remove-btn absolute top-2 right-2 bg-red-500 text-white rounded-full size-7 items-center justify-center shadow-md hidden">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<p class="text-[#111318] dark:text-gray-300 text-xs font-semibold uppercase tracking-wider leading-tight">Outros</p>
+<div class="photo-upload relative aspect-square w-full rounded-xl border-2 border-dashed border-[#dbdfe6] dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center cursor-pointer active:scale-[0.98] transition-transform overflow-hidden" data-type="other">
+<input type="file" accept="image/*" capture="environment" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+<span class="material-symbols-outlined text-[#616f89] text-3xl photo-icon">add_a_photo</span>
+<img class="photo-preview absolute inset-0 w-full h-full object-cover hidden">
+<div class="absolute bottom-2 right-2 bg-primary text-white rounded-full size-7 flex items-center justify-center shadow-md photo-add-btn">
+<span class="material-symbols-outlined text-lg">add</span>
+</div>
+<button class="photo-remove-btn absolute top-2 right-2 bg-red-500 text-white rounded-full size-7 items-center justify-center shadow-md hidden">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+</div>
+</div>
+<div class="h-8"></div>
+</div>
+</div>
+
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 flex justify-center items-center z-40">
+<button id="btn-salvar-cadastro" class="w-full max-w-[480px] bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 active:scale-[0.97]">
+<span class="material-symbols-outlined">save</span>
+Salvar Cadastro
+</button>
+</div>
+</div>
+
+<!-- Scripts do App -->
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+<script src="js/animations.js"></script>
+<script src="js/ui-enhancements.js"></script>
+<script src="js/geolocation.js"></script>
+<script src="js/feedback.js"></script>
+
+<!-- Campos ocultos para geolocalização -->
+<input type="hidden" id="field-latitude" name="latitude">
+<input type="hidden" id="field-longitude" name="longitude">
+<input type="hidden" id="field-accuracy" name="accuracy">
+
+<script>
+// Armazena as fotos selecionadas
+var selectedPhotos = {
+    router: null,
+    cabling: null,
+    signal: null,
+    other: null
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+        // CEP: Preencher cidade e UF automaticamente
+        var cepInput = document.getElementById('field-cep');
+        var cityInput = document.getElementById('field-city');
+        var stateInput = document.getElementById('field-state');
+        if (cepInput) {
+            cepInput.addEventListener('blur', function() {
+                var cep = cepInput.value.replace(/\D/g, '');
+                if (cep.length === 8) {
+                    fetch('https://viacep.com.br/ws/' + cep + '/json/')
+                        .then(function(response) { return response.json(); })
+                        .then(function(data) {
+                            if (!data.erro) {
+                                if (cityInput) cityInput.value = data.localidade || '';
+                                if (stateInput) stateInput.value = data.uf || '';
+                                var bairroInput = document.getElementById('field-neighborhood');
+                                if (bairroInput && data.bairro) bairroInput.value = data.bairro;
+                                var streetInput = document.getElementById('field-street');
+                                if (streetInput && data.logradouro) streetInput.value = data.logradouro;
+                            } else {
+                                showError('CEP não encontrado.');
+                            }
+                        })
+                        .catch(function() {
+                            showError('Erro ao buscar CEP.');
+                        });
+                }
+            });
+        }
+    console.log('DOM carregado');
+    
+    // ==========================================
+    // MODO DE EDIÇÃO: Verifica se está editando um cliente existente
+    // ==========================================
+    var urlParams = new URLSearchParams(window.location.search);
+    var editCpf = urlParams.get('edit');
+    var isEditMode = !!editCpf;
+    
+    if (isEditMode) {
+        console.log('Modo de edição ativado para CPF:', editCpf);
+        
+        // Atualiza título da página
+        document.title = 'Editar Cliente - Ondeline';
+        var headerTitle = document.querySelector('h2.text-lg.font-bold');
+        if (headerTitle) {
+            headerTitle.textContent = 'Editar Cliente';
+        }
+        
+        // Desabilita campo CPF para não alterar o identificador
+        var cpfField = document.getElementById('field-cpf');
+        if (cpfField) {
+            cpfField.readOnly = true;
+            cpfField.classList.add('bg-gray-100', 'cursor-not-allowed');
+        }
+        
+        // Carrega dados do cliente
+        loadClientForEdit(editCpf);
+    }
+    
+    async function loadClientForEdit(cpf) {
+        try {
+            var token = localStorage.getItem('auth_token');
+            var response = await fetch('/api/clients.php?cpf=' + encodeURIComponent(cpf), {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + (token || '')
+                }
+            });
+            
+            var result = await response.json();
+            console.log('Cliente carregado:', result);
+            
+            if (result.success && result.data) {
+                var client = result.data;
+                
+                // Preenche os campos do formulário
+                document.getElementById('field-name').value = client.name || '';
+                document.getElementById('field-cpf').value = client.cpf || '';
+                document.getElementById('field-phone').value = client.phone || '';
+                document.getElementById('field-dob').value = client.birth_date || '';
+                document.getElementById('field-cep').value = client.cep || '';
+                document.getElementById('field-state').value = client.state || '';
+                document.getElementById('field-city').value = client.city || '';
+                document.getElementById('field-neighborhood').value = client.neighborhood || '';
+                document.getElementById('field-street').value = client.address || '';
+                document.getElementById('field-number').value = client.number || '';
+                document.getElementById('field-complement').value = client.complement || '';
+                document.getElementById('field-pppoe-user').value = client.pppoe || '';
+                document.getElementById('field-pppoe-pass').value = client.password || '';
+                document.getElementById('field-observations').value = client.observation || '';
+                
+                // Selects
+                var planSelect = document.getElementById('field-plan');
+                if (planSelect && client.plan_id) {
+                    planSelect.value = client.plan_id;
+                }
+                
+                var dueDateSelect = document.getElementById('field-due-date');
+                if (dueDateSelect && client.due_day) {
+                    dueDateSelect.value = client.due_day;
+                }
+                
+                // Campos de localização
+                if (client.latitude) document.getElementById('field-latitude').value = client.latitude;
+                if (client.longitude) document.getElementById('field-longitude').value = client.longitude;
+                if (client.accuracy) document.getElementById('field-accuracy').value = client.accuracy;
+                
+                // Atualiza botão
+                var btn = document.getElementById('btn-salvar-cadastro');
+                if (btn) {
+                    btn.innerHTML = '<span class="material-symbols-outlined">save</span> Atualizar Cliente';
+                }
+                
+                showSuccess('Dados carregados. Faça as alterações e salve.');
+            } else {
+                showError('Erro ao carregar cliente: ' + (result.message || 'Cliente não encontrado'));
+            }
+        } catch (error) {
+            console.error('Erro ao carregar cliente:', error);
+            showError('Erro ao carregar dados do cliente');
+        }
+    }
+    
+    // Registra o acesso à página de cadastro no log de auditoria
+    logPageAccess(isEditMode ? 'edit_client_page' : 'new_client_page', isEditMode ? 'Acessou página de edição de cliente' : 'Acessou página de novo cadastro');
+    
+    // Variável para controlar se a localização foi obtida
+    var locationObtained = false;
+    
+    // Função para solicitar localização
+    function requestLocation() {
+        if (locationObtained) {
+            showInfo('Localização já obtida!');
+            return;
+        }
+        
+        if (!navigator.geolocation) {
+            showError('Geolocalização não é suportada neste navegador');
+            return;
+        }
+        
+        showInfo('Solicitando permissão de localização...');
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                var location = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
+                
+                document.getElementById('field-latitude').value = location.latitude;
+                document.getElementById('field-longitude').value = location.longitude;
+                document.getElementById('field-accuracy').value = location.accuracy;
+                
+                locationObtained = true;
+                console.log('Localização obtida:', location);
+                
+                // Atualiza botão
+                var locBtn = document.getElementById('btn-location');
+                if (locBtn) {
+                    locBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Localização OK';
+                    locBtn.classList.remove('bg-blue-50', 'text-blue-600');
+                    locBtn.classList.add('bg-green-50', 'text-green-600');
+                    locBtn.disabled = true;
+                }
+                
+                showSuccess('Localização obtida com sucesso! 📍');
+            },
+            function(error) {
+                var errorMsg = 'Erro ao obter localização';
+                
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMsg = 'Permissão de localização negada. Habilite nas configurações do navegador.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMsg = 'Informação de localização indisponível';
+                        break;
+                    case error.TIMEOUT:
+                        errorMsg = 'Tempo esgotado ao obter localização';
+                        break;
+                    default:
+                        errorMsg = 'Erro desconhecido ao obter localização';
+                }
+                
+                console.error('Erro de geolocalização:', error);
+                showError(errorMsg + ' O cadastro continuará sem localização.');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 30000
+            }
+        );
+    }
+    
+    // Configura botão de localização
+    var locBtn = document.getElementById('btn-location');
+    if (locBtn) {
+        locBtn.onclick = requestLocation;
+    }
+    
+    // NÃO solicita automaticamente - espera o usuário clicar
+    console.log('Botão de localização configurado. Aguardando clique do usuário.');
+    
+    // Configura os inputs de foto
+    document.querySelectorAll('.photo-upload').forEach(function(container) {
+        var type = container.dataset.type;
+        var input = container.querySelector('input[type="file"]');
+        var preview = container.querySelector('.photo-preview');
+        var icon = container.querySelector('.photo-icon');
+        var addBtn = container.querySelector('.photo-add-btn');
+        var removeBtn = container.querySelector('.photo-remove-btn');
+        
+        if (input) {
+            input.addEventListener('change', function(e) {
+                var file = e.target.files[0];
+                if (file) {
+                    console.log('Foto selecionada:', type, file.name);
+                    selectedPhotos[type] = file;
+                    
+                    // Mostra preview
+                    var reader = new FileReader();
+                    reader.onload = function(ev) {
+                        preview.src = ev.target.result;
+                        preview.classList.remove('hidden');
+                        icon.classList.add('hidden');
+                        addBtn.classList.add('hidden');
+                        removeBtn.classList.remove('hidden');
+                        removeBtn.style.display = 'flex';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Removendo foto:', type);
+                selectedPhotos[type] = null;
+                input.value = '';
+                preview.src = '';
+                preview.classList.add('hidden');
+                icon.classList.remove('hidden');
+                addBtn.classList.remove('hidden');
+                removeBtn.classList.add('hidden');
+                removeBtn.style.display = 'none';
+            });
+        }
+    });
+    
+    var btn = document.getElementById('btn-salvar-cadastro');
+    console.log('Botão salvar:', btn);
+    
+    if (btn) {
+        btn.onclick = async function(e) {
+            e.preventDefault();
+            console.log('Botão clicado!');
+            
+            // Coleta os dados
+            var data = {
+                name: document.getElementById('field-name')?.value?.trim() || '',
+                cpf: document.getElementById('field-cpf')?.value?.trim() || '',
+                phone: document.getElementById('field-phone')?.value?.trim() || '',
+                birthDate: document.getElementById('field-dob')?.value || '',
+                cep: document.getElementById('field-cep')?.value?.trim() || '',
+                state: document.getElementById('field-state')?.value || '',
+                city: (function() {
+                    var val = document.getElementById('field-city')?.value?.trim() || '';
+                    // Remove sufixo ' - UF' se houver
+                    return val.replace(/\s*-\s*[A-Z]{2}$/, '');
+                })(),
+                neighborhood: document.getElementById('field-neighborhood')?.value?.trim() || '',
+                address: document.getElementById('field-street')?.value?.trim() || '',
+                number: document.getElementById('field-number')?.value?.trim() || '',
+                complement: document.getElementById('field-complement')?.value?.trim() || '',
+                planId: parseInt(document.getElementById('field-plan')?.value) || 6,
+                pppoe: document.getElementById('field-pppoe-user')?.value?.trim() || '',
+                password: document.getElementById('field-pppoe-pass')?.value || '',
+                dueDay: parseInt(document.getElementById('field-due-date')?.value) || 10,
+                observation: document.getElementById('field-observations')?.value?.trim() || '',
+                status: 'ativo',
+                active: 1,
+                latitude: document.getElementById('field-latitude')?.value || null,
+                longitude: document.getElementById('field-longitude')?.value || null,
+                accuracy: document.getElementById('field-accuracy')?.value || null
+            };
+            
+            console.log('Dados coletados:', data);
+            
+            // Validação
+            if (!data.name) {
+                showError('Preencha o nome do cliente');
+                return;
+            }
+            if (!data.cpf) {
+                showError('Preencha o CPF do cliente');
+                return;
+            }
+            
+            // Verifica se está offline
+            if (!navigator.onLine) {
+                saveOffline(isEditMode ? 'update_client' : 'create_client', data);
+                showSuccess('Cliente salvo offline! Será sincronizado quando reconectar.');
+                setTimeout(function() {
+                    window.location.href = 'dashboard.php';
+                }, 2000);
+                return;
+            }
+            
+            // Desabilita botão
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> ' + (isEditMode ? 'Atualizando...' : 'Salvando...');
+            
+            try {
+                // Envia para API de cadastro ou atualização
+                var token = localStorage.getItem('auth_token');
+                console.log('Token:', token ? 'Presente' : 'Ausente');
+                console.log('Modo:', isEditMode ? 'Edição' : 'Novo cadastro');
+                
+                var apiUrl = isEditMode ? '/api/clients.php' : '/api/cadastro.php';
+                var apiMethod = isEditMode ? 'PUT' : 'POST';
+                
+                var response = await fetch(apiUrl, {
+                    method: apiMethod,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + (token || '')
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                console.log('Status da resposta:', response.status);
+                var result = await response.json();
+                console.log('Resultado:', result);
+                
+                if (result.success) {
+                    // Cadastro OK, agora envia as fotos
+                    var cpfLimpo = data.cpf.replace(/\D/g, '');
+                    var fotosEnviadas = 0;
+                    var fotosFalha = 0;
+                    
+                    btn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Enviando fotos...';
+                    
+                    for (var type in selectedPhotos) {
+                        if (selectedPhotos[type]) {
+                            console.log('Enviando foto:', type);
+                            try {
+                                var formData = new FormData();
+                                formData.append('photo', selectedPhotos[type]);
+                                formData.append('cpf', cpfLimpo);
+                                formData.append('type', type);
+                                
+                                var uploadResponse = await fetch('/api/upload-foto.php', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': 'Bearer ' + (token || '')
+                                    },
+                                    body: formData
+                                });
+                                
+                                var uploadResult = await uploadResponse.json();
+                                console.log('Upload', type, ':', uploadResult);
+                                
+                                if (uploadResult.success) {
+                                    fotosEnviadas++;
+                                } else {
+                                    fotosFalha++;
+                                    console.error('Falha upload', type, ':', uploadResult.message);
+                                }
+                            } catch (uploadError) {
+                                fotosFalha++;
+                                console.error('Erro upload', type, ':', uploadError);
+                            }
+                        }
+                    }
+                    
+                    var mensagem = isEditMode ? 'Cliente atualizado com sucesso!' : 'Cliente cadastrado com sucesso!';
+                    if (fotosEnviadas > 0) {
+                        mensagem += ' ' + fotosEnviadas + ' foto(s) enviada(s).';
+                    }
+                    if (fotosFalha > 0) {
+                        mensagem += ' ' + fotosFalha + ' foto(s) falharam.';
+                    }
+                    
+                    if (isEditMode) {
+                        // No modo edição, retorna para detalher.html
+                        Animations.success({ message: mensagem, duration: 1500, onComplete: function() {
+                            window.location.href = 'detalher.php?cpf=' + encodeURIComponent(data.cpf.replace(/\D/g, ''));
+                        }});
+                    } else {
+                        // No modo novo, vai para vincular equipamento - celebra!
+                        Animations.celebrate(mensagem);
+                        
+                        // Redireciona para vincular equipamento com dados do cliente
+                        var enderecoParts = [];
+                        if (data.address) enderecoParts.push(data.address);
+                        if (data.number) enderecoParts.push(data.number);
+                        if (data.neighborhood) enderecoParts.push(data.neighborhood);
+                        if (data.city) enderecoParts.push(data.city);
+                        if (data.state) enderecoParts.push(data.state);
+                        var endereco = enderecoParts.join(', ');
+                        
+                        var redirectUrl = 'vincular-equipamento.php?from=cadastro' +
+                            '&cpf=' + encodeURIComponent(cpfLimpo) +
+                            '&name=' + encodeURIComponent(data.name) +
+                            '&address=' + encodeURIComponent(endereco);
+                        
+                        setTimeout(function() {
+                            window.location.href = redirectUrl;
+                        }, 1500);
+                    }
+                } else {
+                    showError('Erro: ' + (result.message || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                
+                // Salva offline se falhar
+                if (!navigator.onLine) {
+                    saveOffline(isEditMode ? 'update_client' : 'create_client', data);
+                    showSuccess('Salvo offline! Será sincronizado quando reconectar.');
+                    setTimeout(function() {
+                        window.location.href = 'dashboard.php';
+                    }, 2000);
+                } else {
+                    showError('Erro ao salvar: ' + error.message);
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined">save</span> ' + (isEditMode ? 'Atualizar Cliente' : 'Salvar Cadastro');
+            }
+        };
+    }
+});
+
+// Registra acesso à página no log de auditoria
+async function logPageAccess(actionType, actionDescription) {
+    try {
+        var token = localStorage.getItem('auth_token');
+        if (!token) return;
+        
+        await fetch('/api/audit-log.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                action_type: actionType,
+                action_description: actionDescription,
+                entity_type: 'page',
+                entity_id: 'novo-cadastro.php',
+                entity_name: 'Página de Novo Cadastro'
+            })
+        });
+    } catch (error) {
+        console.error('Erro ao registrar acesso:', error);
+    }
+}
+</script>
+</body>
+</html>

@@ -157,19 +157,19 @@
             html += '<div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm cursor-pointer active:scale-[0.98] transition-transform" data-order-id="' + order.id + '">' +
                 '<div class="flex items-start justify-between mb-2">' +
                     '<div class="flex items-center gap-2">' +
-                        '<span class="text-xs font-bold text-primary">' + order.order_number + '</span>' +
+                        '<span class="text-xs font-bold text-primary">' + escapeHtml(order.order_number) + '</span>' +
                         '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white ' + s.color + '">' + s.label + '</span>' +
                     '</div>' +
                     '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ' + p.color + '">' + p.label + '</span>' +
                 '</div>' +
-                '<h3 class="text-sm font-bold text-gray-900 dark:text-white truncate">' + order.client_name + '</h3>' +
-                '<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">' + order.description + '</p>' +
+                '<h3 class="text-sm font-bold text-gray-900 dark:text-white truncate">' + escapeHtml(order.client_name) + '</h3>' +
+                '<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">' + escapeHtml(order.description) + '</p>' +
                 '<div class="flex items-center justify-between mt-3">' +
                     '<div class="flex items-center gap-2">' +
                         '<span class="text-[11px] text-gray-400 flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]">build</span>' + typeName + '</span>' +
                         scheduledInfo +
                     '</div>' +
-                    (order.assigned_name ? '<span class="text-[11px] text-gray-400 flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]">person</span>' + order.assigned_name + '</span>' : '') +
+                    (order.assigned_name ? '<span class="text-[11px] text-gray-400 flex items-center gap-0.5"><span class="material-symbols-outlined text-[13px]">person</span>' + escapeHtml(order.assigned_name) + '</span>' : '') +
                 '</div>' +
             '</div>';
         });
@@ -220,21 +220,21 @@
             // Client info
             html += '<div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl">' +
                 '<p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Cliente</p>' +
-                '<p class="text-sm font-bold text-gray-900 dark:text-white">' + order.client_name + '</p>' +
-                (order.client_cpf ? '<p class="text-xs text-gray-500">CPF: ' + order.client_cpf + '</p>' : '') +
+                '<p class="text-sm font-bold text-gray-900 dark:text-white">' + escapeHtml(order.client_name) + '</p>' +
+                (order.client_cpf ? '<p class="text-xs text-gray-500">CPF: ' + escapeHtml(order.client_cpf) + '</p>' : '') +
                 '</div>';
 
             // Description
             html += '<div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl">' +
                 '<p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Descrição</p>' +
-                '<p class="text-sm text-gray-700 dark:text-gray-300">' + order.description + '</p>' +
+                '<p class="text-sm text-gray-700 dark:text-gray-300">' + escapeHtml(order.description) + '</p>' +
                 '</div>';
 
             // Resolution
             if (order.resolution) {
                 html += '<div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl">' +
                     '<p class="text-[10px] text-green-600 uppercase font-bold mb-1">Resolução</p>' +
-                    '<p class="text-sm text-gray-700 dark:text-gray-300">' + order.resolution + '</p>' +
+                    '<p class="text-sm text-gray-700 dark:text-gray-300">' + escapeHtml(order.resolution) + '</p>' +
                     '</div>';
 
                 // Resolution photos
@@ -245,8 +245,8 @@
                             html += '<div><p class="text-[10px] text-gray-500 uppercase font-bold mb-2">Fotos do Serviço</p>' +
                                 '<div class="grid grid-cols-3 gap-2">';
                             photos.forEach(function(photoUrl) {
-                                html += '<a href="' + photoUrl + '" target="_blank" class="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 block">' +
-                                    '<img src="' + photoUrl + '" class="w-full h-full object-cover" loading="lazy"/>' +
+                                html += '<a href="' + escapeHtml(photoUrl) + '" target="_blank" class="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 block">' +
+                                    '<img src="' + escapeHtml(photoUrl) + '" class="w-full h-full object-cover" loading="lazy"/>' +
                                 '</a>';
                             });
                             html += '</div></div>';
@@ -268,7 +268,7 @@
             if (order.assigned_name) {
                 html += '<div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl">' +
                     '<p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Técnico Responsável</p>' +
-                    '<p class="text-sm font-bold text-gray-900 dark:text-white">' + order.assigned_name + '</p>' +
+                    '<p class="text-sm font-bold text-gray-900 dark:text-white">' + escapeHtml(order.assigned_name) + '</p>' +
                     '</div>';
             }
 
@@ -600,8 +600,8 @@
                                     '<span class="material-symbols-outlined text-blue-500 text-sm">person</span>' +
                                 '</div>' +
                                 '<div class="flex-1 min-w-0">' +
-                                    '<p class="text-sm font-medium text-gray-900 dark:text-white truncate">' + (c.name || 'Sem nome') + '</p>' +
-                                    '<p class="text-[11px] text-gray-400">' + cpfFmt + '</p>' +
+                                    '<p class="text-sm font-medium text-gray-900 dark:text-white truncate">' + escapeHtml(c.name || 'Sem nome') + '</p>' +
+                                    '<p class="text-[11px] text-gray-400">' + escapeHtml(cpfFmt) + '</p>' +
                                 '</div></div>';
                         }).join('');
                         resultsDiv.classList.remove('hidden');

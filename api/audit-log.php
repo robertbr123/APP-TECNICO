@@ -69,12 +69,14 @@ try {
         jsonResponse([
             'success' => true,
             'message' => 'Log de auditoria registrado com sucesso',
-            'log_id' => $db->lastInsertId()
+            'data' => [
+                'log_id' => $db->lastInsertId()
+            ]
         ]);
     } else {
         jsonResponse(['success' => false, 'message' => 'Erro ao registrar log'], 500);
     }
     
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados', 'error' => $e->getMessage()], 500);
+    jsonResponse(['success' => false, 'message' => 'Erro no banco de dados'], 500);
 }

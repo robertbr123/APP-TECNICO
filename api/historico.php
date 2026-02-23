@@ -134,6 +134,7 @@ try {
 
     jsonResponse([
         'success' => true,
+        'message' => 'Dados carregados com sucesso',
         'data' => [
             'todayInstallations' => $todayInstallations,
             'weekInstallations' => $weekInstallations,
@@ -150,5 +151,5 @@ try {
     ]);
 
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro ao buscar historico', 'error' => $e->getMessage()], 500);
+    jsonResponse(['success' => false, 'message' => 'Erro ao buscar historico'], 500);
 }

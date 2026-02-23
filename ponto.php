@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR"><head>
+<title>Registro de Ponto - Ondeline</title>
+<?php include 'partials/head.php'; ?>
+<style>
+.photo-preview {
+        object-fit: cover;
+    }
+    @keyframes pulse-ring {
+        0% { transform: scale(0.8); opacity: 1; }
+        100% { transform: scale(1.4); opacity: 0; }
+    }
+    .recording::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        border: 3px solid #ef4444;
+        animation: pulse-ring 1.5s infinite;
+    }
+</style>
+</head>
+<body class="min-h-screen">
+<header class="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top">
+<div class="flex items-center justify-between px-4 h-16">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div id="user-avatar" class="size-10 rounded-full border border-gray-100 dark:border-gray-800 bg-center bg-cover bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xl">person</span>
+</div>
+<div class="absolute bottom-0 right-0 size-3 bg-green-500 border-2 border-white dark:border-black rounded-full"></div>
+</div>
+<div class="flex flex-col">
+<span id="header-user-name" class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white leading-none">Ondeline</span>
+<span id="header-user-role" class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tecnico de Campo</span>
+</div>
+</div>
+<button class="flex items-center justify-center size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+</button>
+</div>
+</header>
+
+<main class="px-4 pb-32">
+<section class="py-6">
+<h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Registro de Ponto</h1>
+<p class="text-[15px] text-gray-500 dark:text-gray-400 mt-1.5">Registre sua entrada e saída</p>
+</section>
+
+<!-- Hora Atual -->
+<div class="bg-gradient-to-r from-primary to-blue-600 rounded-ios-xl p-6 text-white mb-6 shadow-lg shadow-primary/25">
+<p class="text-sm opacity-80 mb-1">Hora Atual</p>
+<p class="text-4xl font-bold" id="current-time">00:00:00</p>
+<p class="text-sm opacity-80 mt-2" id="current-date">...</p>
+</div>
+
+<!-- Status do Ponto -->
+<div class="bg-white dark:bg-card-dark rounded-ios-xl p-5 shadow-sm border border-gray-100 dark:border-white/5 mb-6">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-[#111318] dark:text-white font-semibold text-base">Status de Hoje</h4>
+<span id="ponto-status" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+                Não registrado
+            </span>
+</div>
+        
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-green-50 dark:bg-green-500/10 rounded-lg p-4">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-green-600">login</span>
+<p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Entrada</p>
+</div>
+<p class="text-green-600 dark:text-green-400 font-semibold text-2xl" id="entry-time">--:--</p>
+</div>
+<div class="bg-red-50 dark:bg-red-500/10 rounded-lg p-4">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-red-600">logout</span>
+<p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Saída</p>
+</div>
+<p class="text-red-600 dark:text-red-400 font-semibold text-2xl" id="exit-time">--:--</p>
+</div>
+</div>
+</div>
+
+<!-- Foto do Técnico -->
+<div class="bg-white dark:bg-card-dark rounded-ios-xl p-5 shadow-sm border border-gray-100 dark:border-white/5 mb-6">
+<h4 class="text-[#111318] dark:text-white font-semibold text-base mb-4">Foto de Confirmação</h4>
+        
+<div class="flex flex-col items-center gap-4">
+<div id="photo-container" class="relative size-48 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border-4 border-gray-200 dark:border-gray-700">
+<input type="file" id="photo-input" accept="image/*" capture="user" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+<div id="photo-placeholder" class="text-center">
+<span class="material-symbols-outlined text-5xl text-gray-400 mb-2">camera_alt</span>
+<p class="text-sm text-gray-500">Toque para tirar foto</p>
+</div>
+<img id="photo-preview" class="photo-preview w-full h-full hidden">
+<button id="btn-remove-photo" class="absolute top-2 right-2 bg-red-500 text-white rounded-full size-8 items-center justify-center shadow-md hidden">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</div>
+</div>
+
+<!-- Localização -->
+<div class="bg-white dark:bg-card-dark rounded-ios-xl p-5 shadow-sm border border-gray-100 dark:border-white/5 mb-6">
+<h4 class="text-[#111318] dark:text-white font-semibold text-base mb-4">Localização</h4>
+        
+<div id="location-info" class="space-y-3">
+<div class="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+<span class="material-symbols-outlined text-xl">location_off</span>
+<span>Localização não obtida</span>
+</div>
+</div>
+        
+<button id="btn-get-location" class="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold">
+<span class="material-symbols-outlined">my_location</span>
+            Obter Localização
+        </button>
+</div>
+
+<!-- Botões de Ação -->
+<div class="grid grid-cols-2 gap-4 mb-6">
+<button id="btn-entry" disabled class="flex items-center justify-center gap-2 py-4 rounded-ios-xl bg-green-500 hover:bg-green-600 active:scale-[0.98] disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold transition-all shadow-lg shadow-green-500/25">
+<span class="material-symbols-outlined text-[24px]">login</span>
+            Entrada
+        </button>
+<button id="btn-exit" disabled class="flex items-center justify-center gap-2 py-4 rounded-ios-xl bg-red-500 hover:bg-red-600 active:scale-[0.98] disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold transition-all shadow-lg shadow-red-500/25">
+<span class="material-symbols-outlined text-[24px]">logout</span>
+            Saída
+        </button>
+</div>
+
+<!-- Histórico -->
+<div class="bg-white dark:bg-card-dark rounded-ios-xl p-5 shadow-sm border border-gray-100 dark:border-white/5">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-[#111318] dark:text-white font-semibold text-base">Registros do Mês</h4>
+<button onclick="loadHistory()" class="text-primary text-sm font-semibold hover:opacity-70">Atualizar</button>
+</div>
+<div id="history-list" class="space-y-3">
+<p class="text-gray-500 dark:text-gray-400 text-sm text-center py-4">Carregando histórico...</p>
+</div>
+</div>
+</main>
+
+<?php $activePage = 'ponto'; include 'partials/bottom-nav.php'; ?>
+
+<!-- Scripts do App -->
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/components.js"></script>
+<script src="js/animations.js"></script>
+<script src="js/ui-enhancements.js"></script>
+<script src="js/app.js"></script>
+<script src="js/feedback.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    let photoData = null;
+    let locationData = null;
+    let todayRecord = null;
+
+    // Atualiza relógio
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('current-time').textContent = now.toLocaleTimeString('pt-BR');
+        document.getElementById('current-date').textContent = now.toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Carrega informações do usuário
+    async function loadUserInfo() {
+        try {
+            const user = API.getUser();
+            if (user) {
+                document.getElementById('header-user-name').textContent = user.full_name || user.username || 'Usuário';
+                document.getElementById('header-user-role').textContent = user.role === 'tecnico' ? 'Técnico' : 'Administrador';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar usuário:', error);
+        }
+    }
+
+    // Carrega registro de hoje
+    async function loadTodayRecord() {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const response = await API.getTimeClock({ date: today });
+
+            if (response.success && response.data) {
+                todayRecord = response.data;
+                updateTodayStatus();
+            }
+        } catch (error) {
+            console.error('Erro ao carregar registro:', error);
+        }
+    }
+
+    // Atualiza status de hoje
+    function updateTodayStatus() {
+        if (todayRecord) {
+            const statusEl = document.getElementById('ponto-status');
+            const entryTimeEl = document.getElementById('entry-time');
+            const exitTimeEl = document.getElementById('exit-time');
+            const btnEntry = document.getElementById('btn-entry');
+            const btnExit = document.getElementById('btn-exit');
+
+            if (todayRecord.entry_time && !todayRecord.exit_time) {
+                statusEl.textContent = 'Em trabalho';
+                statusEl.className = 'px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-600';
+                entryTimeEl.textContent = todayRecord.entry_time.substring(0, 5);
+                btnEntry.disabled = true;
+                btnExit.disabled = false;
+            } else if (todayRecord.entry_time && todayRecord.exit_time) {
+                statusEl.textContent = 'Registrado';
+                statusEl.className = 'px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-600';
+                entryTimeEl.textContent = todayRecord.entry_time.substring(0, 5);
+                exitTimeEl.textContent = todayRecord.exit_time.substring(0, 5);
+                btnEntry.disabled = true;
+                btnExit.disabled = true;
+            }
+        }
+    }
+
+    // Carrega histórico
+    async function loadHistory() {
+        try {
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+            const response = await API.getTimeClock({ from: firstDay, to: lastDay, limit: 31 });
+            if (response.success) {
+                const records = Array.isArray(response.data) ? response.data : [response.data];
+                renderHistory(records.filter(r => r));
+            }
+        } catch (error) {
+            console.error('Erro ao carregar histórico:', error);
+        }
+    }
+
+    // Renderiza histórico
+    function renderHistory(records) {
+        const container = document.getElementById('history-list');
+        
+        if (!records || records.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm text-center py-4">Nenhum registro encontrado</p>';
+            return;
+        }
+
+        container.innerHTML = records.map(record => {
+            const date = new Date(record.clock_date);
+            const formattedDate = date.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit'
+            });
+            
+            const entryTime = record.entry_time ? record.entry_time.substring(0, 5) : '--:--';
+            const exitTime = record.exit_time ? record.exit_time.substring(0, 5) : '--:--';
+            
+            const statusClass = record.exit_time ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600';
+            const statusText = record.exit_time ? 'Completo' : 'Em andamento';
+
+            return `
+                <div class="flex items-center gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                    <div class="text-center min-w-[60px]">
+                        <p class="text-lg font-bold text-[#111318] dark:text-white">${formattedDate}</p>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-4 text-sm">
+                            <span class="text-green-600 dark:text-green-400">
+                                <span class="material-symbols-outlined text-sm">login</span>
+                                ${entryTime}
+                            </span>
+                            <span class="text-red-600 dark:text-red-400">
+                                <span class="material-symbols-outlined text-sm">logout</span>
+                                ${exitTime}
+                            </span>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">${statusText}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Foto do técnico
+    const photoInput = document.getElementById('photo-input');
+    const photoPreview = document.getElementById('photo-preview');
+    const photoPlaceholder = document.getElementById('photo-placeholder');
+    const btnRemovePhoto = document.getElementById('btn-remove-photo');
+
+    photoInput.addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Comprime imagem
+            try {
+                App.showLoading(true);
+                photoData = await Utils.compressImage(file, {
+                    maxWidth: 800,
+                    maxHeight: 800,
+                    quality: 0.7
+                });
+                
+                photoPreview.src = photoData;
+                photoPreview.classList.remove('hidden');
+                photoPlaceholder.classList.add('hidden');
+                btnRemovePhoto.classList.remove('hidden');
+                btnRemovePhoto.style.display = 'flex';
+                
+                checkButtons();
+            } catch (error) {
+                App.showToast('Erro ao processar foto: ' + error.message, 'error');
+            } finally {
+                App.showLoading(false);
+            }
+        }
+    });
+
+    btnRemovePhoto.addEventListener('click', function(e) {
+        e.preventDefault();
+        photoData = null;
+        photoInput.value = '';
+        photoPreview.src = '';
+        photoPreview.classList.add('hidden');
+        photoPlaceholder.classList.remove('hidden');
+        btnRemovePhoto.classList.add('hidden');
+        btnRemovePhoto.style.display = 'none';
+        checkButtons();
+    });
+
+    // Localização
+    document.getElementById('btn-get-location').addEventListener('click', function() {
+        if (!navigator.geolocation) {
+            App.showToast('Geolocalização não suportada', 'error');
+            return;
+        }
+
+        App.showLoading(true);
+        this.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                locationData = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
+
+                document.getElementById('location-info').innerHTML = `
+                    <div class="flex items-center gap-3 text-green-600 dark:text-green-400">
+                        <span class="material-symbols-outlined text-xl">check_circle</span>
+                        <span class="font-medium">Localização obtida</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-gray-500 dark:text-gray-400 text-sm">
+                        <span class="material-symbols-outlined text-lg">location_on</span>
+                        <span>${locationData.latitude.toFixed(6)}, ${locationData.longitude.toFixed(6)}</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-gray-500 dark:text-gray-400 text-sm">
+                        <span class="material-symbols-outlined text-lg">gps_fixed</span>
+                        <span>Precisão: ${locationData.accuracy.toFixed(0)}m</span>
+                    </div>
+                `;
+
+                checkButtons();
+                App.showLoading(false);
+            },
+            (error) => {
+                App.showToast('Não foi possível obter localização', 'warning');
+                App.showLoading(false);
+                document.getElementById('btn-get-location').disabled = false;
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
+
+    // Verifica botões
+    function checkButtons() {
+        const hasPhoto = photoData !== null;
+        const hasLocation = locationData !== null;
+        const ready = hasPhoto && hasLocation;
+
+        const btnEntry = document.getElementById('btn-entry');
+        const btnExit = document.getElementById('btn-exit');
+
+        if (todayRecord && todayRecord.entry_time && todayRecord.exit_time) {
+            // Ponto completo
+            btnEntry.disabled = true;
+            btnExit.disabled = true;
+        } else if (todayRecord && todayRecord.entry_time && !todayRecord.exit_time) {
+            // Já deu entrada, falta saída
+            btnEntry.disabled = true;
+            btnExit.disabled = !ready;
+        } else {
+            // Sem registro hoje
+            btnEntry.disabled = !ready;
+            btnExit.disabled = true;
+        }
+    }
+
+    // Registrar entrada
+    document.getElementById('btn-entry').addEventListener('click', async function() {
+        if (!photoData || !locationData) {
+            App.showToast('Foto e localização são obrigatórias', 'warning');
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Registrando...';
+
+        try {
+            const response = await API.clockIn(photoData, locationData.latitude, locationData.longitude, locationData.accuracy);
+            
+            if (response.success) {
+                // Animação de sucesso com confetti!
+                Animations.celebrate('Entrada Registrada!');
+                loadTodayRecord();
+                loadHistory();
+                
+                // Limpa dados
+                photoData = null;
+                locationData = null;
+                photoInput.value = '';
+                photoPreview.src = '';
+                photoPreview.classList.add('hidden');
+                photoPlaceholder.classList.remove('hidden');
+                btnRemovePhoto.classList.add('hidden');
+                btnRemovePhoto.style.display = 'none';
+                document.getElementById('location-info').innerHTML = `
+                    <div class="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+                        <span class="material-symbols-outlined text-xl">location_off</span>
+                        <span>Localização não obtida</span>
+                    </div>
+                `;
+                document.getElementById('btn-get-location').disabled = false;
+                checkButtons();
+            } else {
+                App.showToast('Erro: ' + response.message, 'error');
+            }
+        } catch (error) {
+            App.showToast('Erro ao registrar entrada: ' + error.message, 'error');
+        } finally {
+            this.disabled = false;
+            this.innerHTML = '<span class="material-symbols-outlined text-[24px]">login</span> Entrada';
+        }
+    });
+
+    // Registrar saída
+    document.getElementById('btn-exit').addEventListener('click', async function() {
+        if (!photoData || !locationData) {
+            App.showToast('Foto e localização são obrigatórias', 'warning');
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Registrando...';
+
+        try {
+            const response = await API.clockOut(photoData, locationData.latitude, locationData.longitude, locationData.accuracy);
+            
+            if (response.success) {
+                // Animação de sucesso com confetti!
+                Animations.celebrate('Saída Registrada!');
+                loadTodayRecord();
+                loadHistory();
+                
+                // Limpa dados
+                photoData = null;
+                locationData = null;
+                photoInput.value = '';
+                photoPreview.src = '';
+                photoPreview.classList.add('hidden');
+                photoPlaceholder.classList.remove('hidden');
+                btnRemovePhoto.classList.add('hidden');
+                btnRemovePhoto.style.display = 'none';
+                document.getElementById('location-info').innerHTML = `
+                    <div class="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+                        <span class="material-symbols-outlined text-xl">location_off</span>
+                        <span>Localização não obtida</span>
+                    </div>
+                `;
+                document.getElementById('btn-get-location').disabled = false;
+                checkButtons();
+            } else {
+                App.showToast('Erro: ' + response.message, 'error');
+            }
+        } catch (error) {
+            App.showToast('Erro ao registrar saída: ' + error.message, 'error');
+        } finally {
+            this.disabled = false;
+            this.innerHTML = '<span class="material-symbols-outlined text-[24px]">logout</span> Saída';
+        }
+    });
+
+    // Inicializa
+    loadUserInfo();
+    loadTodayRecord();
+    loadHistory();
+});
+</script>
+</body></html>

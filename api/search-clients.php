@@ -118,6 +118,7 @@ try {
 
     jsonResponse([
         'success' => true,
+        'message' => 'Dados carregados com sucesso',
         'data' => $clients,
         'count' => count($clients),
         'search' => $search,

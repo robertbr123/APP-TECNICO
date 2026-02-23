@@ -46,11 +46,11 @@ App.loadClientPhotos = async function(cpf) {
             container.innerHTML = photos.map(photo => `
                 <div class="flex-shrink-0 relative group" data-photo-id="${photo.id}">
                     <div class="min-w-[100px] h-24 rounded-lg bg-cover bg-center cursor-pointer"
-                         style="background-image: url('${photo.url}');"
-                         onclick="App.openPhotoModal('${photo.url}', '${typeLabels[photo.type] || photo.type}')">
+                         style="background-image: url('${escapeHtml(photo.url)}');"
+                         onclick="App.openPhotoModal('${escapeHtml(photo.url)}', '${escapeHtml(typeLabels[photo.type] || photo.type)}')">
                     </div>
                     <span class="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
-                        ${typeLabels[photo.type] || photo.type}
+                        ${escapeHtml(typeLabels[photo.type] || photo.type)}
                     </span>
                 </div>
             `).join('');
@@ -91,8 +91,8 @@ App.renderClientDetails = function(client) {
     const addressEl = document.querySelector('.leading-relaxed');
     if (addressEl) {
         addressEl.innerHTML = `
-            ${client.address}, ${client.number}${client.complement ? `, ${client.complement}` : ''}<br/>
-            ${client.city}<br/>
+            ${escapeHtml(client.address)}, ${escapeHtml(client.number)}${client.complement ? `, ${escapeHtml(client.complement)}` : ''}<br/>
+            ${escapeHtml(client.city)}<br/>
         `;
     }
 

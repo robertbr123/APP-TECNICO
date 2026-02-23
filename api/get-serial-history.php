@@ -19,8 +19,7 @@ require_once 'Logger.php';
 
 // Apenas GET
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    echo json_encode(['success' => false, 'message' => 'Método não permitido']);
-    exit;
+    jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
 }
 
 try {
@@ -31,8 +30,7 @@ try {
     $cpf = preg_replace('/\D/', '', $_GET['cpf'] ?? '');
     
     if (empty($cpf)) {
-        echo json_encode(['success' => false, 'message' => 'CPF é obrigatório']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'CPF é obrigatório'], 400);
     }
     
     // Busca histórico
@@ -79,8 +77,9 @@ try {
         $item['reason_label'] = $reasons[$item['reason']] ?? 'Outro';
     }
     
-    echo json_encode([
+    jsonResponse([
         'success' => true,
+        'message' => 'Dados carregados com sucesso',
         'data' => $history,
         'total' => count($history),
         'cpf' => $cpf
@@ -88,10 +87,10 @@ try {
     
 } catch (PDOException $e) {
     Logger::logException($e, ['endpoint' => 'get-serial-history.php', 'type' => 'PDO']);
-    echo json_encode(['success' => false, 'message' => 'Erro de banco de dados']);
+    jsonResponse(['success' => false, 'message' => 'Erro de banco de dados'], 500);
 } catch (Exception $e) {
     Logger::logException($e, ['endpoint' => 'get-serial-history.php']);
-    echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+    jsonResponse(['success' => false, 'message' => 'Erro interno do servidor'], 500);
 }
 
 /**

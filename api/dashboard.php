@@ -114,6 +114,7 @@ try {
 
     jsonResponse([
         'success' => true,
+        'message' => 'Dados carregados com sucesso',
         'data' => [
             'totals' => [
                 'clients' => $totalClients,
@@ -135,5 +136,5 @@ try {
     ]);
 
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro ao buscar estatísticas', 'error' => $e->getMessage()], 500);
+    jsonResponse(['success' => false, 'message' => 'Erro ao buscar estatísticas'], 500);
 }

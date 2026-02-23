@@ -102,6 +102,7 @@ try {
         
         $response = [
             'success' => true,
+            'message' => 'Dados carregados com sucesso',
             'data' => $clients,
             'pagination' => [
                 'page' => $page,

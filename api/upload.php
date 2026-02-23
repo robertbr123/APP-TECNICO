@@ -291,7 +291,7 @@ function handleGet($db) {
     $tableExists = $db->query("SHOW TABLES LIKE 'client_photos'")->rowCount() > 0;
     
     if (!$tableExists) {
-        jsonResponse(['success' => true, 'data' => []]);
+        jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => []]);
     }
 
     $stmt = $db->prepare("
@@ -306,7 +306,7 @@ function handleGet($db) {
 
     Logger::info('Fotos listadas', ['cpf' => $cpf, 'count' => count($photos)]);
 
-    jsonResponse(['success' => true, 'data' => $photos]);
+    jsonResponse(['success' => true, 'message' => 'Dados carregados com sucesso', 'data' => $photos]);
 }
 
 /**

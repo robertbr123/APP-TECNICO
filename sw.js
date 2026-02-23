@@ -3,7 +3,7 @@
  * Ondeline Tech - App do Técnico
  */
 
-const APP_VERSION = 'v1.5.0';
+const APP_VERSION = 'v1.6.0';
 const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
 const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
@@ -12,22 +12,25 @@ const DYNAMIC_CACHE_LIMIT = 50; // Máximo de itens no cache dinâmico
 // Arquivos estáticos para cache
 const STATIC_ASSETS = [
     '/',
+    '/login.php',
+    '/dashboard.php',
+    '/novo-cadastro.php',
+    '/consultar.php',
+    '/detalher.php',
+    '/ajustes.php',
+    '/vincular-equipamento.php',
+    '/historico.php',
+    '/mapa.php',
+    '/ponto.php',
+    '/estoque.php',
+    '/auditoria.php',
+    '/checklist.php',
+    '/admin.php',
+    '/ordens.php',
+    '/relatorios.php',
+    // Legacy HTML (fallback)
     '/login.html',
     '/dashboard.html',
-    '/novo-cadastro.html',
-    '/consultar.html',
-    '/detalher.html',
-    '/ajustes.html',
-    '/vincular-equipamento.html',
-    '/historico.html',
-    '/mapa.html',
-    '/ponto.html',
-    '/estoque.html',
-    '/auditoria.html',
-    '/checklist.html',
-    '/admin.html',
-    '/ordens.html',
-    '/relatorios.html',
     '/manifest.json',
     '/js/api.js',
     '/js/app.js',
@@ -203,9 +206,20 @@ self.addEventListener('message', (event) => {
         return;
     }
     
+    // Retornar token de auth para sync em background
+    if (event.data && event.data.type === 'GET_AUTH_TOKEN') {
+        // O client responde via MessageChannel
+        return;
+    }
+    
+    // Client salvou dados offline - registra sync
+    if (event.data && event.data.type === 'OFFLINE_DATA_SAVED') {
+        registerBackgroundSync();
+        return;
+    }
+    
     // Skip waiting para atualizar imediatamente
     if (event.data && (event.data.type === 'SKIP_WAITING' || event.data === 'skipWaiting')) {
-        console.log('[SW] Skip waiting e ativando nova versão...');
         self.skipWaiting();
         return;
     }
@@ -213,20 +227,81 @@ self.addEventListener('message', (event) => {
 
 // Sincronização em background (quando voltar online)
 self.addEventListener('sync', (event) => {
-    
-    if (event.tag === 'sync-clients') {
-        event.waitUntil(syncPendingClients());
+    if (event.tag === 'sync-clients' || event.tag === 'sync-offline-queue') {
+        event.waitUntil(syncOfflineQueue());
     }
 });
 
 /**
- * Sincroniza clientes pendentes salvos offline
+ * Sincroniza fila offline via IndexedDB/localStorage
+ * Tenta processar cada item da fila diretamente do SW
  */
-async function syncPendingClients() {
-    const allClients = await self.clients.matchAll();
-    allClients.forEach(client => {
-        client.postMessage({ type: 'SYNC_OFFLINE' });
-    });
+async function syncOfflineQueue() {
+    // Primeiro tenta processar direto no SW (via API sync endpoint)
+    try {
+        const allClients = await self.clients.matchAll();
+        
+        // Pega o token de auth do primeiro client disponível
+        let authToken = null;
+        for (const client of allClients) {
+            const response = await new Promise((resolve) => {
+                const channel = new MessageChannel();
+                channel.port1.onmessage = (e) => resolve(e.data);
+                client.postMessage({ type: 'GET_AUTH_TOKEN' }, [channel.port2]);
+                // Timeout de 2s
+                setTimeout(() => resolve(null), 2000);
+            });
+            if (response && response.token) {
+                authToken = response.token;
+                break;
+            }
+        }
+
+        if (authToken) {
+            // Tenta sincronizar via API
+            const syncResponse = await fetch('/api/sync.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + authToken
+                }
+            });
+            
+            if (syncResponse.ok) {
+                const result = await syncResponse.json();
+                // Notifica os clients sobre o resultado
+                allClients.forEach(client => {
+                    client.postMessage({ 
+                        type: 'SYNC_COMPLETE', 
+                        data: result 
+                    });
+                });
+                return;
+            }
+        }
+
+        // Fallback: notifica clients para que eles façam o sync
+        allClients.forEach(client => {
+            client.postMessage({ type: 'SYNC_OFFLINE' });
+        });
+    } catch (error) {
+        // Se falhar, notifica clients para retry manual
+        const allClients = await self.clients.matchAll();
+        allClients.forEach(client => {
+            client.postMessage({ type: 'SYNC_FAILED', error: error.message });
+        });
+    }
+}
+
+/**
+ * Registra sync quando detecta operações offline sendo salvas
+ */
+async function registerBackgroundSync() {
+    try {
+        await self.registration.sync.register('sync-offline-queue');
+    } catch (e) {
+        // BackgroundSync não suportado - fallback via message
+    }
 }
 
 // Push notifications

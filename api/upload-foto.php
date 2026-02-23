@@ -28,8 +28,7 @@ if (!file_exists(UPLOAD_DIR)) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Método não permitido']);
-    exit;
+    jsonResponse(['success' => false, 'message' => 'Método não permitido'], 405);
 }
 
 try {
@@ -56,7 +55,7 @@ try {
     
 } catch (Exception $e) {
     Logger::logException($e, ['endpoint' => 'upload-foto.php']);
-    echo json_encode(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
+    jsonResponse(['success' => false, 'message' => 'Erro interno do servidor'], 500);
 }
 
 /**
@@ -68,8 +67,7 @@ function handleFileUpload($db, $userId) {
     $type = $_POST['type'] ?? 'other';
 
     if (empty($cpf)) {
-        echo json_encode(['success' => false, 'message' => 'CPF é obrigatório']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'CPF é obrigatório'], 400);
     }
 
     // Validações
@@ -80,13 +78,11 @@ function handleFileUpload($db, $userId) {
             UPLOAD_ERR_PARTIAL => 'Upload incompleto',
             UPLOAD_ERR_NO_FILE => 'Nenhum arquivo enviado',
         ];
-        echo json_encode(['success' => false, 'message' => $errors[$file['error']] ?? 'Erro no upload']);
-        exit;
+        jsonResponse(['success' => false, 'message' => $errors[$file['error']] ?? 'Erro no upload'], 400);
     }
 
     if ($file['size'] > MAX_FILE_SIZE) {
-        echo json_encode(['success' => false, 'message' => 'Arquivo muito grande (máx 10MB)']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'Arquivo muito grande (máx 10MB)'], 400);
     }
 
     // Verifica tipo MIME
@@ -95,8 +91,7 @@ function handleFileUpload($db, $userId) {
     finfo_close($finfo);
 
     if (!in_array($mimeType, ALLOWED_TYPES)) {
-        echo json_encode(['success' => false, 'message' => 'Tipo de arquivo não permitido: ' . $mimeType]);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'Tipo de arquivo não permitido: ' . $mimeType], 400);
     }
 
     // Gera nome único
@@ -106,14 +101,13 @@ function handleFileUpload($db, $userId) {
 
     // Move o arquivo
     if (!move_uploaded_file($file['tmp_name'], $filepath)) {
-        echo json_encode(['success' => false, 'message' => 'Erro ao salvar arquivo']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'Erro ao salvar arquivo'], 500);
     }
 
     // Salva no banco
     savePhotoRecord($db, $cpf, $filename, $type, $userId);
 
-    echo json_encode([
+    jsonResponse([
         'success' => true,
         'message' => 'Foto enviada com sucesso',
         'data' => [
@@ -134,8 +128,7 @@ function handleBase64Upload($db, $userId) {
     $type = $input['type'] ?? 'other';
 
     if (empty($cpf) || empty($base64)) {
-        echo json_encode(['success' => false, 'message' => 'CPF e foto são obrigatórios']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'CPF e foto são obrigatórios'], 400);
     }
 
     // Remove prefixo data:image/...;base64,
@@ -149,14 +142,12 @@ function handleBase64Upload($db, $userId) {
     // Decodifica
     $imageData = base64_decode($base64);
     if ($imageData === false) {
-        echo json_encode(['success' => false, 'message' => 'Imagem inválida']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'Imagem inválida'], 400);
     }
 
     // Verifica tamanho
     if (strlen($imageData) > MAX_FILE_SIZE) {
-        echo json_encode(['success' => false, 'message' => 'Imagem muito grande (máx 10MB)']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'Imagem muito grande (máx 10MB)'], 400);
     }
 
     // Gera nome único
@@ -165,14 +156,13 @@ function handleBase64Upload($db, $userId) {
 
     // Salva o arquivo
     if (file_put_contents($filepath, $imageData) === false) {
-        echo json_encode(['success' => false, 'message' => 'Erro ao salvar imagem']);
-        exit;
+        jsonResponse(['success' => false, 'message' => 'Erro ao salvar imagem'], 500);
     }
 
     // Salva no banco
     savePhotoRecord($db, $cpf, $filename, $type, $userId);
 
-    echo json_encode([
+    jsonResponse([
         'success' => true,
         'message' => 'Foto enviada com sucesso',
         'data' => [

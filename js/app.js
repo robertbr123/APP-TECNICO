@@ -25,27 +25,27 @@ const App = {
         const page = window.location.pathname.split('/').pop() || 'index.html';
 
         const pageModules = {
-            'login.html': 'login',
-            'dashboard.html': 'dashboard',
-            'novo-cadastro.html': 'cadastro',
-            'consultar.html': 'consulta',
-            'detalher.html': 'detalhes',
-            'vincular-equipamento.html': 'vincular',
-            'ajustes.html': 'ajustes',
-            'historico.html': 'historico',
-            'ordens.html': 'ordens',
-            'relatorios.html': 'relatorios'
+            'login.php': 'login', 'login.html': 'login',
+            'dashboard.php': 'dashboard', 'dashboard.html': 'dashboard',
+            'novo-cadastro.php': 'cadastro', 'novo-cadastro.html': 'cadastro',
+            'consultar.php': 'consulta', 'consultar.html': 'consulta',
+            'detalher.php': 'detalhes', 'detalher.html': 'detalhes',
+            'vincular-equipamento.php': 'vincular', 'vincular-equipamento.html': 'vincular',
+            'ajustes.php': 'ajustes', 'ajustes.html': 'ajustes',
+            'historico.php': 'historico', 'historico.html': 'historico',
+            'ordens.php': 'ordens', 'ordens.html': 'ordens',
+            'relatorios.php': 'relatorios', 'relatorios.html': 'relatorios'
         };
 
         const initMap = {
-            'login.html': 'initLoginPage',
-            'dashboard.html': 'initDashboardPage',
-            'novo-cadastro.html': 'initCadastroPage',
-            'consultar.html': 'initConsultaPage',
-            'detalher.html': 'initDetalhesPage',
-            'vincular-equipamento.html': 'initVincularPage',
-            'ajustes.html': 'initAjustesPage',
-            'historico.html': 'initHistoricoPage'
+            'login.php': 'initLoginPage', 'login.html': 'initLoginPage',
+            'dashboard.php': 'initDashboardPage', 'dashboard.html': 'initDashboardPage',
+            'novo-cadastro.php': 'initCadastroPage', 'novo-cadastro.html': 'initCadastroPage',
+            'consultar.php': 'initConsultaPage', 'consultar.html': 'initConsultaPage',
+            'detalher.php': 'initDetalhesPage', 'detalher.html': 'initDetalhesPage',
+            'vincular-equipamento.php': 'initVincularPage', 'vincular-equipamento.html': 'initVincularPage',
+            'ajustes.php': 'initAjustesPage', 'ajustes.html': 'initAjustesPage',
+            'historico.php': 'initHistoricoPage', 'historico.html': 'initHistoricoPage'
         };
 
         const moduleName = pageModules[page];
@@ -68,9 +68,9 @@ const App = {
 
     initCurrentPage(page) {
         switch (page) {
-            case 'mapa.html': this.initMapaPage(); break;
-            case 'ponto.html': this.initPontoPage(); break;
-            case 'estoque.html': this.initEstoquePage(); break;
+            case 'mapa.php': case 'mapa.html': this.initMapaPage(); break;
+            case 'ponto.php': case 'ponto.html': this.initPontoPage(); break;
+            case 'estoque.php': case 'estoque.html': this.initEstoquePage(); break;
         }
     },
 
@@ -97,15 +97,40 @@ const App = {
 
                 // Escuta mensagens do SW para sync offline
                 navigator.serviceWorker.addEventListener('message', function(event) {
-                    if (event.data && event.data.type === 'SYNC_OFFLINE' && typeof syncOfflineQueue === 'function') {
-                        syncOfflineQueue();
+                    if (!event.data) return;
+                    
+                    // SW pede o token de auth para sync em background
+                    if (event.data.type === 'GET_AUTH_TOKEN' && event.ports[0]) {
+                        const token = localStorage.getItem('auth_token');
+                        event.ports[0].postMessage({ token: token });
+                        return;
+                    }
+                    
+                    // SW completou o sync automaticamente
+                    if (event.data.type === 'SYNC_COMPLETE') {
+                        if (typeof showSuccess === 'function') {
+                            showSuccess('Dados sincronizados automaticamente!');
+                        } else if (typeof App !== 'undefined' && App.showToast) {
+                            App.showToast('Dados sincronizados!', 'success');
+                        }
+                        // Limpa fila local
+                        localStorage.removeItem('offlineQueue');
+                        return;
+                    }
+                    
+                    // Sync falhou - tenta via client
+                    if (event.data.type === 'SYNC_FAILED' || event.data.type === 'SYNC_OFFLINE') {
+                        if (typeof syncOfflineQueue === 'function') {
+                            syncOfflineQueue();
+                        }
+                        return;
                     }
                 });
 
                 // Mostra banner para ativar notificações após pequeno delay (requer gesto do usuário)
                 // Só mostra no dashboard para não ser intrusivo
                 const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-                if (API.isAuthenticated() && currentPage === 'dashboard.html') {
+                if (API.isAuthenticated() && (currentPage === 'dashboard.html' || currentPage === 'dashboard.php')) {
                     setTimeout(() => {
                         this.showPushBanner(registration);
                     }, 1500); // Delay de 1.5s para não parecer spam
@@ -207,14 +232,14 @@ const App = {
     // ==========================================
 
     checkAuth() {
-        const publicPages = ['login.html'];
+        const publicPages = ['login.html', 'login.php'];
         const currentPage = window.location.pathname.split('/').pop() || 'index.html';
         if (!API.isAuthenticated() && !publicPages.includes(currentPage)) {
-            window.location.href = 'login.html';
+            window.location.href = 'login.php';
             return false;
         }
-        if (API.isAuthenticated() && currentPage === 'login.html') {
-            window.location.href = 'dashboard.html';
+        if (API.isAuthenticated() && publicPages.includes(currentPage)) {
+            window.location.href = 'dashboard.php';
             return false;
         }
         return true;
@@ -279,10 +304,22 @@ const App = {
 
     setupOnlineOfflineListeners() {
         window.addEventListener('online', () => {
-            // Sincronização unificada via feedback.js (syncOfflineQueue)
-            if (typeof syncOfflineQueue === 'function') {
-                syncOfflineQueue();
+            // Tenta BackgroundSync primeiro, depois fallback manual
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.ready.then(registration => {
+                    if ('sync' in registration) {
+                        registration.sync.register('sync-offline-queue').catch(() => {
+                            // Fallback se BackgroundSync nao for suportado
+                            if (typeof syncOfflineQueue === 'function') syncOfflineQueue();
+                        });
+                    } else {
+                        if (typeof syncOfflineQueue === 'function') syncOfflineQueue();
+                    }
+                });
+            } else {
+                if (typeof syncOfflineQueue === 'function') syncOfflineQueue();
             }
+            this.showToast('Conexão restaurada! Sincronizando...', 'success');
         });
         window.addEventListener('offline', () => {
             this.showToast('Sem conexão! Dados serão salvos offline', 'warning');

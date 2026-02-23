@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR"><head>
+<title>Consultar Clientes - Ondeline</title>
+<?php include 'partials/head.php'; ?>
+</head>
+<body class="min-h-screen">
+<header class="sticky top-0 z-40 w-full bg-white/80 dark:bg-black/80 ios-blur border-b border-gray-200/50 dark:border-white/10 safe-top">
+<div class="flex items-center justify-between px-4 h-16">
+<a href="dashboard.php" class="flex items-center gap-2">
+<span class="material-symbols-outlined text-gray-600 dark:text-gray-300">arrow_back_ios</span>
+</a>
+<h1 class="text-lg font-bold text-gray-900 dark:text-white flex-1 text-center">Consultar Clientes</h1>
+<div class="size-8"></div>
+</div>
+</header>
+
+<main class="px-4 pb-32">
+<!-- Busca -->
+<div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm border border-gray-100 dark:border-white/5 mb-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+<input id="search-input" class="w-full pl-12 pr-4 py-3 rounded-ios-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-[#000000] dark:text-white" placeholder="Buscar por nome ou CPF" autocomplete="off">
+</div>
+</div>
+
+<!-- Filtros -->
+<div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
+<button class="filter-btn active px-4 py-2 rounded-full text-sm font-medium bg-primary text-white" data-filter="all">Todos</button>
+<button class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="active">Ativos</button>
+<button class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400" data-filter="inactive">Inativos</button>
+</div>
+
+<!-- Resultados -->
+<div class="mb-4">
+<p id="result-count" class="text-sm text-gray-500 dark:text-gray-400 hidden"></p>
+</div>
+
+<!-- Lista de clientes -->
+<div id="clients-container" class="space-y-3 stagger-list">
+    <!-- Skeleton Loading Premium -->
+    <div class="skeleton-card flex items-center gap-4">
+        <div class="skeleton-circle size-12"></div>
+        <div class="flex-1 space-y-2">
+            <div class="skeleton-line w-3/4 h-4"></div>
+            <div class="skeleton-line w-1/2 h-3"></div>
+        </div>
+    </div>
+    <div class="skeleton-card flex items-center gap-4">
+        <div class="skeleton-circle size-12"></div>
+        <div class="flex-1 space-y-2">
+            <div class="skeleton-line w-2/3 h-4"></div>
+            <div class="skeleton-line w-1/3 h-3"></div>
+        </div>
+    </div>
+    <div class="skeleton-card flex items-center gap-4">
+        <div class="skeleton-circle size-12"></div>
+        <div class="flex-1 space-y-2">
+            <div class="skeleton-line w-4/5 h-4"></div>
+            <div class="skeleton-line w-2/5 h-3"></div>
+        </div>
+    </div>
+</div>
+</main>
+
+<!-- Botão Flutuante -->
+<a href="novo-cadastro.php" class="fixed bottom-20 right-6 flex size-16 items-center justify-center rounded-full bg-primary text-white shadow-2xl active:scale-95 transition-transform z-40">
+<span class="material-symbols-outlined text-[32px]">person_add</span>
+</a>
+
+<?php $activePage = 'clientes'; include 'partials/bottom-nav.php'; ?>
+
+<!-- Scripts do App -->
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/components.js"></script>
+<script src="js/animations.js"></script>
+<script src="js/ui-enhancements.js"></script>
+<script src="js/app.js"></script>
+<script src="js/feedback.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const container = document.getElementById('clients-container');
+    const resultCount = document.getElementById('result-count');
+    let searchTimeout;
+    let currentFilter = 'all';
+    
+    // Detecta se veio com mode=recent para mostrar últimos cadastros
+    const urlParams = new URLSearchParams(window.location.search);
+    const isRecentMode = urlParams.get('mode') === 'recent';
+    
+    // Atualiza título se for modo recentes
+    if (isRecentMode) {
+        const header = document.querySelector('header h1');
+        if (header) header.textContent = 'Últimos 20 Cadastros';
+    }
+    
+    // Filtros
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove classe ativa de todos
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.classList.remove('active', 'bg-primary', 'text-white');
+                b.classList.add('bg-gray-100', 'text-gray-600');
+            });
+
+            // Adiciona classe ativa ao clicado
+            btn.classList.add('active', 'bg-primary', 'text-white');
+            btn.classList.remove('bg-gray-100', 'text-gray-600');
+
+            currentFilter = btn.dataset.filter;
+            loadClients(searchInput.value.trim(), isRecentMode);
+        });
+    });
+    
+    // Carrega clientes iniciais (inclui modo recente)
+    loadClients('', isRecentMode);
+    
+    // Busca
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+                loadClients(e.target.value.trim(), false); // Busca normal, não modo recente
+            }, 400);
+        });
+    }
+    
+    async function loadClients(query, recentMode = false) {
+        // Show skeleton loading
+        Animations.showSkeleton(container, 5, 'list');
+        
+        try {
+            // Obtém o token do localStorage
+            const token = localStorage.getItem('auth_token');
+            
+            // Define limite - 20 para modo recente, 50 para normal
+            const limit = recentMode ? 20 : 50;
+            let url = '/api/search-clients.php?limit=' + limit;
+            
+            // Adiciona sort=recent para ordenar por data de criação
+            if (recentMode) {
+                url += '&sort=recent';
+            }
+            
+            if (query) {
+                url += '&search=' + encodeURIComponent(query);
+            }
+            if (currentFilter !== 'all') {
+                url += '&status=' + currentFilter;
+            }
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+            
+            const response = await fetch(url, { headers });
+            const result = await response.json();
+            
+            console.log('Clientes:', result);
+            
+            if (result.success && result.data && result.data.length > 0) {
+                // Contagem de resultados removida conforme solicitado
+                // resultCount.textContent = result.data.length + ' cliente(s) encontrado(s)';
+                
+                container.innerHTML = result.data.map(function(client) {
+                    const cpfFormatado = Utils.formatCPF(client.cpf);
+                    const isActive = client.active == 1 || client.status === 'ativo';
+                    const statusClass = isActive 
+                        ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' 
+                        : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+                    const statusText = isActive ? 'Ativo' : 'Inativo';
+                    
+                    return '<div class="client-card glass-premium rounded-ios-xl p-4 shadow-sm cursor-pointer card-interactive" data-cpf="' + client.cpf + '">' +
+                        '<div class="flex items-center gap-3">' +
+                            '<div class="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">' +
+                                '<span class="material-symbols-outlined">person</span>' +
+                            '</div>' +
+                            '<div class="flex-1 min-w-0">' +
+                                '<div class="flex items-center gap-2">' +
+                                    '<p class="font-semibold text-[#000000] dark:text-white truncate">' + (client.name || 'Sem nome') + '</p>' +
+                                    '<span class="' + statusClass + ' text-[10px] font-bold px-2 py-0.5 rounded-full uppercase shrink-0">' + statusText + '</span>' +
+                                '</div>' +
+                                '<p class="text-xs text-gray-500 dark:text-gray-400">' + cpfFormatado + '</p>' +
+                                '<p class="text-xs text-gray-500 dark:text-gray-400 truncate">' + (client.city || '') + '</p>' +
+                            '</div>' +
+                            '<span class="material-symbols-outlined text-gray-400">chevron_right</span>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+                
+                // Ativa animação stagger
+                container.classList.add('stagger-list');
+                setTimeout(() => container.classList.add('loaded'), 50);
+                
+                // Adiciona eventos de clique
+                container.querySelectorAll('.client-card').forEach(function(card) {
+                    card.addEventListener('click', function() {
+                        window.location.href = 'detalher.php?cpf=' + card.dataset.cpf;
+                    });
+                });
+            } else {
+                resultCount.textContent = '0 clientes encontrados';
+                // Usa empty state ilustrado
+                if (typeof UIEnhancements !== 'undefined') {
+                    container.innerHTML = UIEnhancements.createEmptyState(
+                        'noClients',
+                        'Nenhum cliente encontrado',
+                        'Tente buscar por outro nome ou CPF'
+                    );
+                } else {
+                    container.innerHTML = '<div class="text-center py-10">' +
+                        '<span class="material-symbols-outlined text-4xl text-gray-300">search_off</span>' +
+                        '<p class="text-gray-500 mt-4">Nenhum cliente encontrado</p>' +
+                    '</div>';
+                }
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            resultCount.textContent = 'Erro ao buscar';
+            // Usa empty state de erro ilustrado
+            if (typeof UIEnhancements !== 'undefined') {
+                container.innerHTML = UIEnhancements.createEmptyState(
+                    'error',
+                    'Erro ao carregar',
+                    'Não foi possível carregar os clientes. Verifique sua conexão.'
+                );
+                UIEnhancements.hapticError();
+            } else {
+                container.innerHTML = '<div class="text-center py-10">' +
+                    '<span class="material-symbols-outlined text-4xl text-red-300">error</span>' +
+                    '<p class="text-red-500 mt-4">Erro ao carregar clientes</p>' +
+                '</div>';
+            }
+        }
+    }
+});
+</script>
+</body></html>

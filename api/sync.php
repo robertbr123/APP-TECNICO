@@ -67,6 +67,7 @@ function handleGet($db, $userData) {
 
     jsonResponse([
         'success' => true,
+        'message' => 'Dados carregados com sucesso',
         'data' => [
             'total' => (int)$result['total'],
             'pending' => (int)$result['pending'],
@@ -98,8 +99,10 @@ function handlePost($db, $userData) {
         jsonResponse([
             'success' => true,
             'message' => 'Nenhum item para sincronizar',
-            'processed' => 0,
-            'errors' => []
+            'data' => [
+                'processed' => 0,
+                'errors' => []
+            ]
         ]);
     }
 
@@ -171,9 +174,11 @@ function handlePost($db, $userData) {
     jsonResponse([
         'success' => true,
         'message' => "Sincronização concluída: $processed item(s) processado(s)",
-        'processed' => $processed,
-        'total' => count($items),
-        'errors' => $errors
+        'data' => [
+            'processed' => $processed,
+            'total' => count($items),
+            'errors' => $errors
+        ]
     ]);
 }
 
