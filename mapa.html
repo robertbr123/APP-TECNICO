@@ -319,7 +319,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Atualiza estatísticas
     function updateStats(clientList) {
-        document.getElementById('stat-total').textContent = clientList.length;
+        var userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+        document.getElementById('stat-total').textContent = (userData.role === 'admin') ? clientList.length : '100+';
         document.getElementById('stat-active').textContent = clientList.filter(c => c.active == 1 || c.status === 'ativo').length;
         document.getElementById('stat-pending').textContent = clientList.filter(c => c.status === 'pendente').length;
         document.getElementById('stat-with-location').textContent = clientList.filter(c => {

@@ -14,6 +14,11 @@ App.initDashboardPage = async function() {
     this.updateHeaderProfile(user);
     this.setupBottomNavigation();
 
+    // Hide admin-only links for non-admin users
+    if (!user || user.role !== 'admin') {
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+    }
+
     // Hide real items initially to show skeleton
     document.querySelectorAll('#recent-activities > a').forEach(el => el.classList.add('hidden'));
 
