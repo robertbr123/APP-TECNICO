@@ -48,6 +48,9 @@
         // Client autocomplete
         setupClientAutocomplete();
 
+        // Complete OS modal
+        setupCompleteModal();
+
         // Filter tabs
         document.querySelectorAll('.os-filter-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
@@ -233,6 +236,23 @@
                     '<p class="text-[10px] text-green-600 uppercase font-bold mb-1">Resolução</p>' +
                     '<p class="text-sm text-gray-700 dark:text-gray-300">' + order.resolution + '</p>' +
                     '</div>';
+
+                // Resolution photos
+                if (order.resolution_photos) {
+                    try {
+                        var photos = JSON.parse(order.resolution_photos);
+                        if (photos && photos.length > 0) {
+                            html += '<div><p class="text-[10px] text-gray-500 uppercase font-bold mb-2">Fotos do Serviço</p>' +
+                                '<div class="grid grid-cols-3 gap-2">';
+                            photos.forEach(function(photoUrl) {
+                                html += '<a href="' + photoUrl + '" target="_blank" class="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 block">' +
+                                    '<img src="' + photoUrl + '" class="w-full h-full object-cover" loading="lazy"/>' +
+                                '</a>';
+                            });
+                            html += '</div></div>';
+                        }
+                    } catch(e) { /* invalid json */ }
+                }
             }
 
             // Schedule
@@ -311,22 +331,126 @@
         }
     };
 
-    window._osCompleteOrder = async function(id) {
-        var resolution = prompt('Descreva a resolução do serviço:');
-        if (!resolution) return;
+    // Complete OS - open modal
+    var completePendingPhotos = [];
+
+    window._osCompleteOrder = function(id) {
+        completePendingPhotos = [];
+        document.getElementById('complete-os-id').value = id;
+        document.getElementById('complete-resolution').value = '';
+        document.getElementById('complete-photos-preview').innerHTML = '';
+        document.getElementById('complete-photo-camera').value = '';
+        document.getElementById('complete-photo-gallery').value = '';
+        closeDetailModal();
+        document.getElementById('modal-complete').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    };
+
+    function closeCompleteModal() {
+        document.getElementById('modal-complete').classList.add('hidden');
+        document.body.style.overflow = '';
+        completePendingPhotos = [];
+    }
+
+    // Setup complete modal events
+    function setupCompleteModal() {
+        document.getElementById('complete-close').addEventListener('click', closeCompleteModal);
+        document.getElementById('complete-overlay').addEventListener('click', closeCompleteModal);
+
+        // Photo inputs
+        ['complete-photo-camera', 'complete-photo-gallery'].forEach(function(inputId) {
+            document.getElementById(inputId).addEventListener('change', function(e) {
+                handleCompletePhotos(e.target.files);
+                e.target.value = '';
+            });
+        });
+
+        // Submit
+        document.getElementById('btn-submit-complete').addEventListener('click', submitCompleteOS);
+    }
+
+    async function handleCompletePhotos(files) {
+        if (!files || files.length === 0) return;
+        var maxPhotos = 5;
+
+        for (var i = 0; i < files.length; i++) {
+            if (completePendingPhotos.length >= maxPhotos) {
+                showError('Máximo de ' + maxPhotos + ' fotos');
+                break;
+            }
+
+            try {
+                var compressed;
+                if (typeof Utils !== 'undefined' && Utils.compressImage) {
+                    compressed = await Utils.compressImage(files[i], { maxWidth: 1200, maxHeight: 1200, quality: 0.7 });
+                } else {
+                    compressed = await new Promise(function(resolve, reject) {
+                        var reader = new FileReader();
+                        reader.onload = function() { resolve(reader.result); };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(files[i]);
+                    });
+                }
+
+                completePendingPhotos.push(compressed);
+                renderCompletePhotos();
+            } catch (err) {
+                console.error('Erro ao comprimir foto:', err);
+            }
+        }
+    }
+
+    function renderCompletePhotos() {
+        var container = document.getElementById('complete-photos-preview');
+        container.innerHTML = completePendingPhotos.map(function(src, idx) {
+            return '<div class="relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">' +
+                '<img src="' + src + '" class="w-full h-full object-cover"/>' +
+                '<button type="button" data-remove-photo="' + idx + '" class="absolute top-1 right-1 size-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg">' +
+                    '<span class="material-symbols-outlined text-sm">close</span>' +
+                '</button>' +
+            '</div>';
+        }).join('');
+
+        container.querySelectorAll('[data-remove-photo]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                completePendingPhotos.splice(parseInt(btn.dataset.removePhoto), 1);
+                renderCompletePhotos();
+            });
+        });
+    }
+
+    async function submitCompleteOS() {
+        var id = document.getElementById('complete-os-id').value;
+        var resolution = document.getElementById('complete-resolution').value.trim();
+
+        if (!resolution) {
+            showError('Descreva a resolução do serviço');
+            return;
+        }
 
         try {
-            var response = await API.put('work-orders.php', { id: id, action: 'complete', resolution: resolution });
+            showLoading('Concluindo OS...');
+            var response = await API.put('work-orders.php', {
+                id: id,
+                action: 'complete',
+                resolution: resolution,
+                photos: completePendingPhotos.length > 0 ? completePendingPhotos : null
+            });
+            hideLoading();
+
             if (response.success) {
                 showSuccess('OS concluída com sucesso!');
-                closeDetailModal();
+                closeCompleteModal();
                 loadOrders();
                 loadStats();
+            } else {
+                showError(response.message || 'Erro ao concluir OS');
             }
         } catch (e) {
+            hideLoading();
             showError('Erro ao concluir OS: ' + e.message);
         }
-    };
+    }
 
     window._osCancelOrder = async function(id) {
         if (typeof AppComponents !== 'undefined' && AppComponents.showConfirmModal) {

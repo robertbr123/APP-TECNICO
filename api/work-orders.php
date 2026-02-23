@@ -34,6 +34,7 @@ try {
             `longitude` decimal(11,8) DEFAULT NULL,
             `created_by` int(11) NOT NULL,
             `created_by_name` varchar(150) DEFAULT NULL,
+            `resolution_photos` text DEFAULT NULL,
             `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
             `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
@@ -46,6 +47,11 @@ try {
             KEY `created_at` (`created_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+
+    // Add resolution_photos column if missing
+    try {
+        $db->exec("ALTER TABLE work_orders ADD COLUMN `resolution_photos` text DEFAULT NULL AFTER `resolution`");
+    } catch (PDOException $e) { /* column already exists */ }
 
     switch ($method) {
         case 'GET':
@@ -289,8 +295,29 @@ function handlePut($db, $userData) {
             if (empty($data['resolution'])) {
                 jsonResponse(['success' => false, 'message' => 'Resolução é obrigatória para concluir'], 400);
             }
-            $stmt = $db->prepare("UPDATE work_orders SET status = 'completed', resolution = ?, completed_at = NOW(), updated_at = NOW() WHERE id = ?");
-            $stmt->execute([$data['resolution'], $data['id']]);
+
+            // Save resolution photos as files
+            $photoUrls = [];
+            if (!empty($data['photos']) && is_array($data['photos'])) {
+                $uploadDir = __DIR__ . '/../uploads/os/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+                foreach ($data['photos'] as $idx => $base64) {
+                    if (preg_match('/^data:image\/(jpeg|png|webp|jpg);base64,/', $base64, $matches)) {
+                        $ext = $matches[1] === 'jpeg' ? 'jpg' : $matches[1];
+                        $imageData = base64_decode(preg_replace('/^data:image\/\w+;base64,/', '', $base64));
+                        $filename = 'os_' . $data['id'] . '_' . time() . '_' . $idx . '.' . $ext;
+                        if (file_put_contents($uploadDir . $filename, $imageData)) {
+                            $photoUrls[] = 'uploads/os/' . $filename;
+                        }
+                    }
+                }
+            }
+
+            $photosJson = !empty($photoUrls) ? json_encode($photoUrls) : null;
+            $stmt = $db->prepare("UPDATE work_orders SET status = 'completed', resolution = ?, resolution_photos = ?, completed_at = NOW(), updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$data['resolution'], $photosJson, $data['id']]);
 
             // Notify creator
             if ($order['created_by'] != $userData['user_id']) {

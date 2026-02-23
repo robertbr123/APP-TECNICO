@@ -101,6 +101,7 @@
                 <button onclick="showTab('templates')" id="tab-templates" class="tab-btn flex-1 px-4 py-3 text-sm font-medium tab-active">Templates</button>
                 <button onclick="showTab('users')" id="tab-users" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Usuários</button>
                 <button onclick="showTab('checklists')" id="tab-checklists" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Checklists</button>
+                <button onclick="showTab('auditoria')" id="tab-auditoria" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Auditoria</button>
                 <button onclick="showTab('push')" id="tab-push" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Push</button>
                 <button onclick="showTab('config')" id="tab-config" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Config</button>
             </div>
@@ -141,6 +142,71 @@
             <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm">
                 <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Todos os Checklists</h3>
                 <div id="checklists-list" class="space-y-2">
+                    <p class="text-gray-500 text-center py-4">Carregando...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auditoria Panel -->
+        <div id="panel-auditoria" class="tab-content hidden">
+            <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Logs de Auditoria</h3>
+                    <button onclick="loadAuditLogs()" class="flex items-center gap-1 text-primary text-sm font-medium hover:opacity-70">
+                        <span class="material-symbols-outlined text-lg">refresh</span>
+                        Atualizar
+                    </button>
+                </div>
+
+                <!-- Filtros -->
+                <div class="space-y-3">
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <select id="audit-filter-user" onchange="loadAuditLogs()"
+                                class="w-full h-10 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm border-0 focus:ring-2 focus:ring-primary/50">
+                                <option value="">Todos os usuários</option>
+                            </select>
+                        </div>
+                        <div class="flex-1">
+                            <input type="text" id="audit-search-user" placeholder="Buscar técnico..."
+                                class="w-full h-10 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm border-0 focus:ring-2 focus:ring-primary/50">
+                        </div>
+                    </div>
+
+                    <!-- Filtros por tipo -->
+                    <div class="flex gap-2 overflow-x-auto pb-1" style="-ms-overflow-style:none;scrollbar-width:none;">
+                        <button class="audit-filter-btn flex-shrink-0 h-8 px-3 rounded-full bg-primary text-white text-xs font-medium" data-action="" onclick="setAuditActionFilter(this)">Todos</button>
+                        <button class="audit-filter-btn flex-shrink-0 h-8 px-3 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium" data-action="login" onclick="setAuditActionFilter(this)">Logins</button>
+                        <button class="audit-filter-btn flex-shrink-0 h-8 px-3 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium" data-action="client_created" onclick="setAuditActionFilter(this)">Cadastros</button>
+                        <button class="audit-filter-btn flex-shrink-0 h-8 px-3 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium" data-action="client_viewed" onclick="setAuditActionFilter(this)">Visualizações</button>
+                        <button class="audit-filter-btn flex-shrink-0 h-8 px-3 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium" data-action="equipment_linked" onclick="setAuditActionFilter(this)">Vinculações</button>
+                        <button class="audit-filter-btn flex-shrink-0 h-8 px-3 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium" data-action="client_updated" onclick="setAuditActionFilter(this)">Edições</button>
+                        <button class="audit-filter-btn flex-shrink-0 h-8 px-3 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium" data-action="client_deleted" onclick="setAuditActionFilter(this)">Exclusões</button>
+                    </div>
+
+                    <!-- Filtros de data -->
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="text-[10px] text-gray-500 mb-1 block">De:</label>
+                            <input type="date" id="audit-start-date" onchange="loadAuditLogs()"
+                                class="w-full h-10 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm border-0 focus:ring-2 focus:ring-primary/50">
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-[10px] text-gray-500 mb-1 block">Até:</label>
+                            <input type="date" id="audit-end-date" onchange="loadAuditLogs()"
+                                class="w-full h-10 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm border-0 focus:ring-2 focus:ring-primary/50">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contador -->
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="material-symbols-outlined text-primary text-lg">history</span>
+                    <span id="audit-total-count" class="font-semibold text-gray-900 dark:text-white">Carregando...</span>
+                </div>
+
+                <!-- Lista de Logs -->
+                <div id="audit-logs-list" class="space-y-2 max-h-[60vh] overflow-y-auto">
                     <p class="text-gray-500 text-center py-4">Carregando...</p>
                 </div>
             </div>
@@ -351,6 +417,7 @@
             if (tab === 'templates') loadTemplates();
             if (tab === 'users') loadUsers();
             if (tab === 'checklists') loadChecklists();
+            if (tab === 'auditoria') initAuditoria();
             if (tab === 'push') loadPushSubscriptions();
         }
 
@@ -882,6 +949,170 @@
             } catch (e) {
                 showError('Erro ao enviar notificação.');
             }
+        }
+
+        // ==============================
+        // Auditoria
+        // ==============================
+        let auditFilters = { action_type: '', user_id: '', username: '', start_date: '', end_date: '' };
+        let auditInitialized = false;
+        let auditSearchTimeout = null;
+
+        function initAuditoria() {
+            if (!auditInitialized) {
+                const today = new Date().toISOString().split('T')[0];
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                document.getElementById('audit-start-date').value = sevenDaysAgo.toISOString().split('T')[0];
+                document.getElementById('audit-end-date').value = today;
+
+                // Busca com debounce
+                document.getElementById('audit-search-user').addEventListener('input', function(e) {
+                    clearTimeout(auditSearchTimeout);
+                    auditSearchTimeout = setTimeout(() => {
+                        auditFilters.username = e.target.value.trim();
+                        loadAuditLogs();
+                    }, 500);
+                });
+
+                auditInitialized = true;
+            }
+            loadAuditLogs();
+        }
+
+        function setAuditActionFilter(btn) {
+            document.querySelectorAll('.audit-filter-btn').forEach(b => {
+                b.classList.remove('bg-primary', 'text-white');
+                b.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            });
+            btn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            btn.classList.add('bg-primary', 'text-white');
+            auditFilters.action_type = btn.dataset.action;
+            loadAuditLogs();
+        }
+
+        async function loadAuditLogs() {
+            const container = document.getElementById('audit-logs-list');
+            const countEl = document.getElementById('audit-total-count');
+            if (!container) return;
+
+            // Atualiza filtros de data
+            auditFilters.start_date = document.getElementById('audit-start-date')?.value || '';
+            auditFilters.end_date = document.getElementById('audit-end-date')?.value || '';
+            auditFilters.user_id = document.getElementById('audit-filter-user')?.value || '';
+
+            container.innerHTML = '<div class="flex items-center justify-center py-8"><div class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div></div>';
+
+            try {
+                let url = '/api/get-audit-logs.php?limit=100';
+                if (auditFilters.action_type) url += '&action_type=' + encodeURIComponent(auditFilters.action_type);
+                if (auditFilters.user_id) url += '&user_id=' + encodeURIComponent(auditFilters.user_id);
+                if (auditFilters.username) url += '&username=' + encodeURIComponent(auditFilters.username);
+                if (auditFilters.start_date) url += '&start_date=' + encodeURIComponent(auditFilters.start_date);
+                if (auditFilters.end_date) url += '&end_date=' + encodeURIComponent(auditFilters.end_date);
+
+                const response = await fetch(url, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth_token') }
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    countEl.textContent = result.total + ' registro(s)';
+
+                    // Popula dropdown de usuarios
+                    if (result.data && result.data.length > 0) {
+                        populateAuditUserDropdown(result.data);
+                    }
+
+                    if (result.data && result.data.length > 0) {
+                        container.innerHTML = result.data.map(log => renderAuditLogCard(log)).join('');
+                    } else {
+                        container.innerHTML = '<div class="text-center py-8"><span class="material-symbols-outlined text-4xl text-gray-300">history</span><p class="text-gray-500 text-sm mt-2">Nenhum registro encontrado</p></div>';
+                    }
+                } else {
+                    throw new Error(result.message || 'Erro');
+                }
+            } catch (error) {
+                countEl.textContent = 'Erro';
+                container.innerHTML = '<div class="text-center py-8"><span class="material-symbols-outlined text-4xl text-red-300">error</span><p class="text-red-500 text-sm mt-2">' + error.message + '</p></div>';
+            }
+        }
+
+        function populateAuditUserDropdown(logs) {
+            const select = document.getElementById('audit-filter-user');
+            if (!select) return;
+            const currentValue = select.value;
+            const usersMap = {};
+            logs.forEach(log => {
+                if (log.user_id && !usersMap[log.user_id]) {
+                    usersMap[log.user_id] = log.user_full_name || log.username || 'Usuário ' + log.user_id;
+                }
+            });
+            const existingCount = select.options.length;
+            const newUsers = Object.keys(usersMap);
+            if (newUsers.length + 1 === existingCount) return;
+
+            select.innerHTML = '<option value="">Todos os usuários</option>';
+            newUsers.sort((a, b) => usersMap[a].localeCompare(usersMap[b])).forEach(userId => {
+                const opt = document.createElement('option');
+                opt.value = userId;
+                opt.textContent = usersMap[userId];
+                select.appendChild(opt);
+            });
+            if (currentValue) select.value = currentValue;
+        }
+
+        function renderAuditLogCard(log) {
+            const icons = {
+                'login': 'login', 'new_client_page': 'add_circle', 'client_created': 'person_add',
+                'client_viewed': 'visibility', 'link_equipment_page': 'devices', 'equipment_linked': 'router',
+                'client_updated': 'edit', 'client_deleted': 'delete'
+            };
+            const colors = {
+                'login': 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+                'new_client_page': 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
+                'client_created': 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+                'client_viewed': 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+                'link_equipment_page': 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400',
+                'equipment_linked': 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+                'client_updated': 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
+                'client_deleted': 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+            };
+            const labels = {
+                'login': 'Login', 'new_client_page': 'Acesso Cadastro', 'client_created': 'Novo Cadastro',
+                'client_viewed': 'Visualização', 'link_equipment_page': 'Acesso Vincular',
+                'equipment_linked': 'Vinculação', 'client_updated': 'Edição', 'client_deleted': 'Exclusão'
+            };
+
+            const icon = icons[log.action_type] || 'history';
+            const color = colors[log.action_type] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+            const label = labels[log.action_type] || log.action_type;
+            const userName = log.user_full_name || log.username || 'Sistema';
+
+            let detailsHtml = '';
+            if (log.details) {
+                const detailLabels = { 'plan': 'Plano', 'city': 'Cidade', 'status': 'Status', 'old_serial': 'Serial Antigo', 'new_serial': 'Serial Novo', 'phone': 'Telefone' };
+                const parts = Object.keys(log.details).filter(k => log.details[k]).map(k =>
+                    '<span class="text-[10px] text-gray-500">' + (detailLabels[k] || k) + ': ' + log.details[k] + '</span>'
+                ).join(' | ');
+                if (parts) detailsHtml = '<div class="mt-1">' + parts + '</div>';
+            }
+
+            return `<div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div class="size-9 rounded-full ${color} flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-lg">${icon}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">${label}</p>
+                        <p class="text-[10px] text-gray-400 flex-shrink-0" title="${log.created_at_formatted}">${log.created_at_relative}</p>
+                    </div>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 truncate">${log.action_description}</p>
+                    ${log.entity_name ? '<p class="text-xs text-gray-500">' + log.entity_name + '</p>' : ''}
+                    ${detailsHtml}
+                    <p class="text-[10px] text-gray-400 mt-1">${userName}</p>
+                </div>
+            </div>`;
         }
 
         // Testa configuração de push
