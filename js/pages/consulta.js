@@ -81,7 +81,7 @@ App.renderClientsList = function(clients, container) {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             const cpf = e.target.closest('[data-cpf]').dataset.cpf;
-            window.location.href = `detalher.html?cpf=${cpf}`;
+            window.location.href = `detalher.php?cpf=${cpf}`;
         });
     });
 
@@ -90,7 +90,7 @@ App.renderClientsList = function(clients, container) {
         card.addEventListener('click', (e) => {
             if (!e.target.closest('.btn-details')) {
                 const cpf = card.dataset.cpf;
-                window.location.href = `detalher.html?cpf=${cpf}`;
+                window.location.href = `detalher.php?cpf=${cpf}`;
             }
         });
     });

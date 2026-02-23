@@ -174,7 +174,7 @@ App.handleVincularEquipamento = async function() {
         if (response.success) {
             this.showToast('Equipamento vinculado com sucesso!', 'success');
             setTimeout(() => {
-                window.location.href = 'dashboard.html';
+                window.location.href = 'dashboard.php';
             }, 1000);
         } else {
             this.showToast(response.message || 'Erro ao vincular', 'error');

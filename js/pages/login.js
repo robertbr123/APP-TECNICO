@@ -42,7 +42,7 @@ App.initLoginPage = function() {
                 if (response.success) {
                     App.showToast('Login realizado com sucesso!', 'success');
                     setTimeout(() => {
-                        window.location.href = 'dashboard.html';
+                        window.location.href = 'dashboard.php';
                     }, 500);
                 } else {
                     App.showToast(response.message || 'Usuário ou senha inválidos', 'error');

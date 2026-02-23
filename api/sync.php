@@ -27,6 +27,25 @@ Logger::logRequest('sync.php', $method, $_REQUEST);
 try {
     $db = Database::getInstance()->getConnection();
 
+    // Auto-create offline_queue table if not exists
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS `offline_queue` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `user_id` int(11) DEFAULT NULL,
+            `username` varchar(100) DEFAULT NULL,
+            `action_type` varchar(50) NOT NULL,
+            `data_json` text NOT NULL,
+            `status` enum('pending','synced','failed') DEFAULT 'pending',
+            `attempt_count` int(11) DEFAULT 0,
+            `error_message` text DEFAULT NULL,
+            `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+            `synced_at` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            KEY `user_id` (`user_id`),
+            KEY `status` (`status`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    ");
+
     switch ($method) {
         case 'GET':
             // Retorna contagem de itens pendentes

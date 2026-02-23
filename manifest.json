@@ -2,7 +2,8 @@
     "name": "Ondeline - Técnico",
     "short_name": "Ondeline",
     "description": "App do Técnico - Cadastro e gestão de clientes",
-    "start_url": "/dashboard.html",
+    "id": "/dashboard.php",
+    "start_url": "/dashboard.php",
     "scope": "/",
     "display": "standalone",
     "orientation": "portrait",
@@ -34,14 +35,21 @@
             "name": "Novo Cadastro",
             "short_name": "Cadastrar",
             "description": "Cadastrar novo cliente",
-            "url": "/novo-cadastro.html",
+            "url": "/novo-cadastro.php",
             "icons": [{ "src": "logo.png", "sizes": "96x96" }]
         },
         {
             "name": "Consultar Clientes",
             "short_name": "Consultar",
             "description": "Buscar clientes cadastrados",
-            "url": "/consultar.html",
+            "url": "/consultar.php",
+            "icons": [{ "src": "logo.png", "sizes": "96x96" }]
+        },
+        {
+            "name": "Ordens de Serviço",
+            "short_name": "OS",
+            "description": "Gerenciar ordens de serviço",
+            "url": "/ordens.php",
             "icons": [{ "src": "logo.png", "sizes": "96x96" }]
         }
     ],

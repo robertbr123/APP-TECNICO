@@ -164,7 +164,7 @@ App.handleSaveClient = async function() {
 
             this.showToast('Salvo offline! Será sincronizado quando reconectar.', 'success');
             setTimeout(() => {
-                window.location.href = 'dashboard.html';
+                window.location.href = 'dashboard.php';
             }, 1000);
             return;
         }
@@ -182,7 +182,7 @@ App.handleSaveClient = async function() {
             }
 
             setTimeout(() => {
-                window.location.href = `checklist.html?client_cpf=${cpf}&client_name=${encodeURIComponent(data.name)}`;
+                window.location.href = `checklist.php?client_cpf=${cpf}&client_name=${encodeURIComponent(data.name)}`;
             }, 1000);
         } else {
             this.showToast(response.message || 'Erro ao cadastrar', 'error');

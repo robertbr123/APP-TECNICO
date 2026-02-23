@@ -787,7 +787,7 @@ const API = {
             action: 'send',
             title: title,
             body: body,
-            url: url || '/dashboard.html',
+            url: url || '/dashboard.php',
             user_id: userId || null
         });
     },

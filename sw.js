@@ -3,13 +3,13 @@
  * Ondeline Tech - App do Técnico
  */
 
-const APP_VERSION = 'v1.7.0';
+const APP_VERSION = 'v1.8.0';
 const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
 const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
-const DYNAMIC_CACHE_LIMIT = 50; // Máximo de itens no cache dinâmico
+const DYNAMIC_CACHE_LIMIT = 100; // Máximo de itens no cache dinâmico (aumentado para CDN)
 
-// Arquivos estáticos para cache
+// Arquivos estáticos para cache (páginas PHP + assets)
 const STATIC_ASSETS = [
     '/',
     '/login.php',
@@ -52,15 +52,29 @@ const STATIC_ASSETS = [
     '/logo.png'
 ];
 
+// CDN externo para pré-cachear (fontes e estilos críticos)
+const CDN_ASSETS = [
+    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+    'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
+];
+
 // Instalação do Service Worker
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(STATIC_CACHE).then((cache) => {
-            // Usa addAll em bloco; erros individuais não quebram a instalação
-            return Promise.allSettled(
-                STATIC_ASSETS.map(url => cache.add(url).catch(() => null))
-            );
-        }).then(() => self.skipWaiting())
+        Promise.all([
+            // Cache de assets estáticos locais
+            caches.open(STATIC_CACHE).then((cache) => {
+                return Promise.allSettled(
+                    STATIC_ASSETS.map(url => cache.add(url).catch(() => null))
+                );
+            }),
+            // Cache de CDN externos (fontes, ícones)
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+                return Promise.allSettled(
+                    CDN_ASSETS.map(url => cache.add(url).catch(() => null))
+                );
+            })
+        ]).then(() => self.skipWaiting())
     );
 });
 
@@ -95,9 +109,15 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Para HTML e JS, usa Network First (sempre busca atualização)
+    // CDN externo (Google Fonts, TailwindCSS) - cache first para performance
+    if (url.hostname !== self.location.hostname) {
+        event.respondWith(cacheFirst(request));
+        return;
+    }
+
+    // Para PHP, JS e CSS, usa Network First (sempre busca atualização)
     if (request.method === 'GET') {
-        const isPageOrScript = url.pathname.endsWith('.html') ||
+        const isPageOrScript = url.pathname.endsWith('.php') ||
                                url.pathname.endsWith('.js') ||
                                url.pathname.endsWith('.css') ||
                                url.pathname === '/';
@@ -149,9 +169,10 @@ async function cacheFirst(request) {
 
         return networkResponse;
     } catch (error) {
-        // Se offline e não tem cache, retorna página offline
+        // Se offline e não tem cache, retorna dashboard como fallback
         if (request.headers.get('accept')?.includes('text/html')) {
-            return caches.match('/dashboard.html');
+            const fallback = await caches.match('/dashboard.php');
+            if (fallback) return fallback;
         }
         throw error;
     }
@@ -319,8 +340,8 @@ self.addEventListener('push', (event) => {
 
     const options = {
         body: data.body,
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-72x72.png',
+        icon: '/logo.png',
+        badge: '/logo.png',
         vibrate: [100, 50, 100],
         data: { url: data.url },
         actions: [

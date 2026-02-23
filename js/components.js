@@ -14,15 +14,15 @@ const AppComponents = {
         const container = document.getElementById('bottom-nav');
         if (!container) return;
 
-        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        const currentPage = window.location.pathname.split('/').pop() || 'index.php';
 
         // Ícones modernos estilo iOS com cores individuais
         const items = [
-            { href: 'dashboard.html', icon: 'cottage', label: 'Início', color: 'primary', gradient: 'from-blue-500 to-indigo-600' },
-            { href: 'mapa.html', icon: 'explore', label: 'Rotas', color: 'emerald', gradient: 'from-emerald-500 to-teal-600' },
-            { href: 'ponto.html', icon: 'schedule', label: 'Ponto', color: 'orange', gradient: 'from-orange-500 to-amber-600' },
-            { href: 'consultar.html', icon: 'group', label: 'Clientes', color: 'purple', gradient: 'from-purple-500 to-violet-600' },
-            { href: 'ajustes.html', icon: 'tune', label: 'Ajustes', color: 'gray', gradient: 'from-gray-500 to-slate-600' }
+            { href: 'dashboard.php', icon: 'cottage', label: 'Início', color: 'primary', gradient: 'from-blue-500 to-indigo-600' },
+            { href: 'mapa.php', icon: 'explore', label: 'Rotas', color: 'emerald', gradient: 'from-emerald-500 to-teal-600' },
+            { href: 'ponto.php', icon: 'schedule', label: 'Ponto', color: 'orange', gradient: 'from-orange-500 to-amber-600' },
+            { href: 'consultar.php', icon: 'group', label: 'Clientes', color: 'purple', gradient: 'from-purple-500 to-violet-600' },
+            { href: 'ajustes.php', icon: 'tune', label: 'Ajustes', color: 'gray', gradient: 'from-gray-500 to-slate-600' }
         ];
 
         const colorMap = {
@@ -124,15 +124,15 @@ const AppComponents = {
                     const navContainer = container.querySelector('.flex.justify-around');
                     if (navContainer) {
                         const currentPage = window.location.pathname.split('/').pop();
-                        const isActive = currentPage === 'admin.html';
+                        const isActive = currentPage === 'admin.php';
                         
                         const adminLink = isActive 
-                            ? `<a class="nav-item-active relative flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-gradient-to-br from-rose-500/20 to-pink-500/10 border border-rose-500/30 shadow-lg shadow-rose-500/20 transition-all duration-300" href="admin.html" data-nav-item>` +
+                            ? `<a class="nav-item-active relative flex flex-col items-center justify-center px-4 py-2 rounded-2xl bg-gradient-to-br from-rose-500/20 to-pink-500/10 border border-rose-500/30 shadow-lg shadow-rose-500/20 transition-all duration-300" href="admin.php" data-nav-item>` +
                                 `<div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-rose-500/5 to-transparent"></div>` +
                                 `<span class="material-symbols-outlined text-rose-600 text-[26px] relative z-10 drop-shadow-sm" style="font-variation-settings: 'FILL' 1">shield_person</span>` +
                                 `<span class="text-[10px] font-bold text-rose-600 relative z-10 mt-0.5">Admin</span>` +
                                 `</a>`
-                            : `<a class="nav-item flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-all duration-300 hover:bg-gray-100 dark:hover:bg-white/5 active:scale-95" href="admin.html" data-nav-item>` +
+                            : `<a class="nav-item flex flex-col items-center justify-center px-3 py-2 rounded-xl transition-all duration-300 hover:bg-gray-100 dark:hover:bg-white/5 active:scale-95" href="admin.php" data-nav-item>` +
                                 `<span class="material-symbols-outlined nav-icon text-gray-400 dark:text-gray-500 text-[24px] transition-all duration-300" style="font-variation-settings: 'FILL' 0">shield_person</span>` +
                                 `<span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 mt-0.5 transition-colors duration-300">Admin</span>` +
                                 `</a>`;
@@ -417,7 +417,7 @@ const AppComponents = {
 
     /**
      * Renderiza o header compartilhado
-     * Substitui <header id="shared-header" data-title="Título" data-back="dashboard.html"></header>
+     * Substitui <header id="shared-header" data-title="Título" data-back="dashboard.php"></header>
      * Atributos opcionais:
      *   data-title: título da página
      *   data-back: URL para o botão voltar (se omitido, não mostra botão voltar)

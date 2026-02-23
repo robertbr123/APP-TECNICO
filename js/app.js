@@ -22,30 +22,30 @@ const App = {
      * Carrega módulo JS da página atual dinamicamente
      */
     loadPageModule() {
-        const page = window.location.pathname.split('/').pop() || 'index.html';
+        const page = window.location.pathname.split('/').pop() || 'index.php';
 
         const pageModules = {
-            'login.php': 'login', 'login.html': 'login',
-            'dashboard.php': 'dashboard', 'dashboard.html': 'dashboard',
-            'novo-cadastro.php': 'cadastro', 'novo-cadastro.html': 'cadastro',
-            'consultar.php': 'consulta', 'consultar.html': 'consulta',
-            'detalher.php': 'detalhes', 'detalher.html': 'detalhes',
-            'vincular-equipamento.php': 'vincular', 'vincular-equipamento.html': 'vincular',
-            'ajustes.php': 'ajustes', 'ajustes.html': 'ajustes',
-            'historico.php': 'historico', 'historico.html': 'historico',
-            'ordens.php': 'ordens', 'ordens.html': 'ordens',
-            'relatorios.php': 'relatorios', 'relatorios.html': 'relatorios'
+            'login.php': 'login',
+            'dashboard.php': 'dashboard',
+            'novo-cadastro.php': 'cadastro',
+            'consultar.php': 'consulta',
+            'detalher.php': 'detalhes',
+            'vincular-equipamento.php': 'vincular',
+            'ajustes.php': 'ajustes',
+            'historico.php': 'historico',
+            'ordens.php': 'ordens',
+            'relatorios.php': 'relatorios'
         };
 
         const initMap = {
-            'login.php': 'initLoginPage', 'login.html': 'initLoginPage',
-            'dashboard.php': 'initDashboardPage', 'dashboard.html': 'initDashboardPage',
-            'novo-cadastro.php': 'initCadastroPage', 'novo-cadastro.html': 'initCadastroPage',
-            'consultar.php': 'initConsultaPage', 'consultar.html': 'initConsultaPage',
-            'detalher.php': 'initDetalhesPage', 'detalher.html': 'initDetalhesPage',
-            'vincular-equipamento.php': 'initVincularPage', 'vincular-equipamento.html': 'initVincularPage',
-            'ajustes.php': 'initAjustesPage', 'ajustes.html': 'initAjustesPage',
-            'historico.php': 'initHistoricoPage', 'historico.html': 'initHistoricoPage'
+            'login.php': 'initLoginPage',
+            'dashboard.php': 'initDashboardPage',
+            'novo-cadastro.php': 'initCadastroPage',
+            'consultar.php': 'initConsultaPage',
+            'detalher.php': 'initDetalhesPage',
+            'vincular-equipamento.php': 'initVincularPage',
+            'ajustes.php': 'initAjustesPage',
+            'historico.php': 'initHistoricoPage'
         };
 
         const moduleName = pageModules[page];
@@ -68,9 +68,9 @@ const App = {
 
     initCurrentPage(page) {
         switch (page) {
-            case 'mapa.php': case 'mapa.html': this.initMapaPage(); break;
-            case 'ponto.php': case 'ponto.html': this.initPontoPage(); break;
-            case 'estoque.php': case 'estoque.html': this.initEstoquePage(); break;
+            case 'mapa.php': this.initMapaPage(); break;
+            case 'ponto.php': this.initPontoPage(); break;
+            case 'estoque.php': this.initEstoquePage(); break;
         }
     },
 
@@ -129,8 +129,8 @@ const App = {
 
                 // Mostra banner para ativar notificações após pequeno delay (requer gesto do usuário)
                 // Só mostra no dashboard para não ser intrusivo
-                const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-                if (API.isAuthenticated() && (currentPage === 'dashboard.html' || currentPage === 'dashboard.php')) {
+                const currentPage = window.location.pathname.split('/').pop() || 'index.php';
+                if (API.isAuthenticated() && currentPage === 'dashboard.php') {
                     setTimeout(() => {
                         this.showPushBanner(registration);
                     }, 1500); // Delay de 1.5s para não parecer spam
@@ -232,8 +232,8 @@ const App = {
     // ==========================================
 
     checkAuth() {
-        const publicPages = ['login.html', 'login.php'];
-        const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+        const publicPages = ['login.php'];
+        const currentPage = window.location.pathname.split('/').pop() || 'index.php';
         if (!API.isAuthenticated() && !publicPages.includes(currentPage)) {
             window.location.href = 'login.php';
             return false;
@@ -372,9 +372,9 @@ const App = {
 
     setupBottomNavigation() {
         const navMap = {
-            'início': 'dashboard.html', 'inicio': 'dashboard.html',
-            'rotas': 'mapa.html', 'ponto': 'ponto.html',
-            'clientes': 'consultar.html', 'ajustes': 'ajustes.html'
+            'início': 'dashboard.php', 'inicio': 'dashboard.php',
+            'rotas': 'mapa.php', 'ponto': 'ponto.php',
+            'clientes': 'consultar.php', 'ajustes': 'ajustes.php'
         };
         document.querySelectorAll('nav a').forEach(link => {
             const text = link.querySelector('span:last-child')?.textContent?.trim()?.toLowerCase();

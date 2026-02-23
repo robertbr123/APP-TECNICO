@@ -184,7 +184,7 @@ App.initAjustesPage = async function() {
                     App.showToast('Cache limpo! Recarregando...', 'success');
 
                     setTimeout(() => {
-                        window.location.href = '/login.html?nocache=' + Date.now();
+                        window.location.href = '/login.php?nocache=' + Date.now();
                     }, 1000);
                 } catch (error) {
                     App.showLoading(false);
