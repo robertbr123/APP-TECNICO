@@ -6,17 +6,23 @@
  * Execute este script UMA VEZ para migrar todas as senhas
  * em texto puro para hash bcrypt seguro.
  * 
- * Acesso: /api/migrate-passwords.php (somente admin autenticado)
+ * Acesso: /api/migrate-passwords.php?key=MIGRATION_SECRET_KEY_2026
  * Após executar com sucesso, REMOVA ou BLOQUEIE este arquivo.
  */
 
 require_once 'config.php';
 
-// Exige autenticação de admin
-$userData = requireAuth();
-if ($userData['role'] !== 'admin') {
-    jsonResponse(['success' => false, 'message' => 'Apenas administradores podem executar migração'], 403);
+// Chave secreta para executar migração (altere ou remova após uso)
+define('MIGRATION_KEY', 'ONDELINE_MIGRATE_2026');
+
+// Verifica chave de migração via query string
+$key = $_GET['key'] ?? '';
+if ($key !== MIGRATION_KEY) {
+    jsonResponse(['success' => false, 'message' => 'Chave de migração inválida. Use: ?key=ONDELINE_MIGRATE_2026'], 403);
 }
+
+// Define userData como sistema para auditoria
+$userData = ['user_id' => 0, 'username' => 'system', 'role' => 'admin'];
 
 try {
     $db = Database::getInstance()->getConnection();

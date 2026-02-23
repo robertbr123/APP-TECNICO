@@ -1,0 +1,39 @@
+# Ondeline Tech - PWA
+# Regras de redirecionamento e segurança
+
+# Habilita RewriteEngine
+RewriteEngine On
+
+# Redireciona .html para .php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*)\.html$ $1.php [L,R=301]
+
+# Força HTTPS em produção (descomente se necessário)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Bloqueia acesso a arquivos sensíveis
+<FilesMatch "\.(sql|log|md|sh)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Previne listagem de diretórios
+Options -Indexes
+
+# Headers de segurança
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Cache para assets estáticos
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+</IfModule>

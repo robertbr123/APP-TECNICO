@@ -3,7 +3,7 @@
  * Ondeline Tech - App do Técnico
  */
 
-const APP_VERSION = 'v1.6.0';
+const APP_VERSION = 'v1.7.0';
 const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
 const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
@@ -28,9 +28,6 @@ const STATIC_ASSETS = [
     '/admin.php',
     '/ordens.php',
     '/relatorios.php',
-    // Legacy HTML (fallback)
-    '/login.html',
-    '/dashboard.html',
     '/manifest.json',
     '/js/api.js',
     '/js/app.js',
