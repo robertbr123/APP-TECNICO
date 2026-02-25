@@ -178,6 +178,19 @@
                      <span class="material-symbols-outlined text-gray-400 text-sm">arrow_forward_ios</span>
                 </div>
             </a>
+
+            <a href="admin.php" id="link-admin" class="glass-premium p-4 rounded-ios-xl flex items-center gap-4 shadow-sm card-interactive admin-only">
+                <div class="size-12 flex items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 to-pink-600 text-white shadow-lg shadow-rose-500/20">
+                    <span class="material-symbols-outlined text-[24px]">admin_panel_settings</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[15px] font-bold text-gray-900 dark:text-white truncate">Administração</p>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 font-medium">Painel administrativo</p>
+                </div>
+                <div class="size-8 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center">
+                     <span class="material-symbols-outlined text-gray-400 text-sm">arrow_forward_ios</span>
+                </div>
+            </a>
         </div>
     </section>
 </main>

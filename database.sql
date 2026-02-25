@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `cargo` varchar(100) DEFAULT NULL,
   `city` varchar(100) DEFAULT NULL,
   `photo` varchar(255) DEFAULT NULL,
+  `monthly_goal` int(11) DEFAULT NULL,
   `active` tinyint(1) DEFAULT 1,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

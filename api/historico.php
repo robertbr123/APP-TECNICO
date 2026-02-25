@@ -129,8 +129,34 @@ try {
         }
     }
 
-    // Meta mensal
-    $monthlyGoal = 10;
+    // Meta mensal individual do usuario (ou fallback global)
+    $monthlyGoal = 10; // padrao
+    try {
+        // Primeiro tenta buscar meta individual do usuario
+        $stmtMeta = $db->prepare("SELECT monthly_goal FROM users WHERE id = ?");
+        $stmtMeta->execute([$userData['user_id']]);
+        $userMeta = $stmtMeta->fetch();
+        if ($userMeta && !empty($userMeta['monthly_goal'])) {
+            $monthlyGoal = intval($userMeta['monthly_goal']);
+        } else {
+            // Se nao tem meta individual, busca a global da tabela settings
+            $db->exec("CREATE TABLE IF NOT EXISTS `settings` (
+                `key` varchar(100) NOT NULL,
+                `value` text NOT NULL,
+                PRIMARY KEY (`key`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            
+            $stmtGlobal = $db->prepare("SELECT `value` FROM settings WHERE `key` = 'monthly_target'");
+            $stmtGlobal->execute();
+            $globalMeta = $stmtGlobal->fetch();
+            if ($globalMeta) {
+                $monthlyGoal = intval($globalMeta['value']);
+            }
+        }
+        
+        // Tenta adicionar coluna monthly_goal na tabela users se nao existir
+        $db->exec("ALTER TABLE users ADD COLUMN monthly_goal INT DEFAULT NULL");
+    } catch (Exception $e) { /* usa padrao */ }
 
     jsonResponse([
         'success' => true,
