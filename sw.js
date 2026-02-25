@@ -3,7 +3,7 @@
  * Ondeline Tech - App do Técnico
  */
 
-const APP_VERSION = 'v2.0.2';
+const APP_VERSION = 'v2.0.3';
 const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
 const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
@@ -28,6 +28,7 @@ const STATIC_ASSETS = [
     '/admin.php',
     '/ordens.php',
     '/relatorios.php',
+    '/offline.php',
     '/manifest.json',
     '/js/api.js',
     '/js/app.js',
@@ -169,9 +170,9 @@ async function cacheFirst(request) {
 
         return networkResponse;
     } catch (error) {
-        // Se offline e não tem cache, retorna dashboard como fallback
+        // Se offline e não tem cache, retorna página offline dedicada
         if (request.headers.get('accept')?.includes('text/html')) {
-            const fallback = await caches.match('/dashboard.php');
+            const fallback = await caches.match('/offline.php');
             if (fallback) return fallback;
         }
         throw error;
@@ -207,23 +208,29 @@ async function networkFirst(request) {
             // Marca resposta como vinda do cache
             const headers = new Headers(cachedResponse.headers);
             headers.set('X-From-Cache', 'true');
-            
+
             return new Response(cachedResponse.body, {
                 status: cachedResponse.status,
                 statusText: cachedResponse.statusText,
                 headers: headers
             });
         }
-        
+
+        // Sem cache: retorna página offline para requisições HTML
+        if (request.headers.get('accept')?.includes('text/html')) {
+            const offlinePage = await caches.match('/offline.php');
+            if (offlinePage) return offlinePage;
+        }
+
         // Retorna erro offline para API
         return new Response(
-            JSON.stringify({ 
-                success: false, 
+            JSON.stringify({
+                success: false,
                 message: 'Você está offline. Verifique sua conexão.',
                 offline: true,
                 cached: false
             }),
-            { 
+            {
                 status: 503,
                 headers: { 'Content-Type': 'application/json' }
             }
