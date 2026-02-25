@@ -155,6 +155,60 @@ App.initCadastroPage = async function() {
     }
 
     this.initPhotoUpload();
+
+    // ==========================================
+    // VALIDAÇÃO EM TEMPO REAL (blur)
+    // ==========================================
+    const nameInput = document.getElementById('field-name');
+    if (nameInput) {
+        nameInput.addEventListener('blur', () => {
+            if (!nameInput.value.trim()) {
+                App.showFieldError('field-name', 'Nome é obrigatório');
+            } else {
+                App.showFieldValid('field-name');
+            }
+        });
+    }
+
+    const cpfInputBlur = document.getElementById('field-cpf');
+    if (cpfInputBlur) {
+        cpfInputBlur.addEventListener('blur', () => {
+            const val = cpfInputBlur.value.trim();
+            if (!val) {
+                App.showFieldError('field-cpf', 'CPF é obrigatório');
+            } else {
+                const result = Utils.validateCPF(val);
+                if (!result.valid) {
+                    App.showFieldError('field-cpf', result.message || 'CPF inválido');
+                } else {
+                    App.showFieldValid('field-cpf');
+                }
+            }
+        });
+    }
+
+    const phoneInputBlur = document.getElementById('field-phone');
+    if (phoneInputBlur) {
+        phoneInputBlur.addEventListener('blur', () => {
+            const digits = phoneInputBlur.value.replace(/\D/g, '');
+            if (digits.length > 0 && digits.length < 10) {
+                App.showFieldError('field-phone', 'Telefone incompleto');
+            } else if (digits.length >= 10) {
+                App.showFieldValid('field-phone');
+            }
+        });
+    }
+
+    const cityInputBlur = document.getElementById('field-city');
+    if (cityInputBlur) {
+        cityInputBlur.addEventListener('blur', () => {
+            if (!cityInputBlur.value.trim()) {
+                App.showFieldError('field-city', 'Cidade é obrigatória');
+            } else {
+                App.showFieldValid('field-city');
+            }
+        });
+    }
 };
 
 App.handleSaveClient = async function() {
@@ -241,19 +295,31 @@ App.handleSaveClient = async function() {
         if (response.success) {
             const cpf = data.cpf.replace(/\D/g, '');
             const photoResult = await this.uploadPendingPhotos(cpf);
-            
+
             // Limpa rascunho após salvar com sucesso
             Utils.clearDraft('novo-cadastro');
 
-            if (photoResult.uploaded > 0) {
-                this.showToast(`Cliente cadastrado com ${photoResult.uploaded} foto(s)!`, 'success');
+            if (photoResult.errors && photoResult.errors.length > 0) {
+                // Fotos falharam — mostra banner de retry
+                this._failedPhotos = this.pendingPhotos.filter(p => photoResult.errors.includes(p.type));
+                this._failedPhotosCpf = cpf;
+                this._failedPhotosName = data.name;
+                if (photoResult.uploaded > 0) {
+                    this.showToast(`${photoResult.uploaded} foto(s) enviada(s). ${photoResult.errors.length} falharam.`, 'warning');
+                } else {
+                    this.showToast('Cliente cadastrado! Erro ao enviar fotos.', 'warning');
+                }
+                this._showPhotoRetryBanner(cpf, data.name);
             } else {
-                this.showToast('Cliente cadastrado com sucesso!', 'success');
+                if (photoResult.uploaded > 0) {
+                    this.showToast(`Cliente cadastrado com ${photoResult.uploaded} foto(s)!`, 'success');
+                } else {
+                    this.showToast('Cliente cadastrado com sucesso!', 'success');
+                }
+                setTimeout(() => {
+                    window.location.href = `checklist.php?client_cpf=${cpf}&client_name=${encodeURIComponent(data.name)}`;
+                }, 1000);
             }
-
-            setTimeout(() => {
-                window.location.href = `checklist.php?client_cpf=${cpf}&client_name=${encodeURIComponent(data.name)}`;
-            }, 1000);
         } else {
             this.showToast(response.message || 'Erro ao cadastrar', 'error');
         }
@@ -372,6 +438,65 @@ App.uploadPendingPhotos = async function(cpf) {
     }
 
     return { success: errors.length === 0, uploaded, errors };
+};
+
+App._showPhotoRetryBanner = function(cpf, name) {
+    const old = document.getElementById('retry-upload-banner');
+    if (old) old.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'retry-upload-banner';
+    banner.className = 'fixed top-20 left-4 right-4 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-xl p-4 z-50 shadow-lg animate-fade-in';
+    banner.innerHTML = `
+        <div class="flex items-start gap-3">
+            <span class="material-symbols-outlined text-orange-500 mt-0.5">cloud_upload</span>
+            <div class="flex-1">
+                <p class="text-sm font-semibold text-orange-800 dark:text-orange-200">
+                    ${this._failedPhotos.length} foto(s) não enviada(s)
+                </p>
+                <p class="text-xs text-orange-600 dark:text-orange-300 mt-0.5">
+                    Cliente cadastrado com sucesso. Deseja tentar enviar as fotos novamente?
+                </p>
+                <div class="flex gap-2 mt-3">
+                    <button id="btn-retry-upload" class="flex-1 py-2 bg-orange-500 text-white text-sm rounded-lg font-medium flex items-center justify-center gap-1">
+                        <span class="material-symbols-outlined text-sm">refresh</span>
+                        Tentar novamente
+                    </button>
+                    <button id="btn-skip-upload" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg">
+                        Pular e continuar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(banner);
+
+    document.getElementById('btn-retry-upload').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-retry-upload');
+        btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">progress_activity</span> Enviando...';
+        btn.disabled = true;
+
+        App.pendingPhotos = App._failedPhotos;
+        const result = await App.uploadPendingPhotos(App._failedPhotosCpf);
+
+        if (result.errors.length === 0) {
+            banner.remove();
+            App.showToast(`${result.uploaded} foto(s) enviada(s) com sucesso!`, 'success');
+            setTimeout(() => {
+                window.location.href = `checklist.php?client_cpf=${App._failedPhotosCpf}&client_name=${encodeURIComponent(App._failedPhotosName)}`;
+            }, 1000);
+        } else {
+            App._failedPhotos = App.pendingPhotos.filter(p => result.errors.includes(p.type));
+            btn.innerHTML = '<span class="material-symbols-outlined text-sm">refresh</span> Tentar novamente';
+            btn.disabled = false;
+            App.showToast(`${result.errors.length} foto(s) ainda com erro`, 'error');
+        }
+    });
+
+    document.getElementById('btn-skip-upload').addEventListener('click', () => {
+        banner.remove();
+        window.location.href = `checklist.php?client_cpf=${App._failedPhotosCpf}&client_name=${encodeURIComponent(App._failedPhotosName)}`;
+    });
 };
 
 App.loadSelectOptions = async function() {

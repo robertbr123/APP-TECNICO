@@ -99,6 +99,28 @@ App.initHistoricoPage = async function() {
 
     } catch (error) {
         this.showToast('Erro ao carregar dados de desempenho', 'error');
+
+        // Mostra estado de erro no card de motivação
+        const titleEl = document.getElementById('motivation-title');
+        const subtitleEl = document.getElementById('motivation-subtitle');
+        const emojiEl = document.getElementById('motivation-emoji');
+        if (titleEl) titleEl.textContent = 'Erro ao carregar';
+        if (subtitleEl) subtitleEl.textContent = 'Verifique sua conexão e tente novamente.';
+        if (emojiEl) emojiEl.innerHTML = '&#x26A0;&#xFE0F;';
+
+        // Mostra estado de erro no gráfico
+        const chartEl = document.getElementById('daily-chart');
+        if (chartEl) {
+            chartEl.innerHTML = `
+                <div class="flex flex-col items-center justify-center w-full h-full text-gray-400">
+                    <span class="material-symbols-outlined text-3xl">signal_disconnected</span>
+                    <p class="text-xs mt-1">Sem dados</p>
+                </div>`;
+        }
+
+        // Preenche comparativo com "-"
+        const compDetail = document.getElementById('comparison-detail');
+        if (compDetail) compDetail.textContent = 'Indisponível';
     }
 };
 

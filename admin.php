@@ -487,9 +487,21 @@
                 if (res.success) {
                     templatesData = res.data;
                     renderTemplates();
+                } else {
+                    document.getElementById('templates-list').innerHTML = `
+                        <div class="text-center py-8 text-red-400">
+                            <span class="material-symbols-outlined text-4xl">error_outline</span>
+                            <p class="text-sm mt-2">Erro ao carregar templates</p>
+                            <button onclick="loadTemplates()" class="mt-2 text-xs text-primary underline">Tentar novamente</button>
+                        </div>`;
                 }
             } catch (e) {
-                console.error(e);
+                document.getElementById('templates-list').innerHTML = `
+                    <div class="text-center py-8 text-red-400">
+                        <span class="material-symbols-outlined text-4xl">wifi_off</span>
+                        <p class="text-sm mt-2">Erro de conexão</p>
+                        <button onclick="loadTemplates()" class="mt-2 text-xs text-primary underline">Tentar novamente</button>
+                    </div>`;
             }
         }
         
@@ -501,6 +513,15 @@
                 'testing': 'Testes',
                 'documentation': 'Documentação'
             };
+            if (templatesData.length === 0) {
+                document.getElementById('templates-list').innerHTML = `
+                    <div class="text-center py-10 text-gray-400 dark:text-gray-500">
+                        <span class="material-symbols-outlined text-5xl">checklist</span>
+                        <p class="font-semibold mt-3">Nenhum template cadastrado</p>
+                        <p class="text-sm mt-1">Clique em "+ Novo" para criar o primeiro</p>
+                    </div>`;
+                return;
+            }
             document.getElementById('templates-list').innerHTML = templatesData.map(t => `
                 <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <div class="flex-1">
@@ -615,21 +636,60 @@
         }
 
         async function loadChecklists() {
+            const list = document.getElementById('checklists-list');
             try {
                 const res = await API.getChecklists({ limit: 50 });
                 if (res.success) {
-                    document.getElementById('checklists-list').innerHTML = res.data.map(c => `
-                        <div class="flex justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                            <div>
-                                <p class="text-sm font-medium">${escapeHtml(c.client_name)}</p>
-                                <p class="text-xs text-gray-500">${escapeHtml(c.technician_name)}</p>
+                    if (res.data.length === 0) {
+                        list.innerHTML = `
+                            <div class="text-center py-10 text-gray-400 dark:text-gray-500">
+                                <span class="material-symbols-outlined text-5xl">fact_check</span>
+                                <p class="font-semibold mt-3">Nenhum checklist encontrado</p>
+                                <p class="text-sm mt-1">Os checklists aparecerão aqui após as instalações</p>
+                            </div>`;
+                        return;
+                    }
+                    const statusLabels = {
+                        'pending': 'Pendente', 'in_progress': 'Em andamento',
+                        'completed': 'Concluído', 'approved': 'Aprovado',
+                        'rejected': 'Rejeitado', 'pending_approval': 'Aguardando aprovação'
+                    };
+                    const statusColors = {
+                        'pending': 'bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-300',
+                        'in_progress': 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+                        'completed': 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+                        'approved': 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+                        'rejected': 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+                        'pending_approval': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+                    };
+                    list.innerHTML = res.data.map(c => {
+                        const st = c.approval_status || c.status || 'pending';
+                        const label = statusLabels[st] || st;
+                        const color = statusColors[st] || 'bg-gray-100 text-gray-600';
+                        return `
+                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${escapeHtml(c.client_name || 'Cliente')}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(c.technician_name || 'Técnico')}</p>
                             </div>
-                            <span class="text-xs px-2 py-1 rounded ${c.approval_status === 'pending_approval' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100'}">${escapeHtml(c.approval_status || c.status)}</span>
-                        </div>
-                    `).join('');
+                            <span class="text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ml-2 ${color}">${escapeHtml(label)}</span>
+                        </div>`;
+                    }).join('');
+                } else {
+                    list.innerHTML = `
+                        <div class="text-center py-8 text-red-400">
+                            <span class="material-symbols-outlined text-4xl">error_outline</span>
+                            <p class="text-sm mt-2">Erro ao carregar checklists</p>
+                            <button onclick="loadChecklists()" class="mt-2 text-xs text-primary underline">Tentar novamente</button>
+                        </div>`;
                 }
             } catch (e) {
-                console.error(e);
+                list.innerHTML = `
+                    <div class="text-center py-8 text-red-400">
+                        <span class="material-symbols-outlined text-4xl">wifi_off</span>
+                        <p class="text-sm mt-2">Erro de conexão</p>
+                        <button onclick="loadChecklists()" class="mt-2 text-xs text-primary underline">Tentar novamente</button>
+                    </div>`;
             }
         }
 
@@ -663,9 +723,21 @@
                 if (res.success) {
                     usersData = res.data;
                     renderUsers();
+                } else {
+                    document.getElementById('users-list').innerHTML = `
+                        <div class="text-center py-8 text-red-400">
+                            <span class="material-symbols-outlined text-4xl">error_outline</span>
+                            <p class="text-sm mt-2">Erro ao carregar usuários</p>
+                            <button onclick="loadUsers()" class="mt-2 text-xs text-primary underline">Tentar novamente</button>
+                        </div>`;
                 }
             } catch (e) {
-                console.error(e);
+                document.getElementById('users-list').innerHTML = `
+                    <div class="text-center py-8 text-red-400">
+                        <span class="material-symbols-outlined text-4xl">wifi_off</span>
+                        <p class="text-sm mt-2">Erro de conexão</p>
+                        <button onclick="loadUsers()" class="mt-2 text-xs text-primary underline">Tentar novamente</button>
+                    </div>`;
             }
         }
         
@@ -823,7 +895,7 @@
                 
                 const usersRes = await API.getUsers();
                 if (usersRes.success) {
-                    document.getElementById('stat-clients').textContent = usersRes.count;
+                    document.getElementById('stat-clients').textContent = usersRes.total || (usersRes.data ? usersRes.data.length : 0);
                 }
             } catch (e) {}
         }

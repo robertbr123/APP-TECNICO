@@ -497,6 +497,18 @@ const App = {
     // VALIDAÇÃO DE CAMPOS
     // ==========================================
 
+    showFieldValid(fieldId) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+        field.classList.remove('ring-2', 'ring-red-500', 'border-red-500');
+        field.classList.add('ring-2', 'ring-green-400', 'border-green-400');
+        const existing = field.parentElement.querySelector('.field-error-msg');
+        if (existing) existing.remove();
+        setTimeout(() => {
+            field.classList.remove('ring-2', 'ring-green-400', 'border-green-400');
+        }, 2000);
+    },
+
     showFieldError(fieldId, message) {
         const field = document.getElementById(fieldId);
         if (!field) return;

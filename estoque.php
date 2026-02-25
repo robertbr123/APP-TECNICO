@@ -346,7 +346,12 @@ async function loadEquipmentList() {
     const status = document.getElementById('filter-status').value;
     const search = document.getElementById('search-input').value;
 
-    container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8"><span class="material-symbols-outlined animate-spin">sync</span> Carregando...</p>';
+    container.innerHTML = `
+        <div class="animate-pulse space-y-3">
+            <div class="bg-gray-100 dark:bg-gray-700 rounded-ios-xl p-4 h-20"></div>
+            <div class="bg-gray-100 dark:bg-gray-700 rounded-ios-xl p-4 h-20"></div>
+            <div class="bg-gray-100 dark:bg-gray-700 rounded-ios-xl p-4 h-20"></div>
+        </div>`;
 
     try {
         const response = await fetch(`/api/inventory.php?action=list&status=${status}&type=${type}&search=${search}`, {
@@ -411,10 +416,23 @@ async function loadEquipmentList() {
                 `;
             }).join('');
         } else {
-            container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-8">Nenhum equipamento encontrado</p>';
+            container.innerHTML = `
+                <div class="text-center py-12">
+                    <span class="material-symbols-outlined text-5xl text-gray-300 dark:text-gray-600">inventory_2</span>
+                    <p class="font-semibold text-gray-500 dark:text-gray-400 mt-3">Nenhum equipamento encontrado</p>
+                    <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Ajuste os filtros ou adicione um novo equipamento</p>
+                </div>`;
         }
     } catch (error) {
-        container.innerHTML = '<p class="text-red-500 text-center py-8">Erro ao carregar: ' + error.message + '</p>';
+        container.innerHTML = `
+            <div class="text-center py-12">
+                <span class="material-symbols-outlined text-5xl text-red-300 dark:text-red-700">error_outline</span>
+                <p class="font-semibold text-red-500 mt-3">Erro ao carregar</p>
+                <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">${error.message}</p>
+                <button onclick="loadEquipmentList()" class="mt-4 px-4 py-2 bg-primary text-white text-sm rounded-lg">
+                    Tentar novamente
+                </button>
+            </div>`;
     }
 }
 
