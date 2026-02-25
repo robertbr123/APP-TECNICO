@@ -293,11 +293,24 @@ App.initPhotoUpload = function() {
             }
 
             try {
-                const compressed = await Utils.compressImage(file, {
-                    maxWidth: 1200,
-                    maxHeight: 1200,
-                    quality: 0.7
-                });
+                // Usa função com marca d'água (timestamp, GPS, técnico)
+                let compressed;
+                if (typeof Utils !== 'undefined' && Utils.compressImageWithWatermark) {
+                    compressed = await Utils.compressImageWithWatermark(file, {
+                        maxWidth: 1200,
+                        maxHeight: 1200,
+                        quality: 0.7,
+                        showTimestamp: true,
+                        showLocation: true,
+                        showTechnician: true
+                    });
+                } else {
+                    compressed = await Utils.compressImage(file, {
+                        maxWidth: 1200,
+                        maxHeight: 1200,
+                        quality: 0.7
+                    });
+                }
 
                 preview.src = compressed;
                 preview.classList.remove('hidden');

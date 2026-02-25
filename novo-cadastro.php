@@ -240,6 +240,7 @@ Salvar Cadastro
 
 <!-- Scripts do App -->
 <script src="js/api.js"></script>
+<script src="js/utils.js"></script>
 <script src="js/app.js"></script>
 <script src="js/animations.js"></script>
 <script src="js/ui-enhancements.js"></script>
@@ -476,23 +477,53 @@ document.addEventListener('DOMContentLoaded', function() {
         var removeBtn = container.querySelector('.photo-remove-btn');
         
         if (input) {
-            input.addEventListener('change', function(e) {
+            input.addEventListener('change', async function(e) {
                 var file = e.target.files[0];
                 if (file) {
                     console.log('Foto selecionada:', type, file.name);
-                    selectedPhotos[type] = file;
                     
-                    // Mostra preview
-                    var reader = new FileReader();
-                    reader.onload = function(ev) {
-                        preview.src = ev.target.result;
+                    // Comprime imagem COM MARCA D'ÁGUA (timestamp, GPS, técnico)
+                    try {
+                        var compressedBase64;
+                        if (typeof Utils !== 'undefined' && Utils.compressImageWithWatermark) {
+                            compressedBase64 = await Utils.compressImageWithWatermark(file, {
+                                maxWidth: 1200,
+                                maxHeight: 1200,
+                                quality: 0.7,
+                                showTimestamp: true,
+                                showLocation: true,
+                                showTechnician: true
+                            });
+                        } else if (typeof Utils !== 'undefined' && Utils.compressImage) {
+                            compressedBase64 = await Utils.compressImage(file, {
+                                maxWidth: 1200,
+                                maxHeight: 1200,
+                                quality: 0.7
+                            });
+                        } else {
+                            // Fallback para FileReader simples
+                            compressedBase64 = await new Promise(function(resolve, reject) {
+                                var reader = new FileReader();
+                                reader.onload = function(ev) { resolve(ev.target.result); };
+                                reader.onerror = reject;
+                                reader.readAsDataURL(file);
+                            });
+                        }
+                        
+                        // Armazena o base64 com marca d'água
+                        selectedPhotos[type] = compressedBase64;
+                        
+                        // Mostra preview
+                        preview.src = compressedBase64;
                         preview.classList.remove('hidden');
                         icon.classList.add('hidden');
                         addBtn.classList.add('hidden');
                         removeBtn.classList.remove('hidden');
                         removeBtn.style.display = 'flex';
-                    };
-                    reader.readAsDataURL(file);
+                    } catch (err) {
+                        console.error('Erro ao processar foto:', err);
+                        if (typeof showError === 'function') showError('Erro ao processar foto');
+                    }
                 }
             });
         }
@@ -612,7 +643,24 @@ document.addEventListener('DOMContentLoaded', function() {
                             console.log('Enviando foto:', type);
                             try {
                                 var formData = new FormData();
-                                formData.append('photo', selectedPhotos[type]);
+                                
+                                // Verifica se é base64 (string) ou File object
+                                var photoData = selectedPhotos[type];
+                                if (typeof photoData === 'string' && photoData.startsWith('data:')) {
+                                    // Converte base64 para Blob
+                                    var parts = photoData.split(',');
+                                    var mime = parts[0].match(/:(.*?);/)[1];
+                                    var bstr = atob(parts[1]);
+                                    var n = bstr.length;
+                                    var u8arr = new Uint8Array(n);
+                                    while (n--) {
+                                        u8arr[n] = bstr.charCodeAt(n);
+                                    }
+                                    var blob = new Blob([u8arr], { type: mime });
+                                    formData.append('photo', blob, 'foto_' + type + '.jpg');
+                                } else {
+                                    formData.append('photo', photoData);
+                                }
                                 formData.append('cpf', cpfLimpo);
                                 formData.append('type', type);
                                 

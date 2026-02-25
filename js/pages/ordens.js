@@ -381,7 +381,17 @@
 
             try {
                 var compressed;
-                if (typeof Utils !== 'undefined' && Utils.compressImage) {
+                // Usa função com marca d'água se disponível (fotos de conclusão de OS)
+                if (typeof Utils !== 'undefined' && Utils.compressImageWithWatermark) {
+                    compressed = await Utils.compressImageWithWatermark(files[i], {
+                        maxWidth: 1200,
+                        maxHeight: 1200,
+                        quality: 0.7,
+                        showTimestamp: true,
+                        showLocation: true,
+                        showTechnician: true
+                    });
+                } else if (typeof Utils !== 'undefined' && Utils.compressImage) {
                     compressed = await Utils.compressImage(files[i], { maxWidth: 1200, maxHeight: 1200, quality: 0.7 });
                 } else {
                     compressed = await new Promise(function(resolve, reject) {

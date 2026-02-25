@@ -296,14 +296,28 @@ document.addEventListener('DOMContentLoaded', async function() {
     photoInput.addEventListener('change', async function(e) {
         const file = e.target.files[0];
         if (file) {
-            // Comprime imagem
+            // Comprime imagem COM MARCA D'ÁGUA (timestamp, GPS, técnico)
             try {
                 App.showLoading(true);
-                photoData = await Utils.compressImage(file, {
-                    maxWidth: 800,
-                    maxHeight: 800,
-                    quality: 0.7
-                });
+                
+                // Usa função com marca d'água se disponível
+                if (typeof Utils !== 'undefined' && Utils.compressImageWithWatermark) {
+                    photoData = await Utils.compressImageWithWatermark(file, {
+                        maxWidth: 800,
+                        maxHeight: 800,
+                        quality: 0.7,
+                        showTimestamp: true,
+                        showLocation: true,
+                        showTechnician: true
+                    });
+                } else {
+                    // Fallback para compressão simples
+                    photoData = await Utils.compressImage(file, {
+                        maxWidth: 800,
+                        maxHeight: 800,
+                        quality: 0.7
+                    });
+                }
                 
                 photoPreview.src = photoData;
                 photoPreview.classList.remove('hidden');

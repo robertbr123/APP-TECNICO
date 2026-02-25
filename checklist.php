@@ -874,7 +874,7 @@
             }
         }
 
-        // Captura foto e faz upload
+        // Captura foto e faz upload COM MARCA D'ÁGUA
         async function capturePhoto() {
             if (!currentTaskId || !selectedClient) {
                 showToast('Erro: Nenhuma tarefa selecionada', 'error');
@@ -886,7 +886,72 @@
             
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            // === MARCA D'ÁGUA ===
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = 12;
+            const lineHeight = 18;
+            const lines = [];
+            
+            // Data e hora
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR');
+            const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            lines.push('📅 ' + dateStr + ' ' + timeStr);
+            
+            // Localização GPS (obtém no momento da captura)
+            try {
+                if (navigator.geolocation) {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true,
+                            timeout: 5000,
+                            maximumAge: 60000
+                        });
+                    });
+                    const lat = position.coords.latitude.toFixed(6);
+                    const lon = position.coords.longitude.toFixed(6);
+                    const acc = position.coords.accuracy ? ' (±' + Math.round(position.coords.accuracy) + 'm)' : '';
+                    lines.push('📍 ' + lat + ', ' + lon + acc);
+                }
+            } catch (geoErr) {
+                console.warn('Não foi possível obter GPS para marca d\'água:', geoErr.message);
+            }
+            
+            // Nome do técnico
+            try {
+                const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+                const tech = userData.full_name || userData.name || userData.username || 'Técnico';
+                lines.push('👤 ' + tech);
+            } catch (e) {}
+            
+            if (lines.length > 0) {
+                const blockHeight = (lines.length * lineHeight) + (padding * 2);
+                
+                // Fundo semi-transparente no rodapé
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillRect(0, height - blockHeight, width, blockHeight);
+                
+                // Texto branco
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '500 14px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                
+                lines.forEach((line, index) => {
+                    const y = height - blockHeight + padding + (index * lineHeight);
+                    ctx.fillText(line, padding, y);
+                });
+                
+                // Logo Ondeline Tech
+                ctx.font = '600 11px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.fillText('Ondeline Tech', width - padding, height - padding - 4);
+            }
             
             const base64 = canvas.toDataURL('image/jpeg', 0.8);
             

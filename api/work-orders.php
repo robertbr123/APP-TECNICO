@@ -158,6 +158,14 @@ function handleGet($db, $userData) {
         $searchTerm = "%$search%";
         $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     }
+    
+    // Filtro por CPF do cliente (para histórico de OS do cliente)
+    $clientCpf = $_GET['client_cpf'] ?? null;
+    if ($clientCpf) {
+        $cleanCpf = preg_replace('/\D/', '', $clientCpf);
+        $where .= " AND client_cpf = ?";
+        $params[] = $cleanCpf;
+    }
 
     $stmt = $db->prepare("SELECT COUNT(*) as total FROM work_orders $where");
     $stmt->execute($params);

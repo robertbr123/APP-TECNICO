@@ -418,6 +418,156 @@ const Utils = {
     },
 
     /**
+     * Comprime imagem com marca d'água (timestamp + GPS)
+     * @param {File} file - Arquivo de imagem
+     * @param {Object} options - Opções de compressão e marca d'água
+     * @returns {Promise<string>} - Base64 da imagem com marca d'água
+     */
+    async compressImageWithWatermark(file, options = {}) {
+        const {
+            maxWidth = 1200,
+            maxHeight = 1200,
+            quality = 0.7,
+            outputFormat = 'image/jpeg',
+            showTimestamp = true,
+            showLocation = true,
+            showTechnician = true,
+            technicianName = null,
+            latitude = null,
+            longitude = null,
+            accuracy = null
+        } = options;
+
+        // Tenta obter localização se não fornecida
+        let coords = { latitude, longitude, accuracy };
+        if (showLocation && !latitude && navigator.geolocation) {
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 60000
+                    });
+                });
+                coords = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
+            } catch (e) {
+                console.warn('Não foi possível obter localização:', e.message);
+            }
+        }
+
+        // Obtém nome do técnico se não fornecido
+        let tech = technicianName;
+        if (showTechnician && !tech) {
+            try {
+                const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+                tech = userData.full_name || userData.name || userData.username || 'Técnico';
+            } catch (e) {
+                tech = 'Técnico';
+            }
+        }
+
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const img = new Image();
+                
+                img.onload = () => {
+                    // Calcula dimensões mantendo proporção
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    
+                    if (height > maxHeight) {
+                        width = (width * maxHeight) / height;
+                        height = maxHeight;
+                    }
+                    
+                    // Cria canvas e desenha imagem
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // === MARCA D'ÁGUA ===
+                    const padding = 12;
+                    const lineHeight = 18;
+                    const lines = [];
+                    
+                    // Data e hora
+                    if (showTimestamp) {
+                        const now = new Date();
+                        const dateStr = now.toLocaleDateString('pt-BR');
+                        const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        lines.push('📅 ' + dateStr + ' ' + timeStr);
+                    }
+                    
+                    // Localização GPS
+                    if (showLocation && coords.latitude && coords.longitude) {
+                        const lat = coords.latitude.toFixed(6);
+                        const lon = coords.longitude.toFixed(6);
+                        const acc = coords.accuracy ? ' (±' + Math.round(coords.accuracy) + 'm)' : '';
+                        lines.push('📍 ' + lat + ', ' + lon + acc);
+                    }
+                    
+                    // Nome do técnico
+                    if (showTechnician && tech) {
+                        lines.push('👤 ' + tech);
+                    }
+                    
+                    if (lines.length > 0) {
+                        // Calcula altura do bloco de texto
+                        const blockHeight = (lines.length * lineHeight) + (padding * 2);
+                        const blockWidth = width;
+                        
+                        // Fundo semi-transparente no rodapé
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                        ctx.fillRect(0, height - blockHeight, blockWidth, blockHeight);
+                        
+                        // Texto branco
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.font = '500 14px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'top';
+                        
+                        // Desenha cada linha
+                        lines.forEach((line, index) => {
+                            const y = height - blockHeight + padding + (index * lineHeight);
+                            ctx.fillText(line, padding, y);
+                        });
+                        
+                        // Adiciona marca "Ondeline Tech" no canto direito
+                        ctx.font = '600 11px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+                        ctx.textAlign = 'right';
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                        ctx.fillText('Ondeline Tech', width - padding, height - padding - 4);
+                    }
+                    
+                    // Converte para base64
+                    const compressedDataUrl = canvas.toDataURL(outputFormat, quality);
+                    resolve(compressedDataUrl);
+                };
+                
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    },
+
+    /**
      * Obtém dimensões da imagem
      */
     getImageDimensions(file) {

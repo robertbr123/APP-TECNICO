@@ -449,6 +449,9 @@
     <script src="js/api.js"></script>
     <script src="js/feedback.js"></script>
     <script src="js/components.js"></script>
+    <script src="js/animations.js"></script>
+    <script src="js/ui-enhancements.js"></script>
+    <script src="js/app.js"></script>
     <script>
         // Registra Service Worker (necessário para push notifications)
         if ('serviceWorker' in navigator) {

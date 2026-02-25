@@ -129,6 +129,26 @@ Sincronizar
                     Carregando...
                 </p>
 </section>
+
+<!-- Histórico de OS do Cliente -->
+<section class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">assignment</span>
+<h3 class="text-[#111318] dark:text-white text-base font-bold">Histórico de OS</h3>
+</div>
+<span id="os-count" class="text-gray-400 text-xs">Carregando...</span>
+</div>
+<div id="os-history-container" class="space-y-3">
+<div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl animate-pulse">
+<div class="size-10 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+<div class="flex-1 space-y-2">
+<div class="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+<div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+</div>
+</div>
+</div>
+</section>
 </div>
 <div class="p-4 flex flex-col gap-3 mb-10">
 <!-- Botões de Ação (Agendar visível para todos) -->
@@ -192,6 +212,9 @@ Sincronizar
         
         // Carrega dados do cliente
         await loadClientData(cpf);
+        
+        // Carrega histórico de OS do cliente
+        await loadOsHistory(cpf);
     });
     
     function togglePassword() {
@@ -261,6 +284,108 @@ Sincronizar
                 '<p class="text-[11px] text-gray-400 mt-0.5">Toque para cadastrar</p>' +
             '</div>';
         }
+    }
+    
+    // Carrega histórico de OS do cliente
+    async function loadOsHistory(cpf) {
+        var container = document.getElementById('os-history-container');
+        var countEl = document.getElementById('os-count');
+        
+        try {
+            var token = localStorage.getItem('auth_token');
+            var response = await fetch('/api/work-orders.php?client_cpf=' + encodeURIComponent(cpf), {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            var result = await response.json();
+            
+            if (result.success && result.data && result.data.length > 0) {
+                countEl.textContent = result.data.length + ' OS';
+                
+                var statusColors = {
+                    'open': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                    'assigned': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                    'in_progress': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                    'completed': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                    'cancelled': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                };
+                
+                var statusLabels = {
+                    'open': 'Aberta',
+                    'assigned': 'Atribuída',
+                    'in_progress': 'Em Andamento',
+                    'completed': 'Concluída',
+                    'cancelled': 'Cancelada'
+                };
+                
+                var typeLabels = {
+                    'installation': 'Instalação',
+                    'repair': 'Reparo',
+                    'maintenance': 'Manutenção',
+                    'migration': 'Migração',
+                    'removal': 'Remoção',
+                    'other': 'Outro'
+                };
+                
+                var typeIcons = {
+                    'installation': 'cable',
+                    'repair': 'build',
+                    'maintenance': 'engineering',
+                    'migration': 'swap_horiz',
+                    'removal': 'delete',
+                    'other': 'help'
+                };
+                
+                container.innerHTML = result.data.map(function(os) {
+                    var statusClass = statusColors[os.status] || 'bg-gray-100 text-gray-600';
+                    var statusLabel = statusLabels[os.status] || os.status;
+                    var typeLabel = typeLabels[os.type] || os.type;
+                    var typeIcon = typeIcons[os.type] || 'assignment';
+                    var date = os.scheduled_date ? new Date(os.scheduled_date).toLocaleDateString('pt-BR') : new Date(os.created_at).toLocaleDateString('pt-BR');
+                    
+                    return '<div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="openOsDetail(' + os.id + ')">' +
+                        '<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">' +
+                            '<span class="material-symbols-outlined text-primary text-lg">' + typeIcon + '</span>' +
+                        '</div>' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<div class="flex items-center justify-between gap-2 mb-1">' +
+                                '<p class="text-sm font-semibold text-gray-900 dark:text-white truncate">' + escapeHtml(os.order_number) + '</p>' +
+                                '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full ' + statusClass + '">' + statusLabel + '</span>' +
+                            '</div>' +
+                            '<p class="text-xs text-gray-600 dark:text-gray-400 truncate">' + typeLabel + ' - ' + escapeHtml(os.description || '').substring(0, 50) + '</p>' +
+                            '<div class="flex items-center gap-2 mt-1">' +
+                                '<span class="text-[10px] text-gray-400 flex items-center gap-0.5">' +
+                                    '<span class="material-symbols-outlined text-xs">calendar_today</span>' +
+                                    date +
+                                '</span>' +
+                                (os.assigned_name ? '<span class="text-[10px] text-gray-400 flex items-center gap-0.5"><span class="material-symbols-outlined text-xs">person</span>' + escapeHtml(os.assigned_name) + '</span>' : '') +
+                            '</div>' +
+                        '</div>' +
+                        '<span class="material-symbols-outlined text-gray-400 text-lg">chevron_right</span>' +
+                    '</div>';
+                }).join('');
+            } else {
+                countEl.textContent = '0 OS';
+                container.innerHTML = '<div class="flex flex-col items-center justify-center py-6 text-center">' +
+                    '<div class="size-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2">' +
+                        '<span class="material-symbols-outlined text-gray-400 text-xl">assignment</span>' +
+                    '</div>' +
+                    '<p class="text-sm text-gray-500">Nenhuma OS encontrada</p>' +
+                    '<p class="text-[11px] text-gray-400 mt-0.5">Este cliente não possui ordens de serviço</p>' +
+                '</div>';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar histórico de OS:', error);
+            countEl.textContent = 'Erro';
+            container.innerHTML = '<div class="flex flex-col items-center justify-center py-6 text-center">' +
+                '<span class="material-symbols-outlined text-red-400 text-2xl mb-2">error</span>' +
+                '<p class="text-sm text-red-500">Erro ao carregar</p>' +
+            '</div>';
+        }
+    }
+    
+    // Abre detalhes da OS
+    function openOsDetail(osId) {
+        window.location.href = 'ordens.php?os=' + osId;
     }
     
     async function loadClientData(cpf) {
