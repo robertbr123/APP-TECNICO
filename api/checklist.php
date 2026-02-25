@@ -60,8 +60,39 @@ function getTimeRemaining($createdAt) {
     ];
 }
 
+/**
+ * Gera número sequencial do checklist (CHK-YYYYMMDD-0001)
+ */
+function generateChecklistNumber($db) {
+    $prefix = 'CHK-' . date('Ymd') . '-';
+    $stmt = $db->prepare("SELECT checklist_number FROM installation_checklists WHERE checklist_number LIKE ? ORDER BY id DESC LIMIT 1");
+    $stmt->execute([$prefix . '%']);
+    $last = $stmt->fetch();
+
+    if ($last) {
+        $lastNum = intval(substr($last['checklist_number'], -4));
+        return $prefix . str_pad($lastNum + 1, 4, '0', STR_PAD_LEFT);
+    }
+    return $prefix . '0001';
+}
+
 try {
     $db = Database::getInstance()->getConnection();
+    
+    // Migração: adiciona coluna checklist_number se não existir
+    try {
+        $db->exec("ALTER TABLE installation_checklists ADD COLUMN `checklist_number` varchar(20) DEFAULT NULL AFTER `id`");
+        // Gera números para checklists existentes sem número
+        $stmt = $db->query("SELECT id FROM installation_checklists WHERE checklist_number IS NULL ORDER BY id");
+        $counter = 1;
+        while ($row = $stmt->fetch()) {
+            $number = 'CHK-LEGACY-' . str_pad($counter, 4, '0', STR_PAD_LEFT);
+            $db->prepare("UPDATE installation_checklists SET checklist_number = ? WHERE id = ?")->execute([$number, $row['id']]);
+            $counter++;
+        }
+    } catch (PDOException $e) {
+        // Coluna já existe, ignora
+    }
 
     switch ($method) {
         case 'GET':
@@ -115,10 +146,17 @@ function handleGet($db, $userData, $isAdmin) {
                     WHERE 1=1";
             $params = [];
             
-            // Filtra por técnico se não for admin ou se solicitou apenas os seus
-            if (!$showAll) {
-                $sql .= " AND ic.technician_id = ?";
-                $params[] = $userData['user_id'];
+            // Filtro por CPF do cliente (mostra todos os checklists do cliente para histórico)
+            $clientCpf = $_GET['client_cpf'] ?? null;
+            if ($clientCpf) {
+                $sql .= " AND ic.client_cpf = ?";
+                $params[] = preg_replace('/\D/', '', $clientCpf);
+            } else {
+                // Filtra por técnico se não for admin ou se solicitou apenas os seus
+                if (!$showAll) {
+                    $sql .= " AND ic.technician_id = ?";
+                    $params[] = $userData['user_id'];
+                }
             }
             
             if ($status) {
@@ -317,13 +355,17 @@ function handlePost($db, $userData, $isAdmin) {
             $techLongitude = isset($data['tech_longitude']) ? (float)$data['tech_longitude'] : null;
             $techAccuracy = isset($data['tech_accuracy']) ? (float)$data['tech_accuracy'] : null;
             
+            // Gera número sequencial do checklist
+            $checklistNumber = generateChecklistNumber($db);
+            
             // Cria checklist com localização
             $stmt = $db->prepare("
                 INSERT INTO installation_checklists 
-                (client_cpf, client_name, technician_id, technician_name, installation_type, status, approval_status, started_at, notes, tech_latitude, tech_longitude, tech_location_accuracy, location_captured_at)
-                VALUES (?, ?, ?, ?, ?, 'pending', 'pending', NULL, ?, ?, ?, ?, " . ($techLatitude ? "NOW()" : "NULL") . ")
+                (checklist_number, client_cpf, client_name, technician_id, technician_name, installation_type, status, approval_status, started_at, notes, tech_latitude, tech_longitude, tech_location_accuracy, location_captured_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'pending', 'pending', NULL, ?, ?, ?, ?, " . ($techLatitude ? "NOW()" : "NULL") . ")
             ");
             $stmt->execute([
+                $checklistNumber,
                 $cpf,
                 $client['name'],
                 $userData['user_id'],
@@ -365,6 +407,7 @@ function handlePost($db, $userData, $isAdmin) {
             
             Logger::info('Checklist criado', [
                 'checklist_id' => $checklistId,
+                'checklist_number' => $checklistNumber,
                 'client_cpf' => $cpf,
                 'technician' => $userData['username'],
                 'type' => $installationType
@@ -372,9 +415,10 @@ function handlePost($db, $userData, $isAdmin) {
             
             jsonResponse([
                 'success' => true,
-                'message' => 'Checklist criado com sucesso',
+                'message' => 'Checklist ' . $checklistNumber . ' criado com sucesso',
                 'data' => [
                     'id' => $checklistId,
+                    'checklist_number' => $checklistNumber,
                     'templates_count' => count($templates)
                 ]
             ], 201);

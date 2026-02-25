@@ -333,6 +333,7 @@ CREATE TABLE IF NOT EXISTS `notifications` (
 -- =====================================================
 CREATE TABLE IF NOT EXISTS `installation_checklists` (
   `id` int(11) AUTO_INCREMENT PRIMARY KEY,
+  `checklist_number` varchar(20) NOT NULL,
   `client_cpf` varchar(11) NOT NULL,
   `client_name` varchar(150) NOT NULL,
   `technician_id` int(11) NOT NULL,
@@ -353,6 +354,7 @@ CREATE TABLE IF NOT EXISTS `installation_checklists` (
   `notes` text,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `checklist_number` (`checklist_number`),
   INDEX idx_client_cpf (`client_cpf`),
   INDEX idx_technician (`technician_id`),
   INDEX idx_status (`status`),

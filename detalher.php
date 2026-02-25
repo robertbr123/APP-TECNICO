@@ -149,6 +149,26 @@ Sincronizar
 </div>
 </div>
 </section>
+
+<!-- Histórico de Checklists do Cliente -->
+<section class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-green-500 text-xl">checklist</span>
+<h3 class="text-[#111318] dark:text-white text-base font-bold">Histórico de Checklists</h3>
+</div>
+<span id="checklist-count" class="text-gray-400 text-xs">Carregando...</span>
+</div>
+<div id="checklist-history-container" class="space-y-3">
+<div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl animate-pulse">
+<div class="size-10 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+<div class="flex-1 space-y-2">
+<div class="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+<div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+</div>
+</div>
+</div>
+</section>
 </div>
 <div class="p-4 flex flex-col gap-3 mb-10">
 <!-- Botões de Ação (Agendar visível para todos) -->
@@ -215,6 +235,9 @@ Sincronizar
         
         // Carrega histórico de OS do cliente
         await loadOsHistory(cpf);
+        
+        // Carrega histórico de Checklists do cliente
+        await loadChecklistHistory(cpf);
     });
     
     function togglePassword() {
@@ -388,6 +411,120 @@ Sincronizar
         window.location.href = 'ordens.php?os=' + osId;
     }
     
+    // Carrega histórico de Checklists do cliente
+    async function loadChecklistHistory(cpf) {
+        var container = document.getElementById('checklist-history-container');
+        var countEl = document.getElementById('checklist-count');
+        
+        try {
+            var token = localStorage.getItem('auth_token');
+            var response = await fetch('/api/checklist.php?client_cpf=' + encodeURIComponent(cpf), {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            var result = await response.json();
+            
+            if (result.success && result.data && result.data.length > 0) {
+                countEl.textContent = result.data.length + ' checklist' + (result.data.length > 1 ? 's' : '');
+                
+                var statusColors = {
+                    'pending': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                    'in_progress': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                    'completed': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                    'cancelled': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                };
+                
+                var statusLabels = {
+                    'pending': 'Pendente',
+                    'in_progress': 'Em Andamento',
+                    'completed': 'Concluído',
+                    'cancelled': 'Cancelado'
+                };
+                
+                var approvalColors = {
+                    'pending': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+                    'pending_approval': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+                    'approved': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                    'rejected': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                };
+                
+                var approvalLabels = {
+                    'pending': 'Aguardando',
+                    'pending_approval': 'Aguarda Aprovação',
+                    'approved': 'Aprovado',
+                    'rejected': 'Rejeitado'
+                };
+                
+                var typeLabels = {
+                    'new': 'Nova Instalação',
+                    'migration': 'Migração',
+                    'repair': 'Reparo',
+                    'maintenance': 'Manutenção'
+                };
+                
+                var typeIcons = {
+                    'new': 'cable',
+                    'migration': 'swap_horiz',
+                    'repair': 'build',
+                    'maintenance': 'engineering'
+                };
+                
+                container.innerHTML = result.data.map(function(chk) {
+                    var statusClass = statusColors[chk.status] || 'bg-gray-100 text-gray-600';
+                    var statusLabel = statusLabels[chk.status] || chk.status;
+                    var approvalClass = approvalColors[chk.approval_status] || 'bg-gray-100 text-gray-600';
+                    var approvalLabel = approvalLabels[chk.approval_status] || chk.approval_status;
+                    var typeLabel = typeLabels[chk.installation_type] || chk.installation_type;
+                    var typeIcon = typeIcons[chk.installation_type] || 'checklist';
+                    var date = new Date(chk.created_at).toLocaleDateString('pt-BR');
+                    var checklistNumber = chk.checklist_number || 'CHK-' + chk.id;
+                    
+                    return '<div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" onclick="openChecklistDetail(' + chk.id + ')">' +
+                        '<div class="size-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">' +
+                            '<span class="material-symbols-outlined text-green-600 dark:text-green-400 text-lg">' + typeIcon + '</span>' +
+                        '</div>' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<div class="flex items-center justify-between gap-2 mb-1">' +
+                                '<p class="text-sm font-semibold text-gray-900 dark:text-white truncate">' + escapeHtml(checklistNumber) + '</p>' +
+                                '<span class="text-[10px] font-bold px-2 py-0.5 rounded-full ' + approvalClass + '">' + approvalLabel + '</span>' +
+                            '</div>' +
+                            '<p class="text-xs text-gray-600 dark:text-gray-400 truncate">' + typeLabel + '</p>' +
+                            '<div class="flex items-center gap-2 mt-1">' +
+                                '<span class="text-[10px] text-gray-400 flex items-center gap-0.5">' +
+                                    '<span class="material-symbols-outlined text-xs">calendar_today</span>' +
+                                    date +
+                                '</span>' +
+                                '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded ' + statusClass + '">' + statusLabel + '</span>' +
+                                (chk.technician_name ? '<span class="text-[10px] text-gray-400 flex items-center gap-0.5"><span class="material-symbols-outlined text-xs">person</span>' + escapeHtml(chk.technician_name) + '</span>' : '') +
+                            '</div>' +
+                        '</div>' +
+                        '<span class="material-symbols-outlined text-gray-400 text-lg">chevron_right</span>' +
+                    '</div>';
+                }).join('');
+            } else {
+                countEl.textContent = '0';
+                container.innerHTML = '<div class="flex flex-col items-center justify-center py-6 text-center">' +
+                    '<div class="size-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-2">' +
+                        '<span class="material-symbols-outlined text-gray-400 text-xl">checklist</span>' +
+                    '</div>' +
+                    '<p class="text-sm text-gray-500">Nenhum checklist encontrado</p>' +
+                    '<p class="text-[11px] text-gray-400 mt-0.5">Este cliente não possui checklists registrados</p>' +
+                '</div>';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar histórico de checklists:', error);
+            countEl.textContent = 'Erro';
+            container.innerHTML = '<div class="flex flex-col items-center justify-center py-6 text-center">' +
+                '<span class="material-symbols-outlined text-red-400 text-2xl mb-2">error</span>' +
+                '<p class="text-sm text-red-500">Erro ao carregar</p>' +
+            '</div>';
+        }
+    }
+    
+    // Abre detalhes do Checklist
+    function openChecklistDetail(checklistId) {
+        window.location.href = 'checklist.php?id=' + checklistId;
+    }
+
     async function loadClientData(cpf) {
         try {
             // Usa API.getClient para obter todos os campos (incluindo pppoe e password)
