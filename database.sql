@@ -529,6 +529,25 @@ CREATE TABLE IF NOT EXISTS `work_orders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Ordens de serviço';
 
 -- =====================================================
+-- 12. TABELA DE LOCALIZAÇÃO DOS TÉCNICOS (em tempo real)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `technician_locations` (
+  `user_id` int(11) NOT NULL,
+  `latitude` decimal(10, 8) NOT NULL,
+  `longitude` decimal(11, 8) NOT NULL,
+  `accuracy` decimal(10, 2) DEFAULT NULL,
+  `heading` decimal(5, 2) DEFAULT NULL COMMENT 'Direção em graus (0-360)',
+  `speed` decimal(6, 2) DEFAULT NULL COMMENT 'Velocidade em m/s',
+  `is_active` tinyint(1) DEFAULT 1 COMMENT 'Técnico está trabalhando',
+  `last_activity` varchar(50) DEFAULT NULL COMMENT 'Última ação no app',
+  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`),
+  KEY `idx_location` (`latitude`, `longitude`),
+  KEY `idx_active` (`is_active`, `updated_at`),
+  CONSTRAINT `fk_tech_location_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Localização em tempo real dos técnicos';
+
+-- =====================================================
 -- FIM DO SCRIPT
 -- =====================================================
 SELECT 'Banco de dados onde2292_erp configurado com sucesso!' as status;

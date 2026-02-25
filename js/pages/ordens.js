@@ -660,7 +660,77 @@
         document.getElementById('os-client-selected').classList.remove('hidden');
         document.getElementById('os-client-search').classList.add('hidden');
         document.getElementById('os-client-results').classList.add('hidden');
+        
+        // Carregar sugestões de técnico mais próximo
+        loadTechnicianSuggestions(cpf);
     }
+
+    async function loadTechnicianSuggestions(clientCpf) {
+        var container = document.getElementById('tech-suggestions');
+        if (!container) return;
+        
+        try {
+            container.innerHTML = '<div class="flex items-center gap-2 text-xs text-gray-400"><span class="material-symbols-outlined animate-spin text-sm">progress_activity</span> Buscando técnicos próximos...</div>';
+            container.classList.remove('hidden');
+            
+            var response = await API.get('technician-location.php', { action: 'suggest', client_cpf: clientCpf, limit: 3 });
+            
+            if (response.success && response.data && response.data.length > 0) {
+                var html = '<div class="space-y-2">' +
+                    '<p class="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1">' +
+                        '<span class="material-symbols-outlined text-sm text-green-500">near_me</span> Técnicos próximos' +
+                    '</p>';
+                
+                response.data.forEach(function(tech, idx) {
+                    var distText = tech.distance_km ? tech.distance_km.toFixed(1) + ' km' : 'Localização não disponível';
+                    var isActive = tech.is_active ? 'bg-green-500' : 'bg-gray-400';
+                    var updatedText = tech.updated_text || '';
+                    
+                    html += '<div class="flex items-center gap-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">' +
+                        '<div class="relative">' +
+                            '<div class="size-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">' +
+                                '<span class="material-symbols-outlined text-blue-500 text-sm">person</span>' +
+                            '</div>' +
+                            '<span class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ' + isActive + ' border-2 border-white dark:border-gray-800"></span>' +
+                        '</div>' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<p class="text-sm font-medium text-gray-900 dark:text-white truncate">' + escapeHtml(tech.name || tech.username) + '</p>' +
+                            '<p class="text-[10px] text-gray-400">' + escapeHtml(distText) + (updatedText ? ' • ' + updatedText : '') + '</p>' +
+                        '</div>' +
+                        '<button type="button" onclick="assignTechToOS(' + tech.user_id + ', \'' + escapeHtml(tech.name || tech.username).replace(/'/g, "\\'") + '\')" ' +
+                            'class="px-2.5 py-1 text-xs font-medium text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 rounded-lg transition-colors dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-600 dark:hover:text-white">' +
+                            (idx === 0 ? 'Atribuir ✓' : 'Atribuir') +
+                        '</button>' +
+                    '</div>';
+                });
+                
+                html += '</div>';
+                container.innerHTML = html;
+            } else if (response.message) {
+                container.innerHTML = '<p class="text-xs text-amber-500 flex items-center gap-1"><span class="material-symbols-outlined text-sm">info</span> ' + escapeHtml(response.message) + '</p>';
+            } else {
+                container.classList.add('hidden');
+            }
+        } catch (e) {
+            container.innerHTML = '<p class="text-xs text-gray-400">Não foi possível sugerir técnicos</p>';
+        }
+    }
+
+    // Função global para atribuir técnico via botão de sugestão
+    window.assignTechToOS = function(techId, techName) {
+        var select = document.getElementById('os-assigned');
+        if (select) {
+            select.value = techId;
+            // Highlight visual feedback
+            select.classList.add('ring-2', 'ring-green-500');
+            setTimeout(function() {
+                select.classList.remove('ring-2', 'ring-green-500');
+            }, 1500);
+        }
+        if (window.showToast) {
+            showToast(techName + ' atribuído à OS', 'success');
+        }
+    };
 
     async function setupNotificationBadge() {
         try {

@@ -177,6 +177,8 @@
         <select id="os-assigned" class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm border-0 focus:ring-2 focus:ring-primary/50">
             <option value="">-- Selecione o técnico --</option>
         </select>
+        <!-- Container para sugestões de técnicos próximos -->
+        <div id="tech-suggestions" class="mt-2 hidden"></div>
     </div>
     <!-- Schedule -->
     <div class="grid grid-cols-2 gap-3">

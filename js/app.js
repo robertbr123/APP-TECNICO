@@ -15,6 +15,7 @@ const App = {
         this.setupEventListeners();
         this.startAutoThemeCheck();
         this.setupOnlineOfflineListeners();
+        this.startLocationTracking();
         this.loadPageModule();
     },
 
@@ -568,6 +569,102 @@ const App = {
         if (typeof window.loadInventoryStats === 'function') window.loadInventoryStats();
         if (typeof window.loadEquipmentList === 'function') window.loadEquipmentList();
     },
+
+    // ========================================
+    // RASTREAMENTO DE LOCALIZAÇÃO DO TÉCNICO
+    // ========================================
+    _locationTrackingInterval: null,
+    
+    /**
+     * Inicia rastreamento de localização do técnico
+     * Envia posição a cada 5 minutos para permitir auto-atribuição de OS
+     */
+    startLocationTracking() {
+        // Só rastreia se estiver logado e for técnico
+        const userData = API.getUser();
+        if (!userData || !userData.user_id) return;
+        
+        // Não rastreia admin (opcional)
+        // if (userData.role === 'admin') return;
+        
+        // Verifica suporte a geolocalização
+        if (!navigator.geolocation) {
+            console.debug('[LocationTracking] Geolocation não suportada');
+            return;
+        }
+        
+        // Função para enviar localização
+        const sendLocation = async () => {
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: false, // Economia de bateria
+                        timeout: 10000,
+                        maximumAge: 60000 // Cache de 1 minuto
+                    });
+                });
+                
+                const token = localStorage.getItem('auth_token');
+                if (!token) return;
+                
+                await fetch('/api/technician-location.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        action: 'update',
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        heading: position.coords.heading,
+                        speed: position.coords.speed,
+                        last_activity: 'app_active'
+                    })
+                });
+                
+                console.debug('[LocationTracking] Localização enviada');
+            } catch (err) {
+                // Falha silenciosa - não é crítico
+                console.debug('[LocationTracking] Erro:', err.message);
+            }
+        };
+        
+        // Envia imediatamente
+        sendLocation();
+        
+        // Envia a cada 5 minutos
+        this._locationTrackingInterval = setInterval(sendLocation, 5 * 60 * 1000);
+        
+        // Marca como inativo ao sair
+        window.addEventListener('beforeunload', () => {
+            const token = localStorage.getItem('auth_token');
+            if (!token) return;
+            
+            // Usa sendBeacon para garantir envio antes de fechar
+            navigator.sendBeacon('/api/technician-location.php', JSON.stringify({
+                action: 'inactive'
+            }));
+        });
+        
+        // Também atualiza quando o app volta do background
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                sendLocation();
+            }
+        });
+    },
+    
+    /**
+     * Para o rastreamento de localização
+     */
+    stopLocationTracking() {
+        if (this._locationTrackingInterval) {
+            clearInterval(this._locationTrackingInterval);
+            this._locationTrackingInterval = null;
+        }
+    }
 };
 
 document.addEventListener('DOMContentLoaded', () => App.init());
