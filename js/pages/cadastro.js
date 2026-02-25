@@ -7,6 +7,67 @@ App.initCadastroPage = async function() {
     this.pendingPhotos = [];
 
     await this.loadSelectOptions();
+    
+    // ==========================================
+    // AUTO-SAVE DE RASCUNHO
+    // ==========================================
+    const FORM_DRAFT_ID = 'novo-cadastro';
+    
+    // Função para coletar dados do formulário
+    const getFormData = () => ({
+        name: document.getElementById('field-name')?.value || '',
+        cpf: document.getElementById('field-cpf')?.value || '',
+        phone: document.getElementById('field-phone')?.value || '',
+        birthDate: document.getElementById('field-dob')?.value || '',
+        cep: document.getElementById('field-cep')?.value || '',
+        city: document.getElementById('field-city')?.value || '',
+        address: document.getElementById('field-street')?.value || '',
+        number: document.getElementById('field-number')?.value || '',
+        complement: document.getElementById('field-complement')?.value || '',
+        planId: document.getElementById('field-plan')?.value || '',
+        pppoe: document.getElementById('field-pppoe-user')?.value || '',
+        password: document.getElementById('field-pppoe-pass')?.value || '',
+        dueDay: document.getElementById('field-due-date')?.value || '',
+        observation: document.getElementById('field-observations')?.value || ''
+    });
+    
+    // Restaura rascunho se existir
+    const draft = Utils.getDraft(FORM_DRAFT_ID);
+    if (draft && Object.values(draft).some(v => v)) {
+        const shouldRestore = confirm('Encontramos um rascunho não salvo. Deseja restaurá-lo?');
+        if (shouldRestore) {
+            // Preenche os campos com o rascunho
+            Object.entries(draft).forEach(([key, value]) => {
+                const fieldMap = {
+                    name: 'field-name',
+                    cpf: 'field-cpf',
+                    phone: 'field-phone',
+                    birthDate: 'field-dob',
+                    cep: 'field-cep',
+                    city: 'field-city',
+                    address: 'field-street',
+                    number: 'field-number',
+                    complement: 'field-complement',
+                    planId: 'field-plan',
+                    pppoe: 'field-pppoe-user',
+                    password: 'field-pppoe-pass',
+                    dueDay: 'field-due-date',
+                    observation: 'field-observations'
+                };
+                const fieldId = fieldMap[key];
+                if (fieldId && value) {
+                    const el = document.getElementById(fieldId);
+                    if (el) el.value = value;
+                }
+            });
+            this.showToast('Rascunho restaurado!', 'success');
+        } else {
+            Utils.clearDraft(FORM_DRAFT_ID);
+        }
+    }
+    
+    // Configura auto-save a cada 10 segundos
+    this._stopAutoSave = Utils.setupFormAutoSave(FORM_DRAFT_ID, getFormData, 10000);
 
     const backBtn = document.querySelector('[data-icon="ArrowLeft"]') ||
                    document.querySelector('.material-symbols-outlined');
@@ -66,22 +127,25 @@ App.initCadastroPage = async function() {
         });
     }
 
-    // Busca CEP automática
+    // Busca CEP automática (com cache)
     const cepInput = document.getElementById('field-cep') || document.querySelector('input[placeholder*="00000-000"]');
     if (cepInput) {
         cepInput.addEventListener('blur', async (e) => {
             const cep = e.target.value.replace(/\D/g, '');
             if (cep.length === 8) {
                 try {
-                    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-                    const data = await response.json();
-                    if (!data.erro) {
+                    const data = await Utils.fetchCEP(cep);
+                    if (!data.error) {
                         const ruaInput = document.getElementById('field-street');
                         const cidadeInput = document.getElementById('field-city');
                         const estadoInput = document.getElementById('field-state');
+                        const bairroInput = document.getElementById('field-neighborhood');
                         if (ruaInput) ruaInput.value = data.logradouro;
                         if (cidadeInput) cidadeInput.value = data.localidade;
                         if (estadoInput) estadoInput.value = data.uf;
+                        if (bairroInput) bairroInput.value = data.bairro;
+                    } else if (data.offline) {
+                        App.showToast('Offline - CEP será preenchido quando conectar', 'warning');
                     }
                 } catch (error) {
                     // CEP lookup failed silently
@@ -161,6 +225,9 @@ App.handleSaveClient = async function() {
                     });
                 });
             }
+            
+            // Limpa rascunho após salvar offline
+            Utils.clearDraft('novo-cadastro');
 
             this.showToast('Salvo offline! Será sincronizado quando reconectar.', 'success');
             setTimeout(() => {
@@ -174,6 +241,9 @@ App.handleSaveClient = async function() {
         if (response.success) {
             const cpf = data.cpf.replace(/\D/g, '');
             const photoResult = await this.uploadPendingPhotos(cpf);
+            
+            // Limpa rascunho após salvar com sucesso
+            Utils.clearDraft('novo-cadastro');
 
             if (photoResult.uploaded > 0) {
                 this.showToast(`Cliente cadastrado com ${photoResult.uploaded} foto(s)!`, 'success');

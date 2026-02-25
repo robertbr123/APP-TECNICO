@@ -3,7 +3,185 @@
  * Ondeline Tech - App do Técnico
  */
 
+// Cache de CEP em memória e localStorage
+const CEP_CACHE_KEY = 'cepCache';
+const CEP_CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 dias
+
 const Utils = {
+    // ==========================================
+    // CACHE DE CEP
+    // ==========================================
+    
+    /**
+     * Obtém cache de CEP do localStorage
+     */
+    getCepCache() {
+        try {
+            const cache = JSON.parse(localStorage.getItem(CEP_CACHE_KEY) || '{}');
+            // Limpa entradas expiradas
+            const now = Date.now();
+            Object.keys(cache).forEach(key => {
+                if (cache[key].expiry < now) {
+                    delete cache[key];
+                }
+            });
+            return cache;
+        } catch (e) {
+            return {};
+        }
+    },
+    
+    /**
+     * Salva CEP no cache
+     */
+    setCepCache(cep, data) {
+        try {
+            const cache = this.getCepCache();
+            cache[cep] = {
+                data: data,
+                expiry: Date.now() + CEP_CACHE_EXPIRY
+            };
+            localStorage.setItem(CEP_CACHE_KEY, JSON.stringify(cache));
+        } catch (e) {
+            // Cache full, limpa tudo
+            localStorage.removeItem(CEP_CACHE_KEY);
+        }
+    },
+    
+    /**
+     * Busca CEP com cache (evita requests duplicados)
+     */
+    async fetchCEP(cep) {
+        // Remove formatação
+        cep = cep.replace(/\D/g, '');
+        
+        if (cep.length !== 8) {
+            return { error: true, message: 'CEP inválido' };
+        }
+        
+        // Verifica cache primeiro
+        const cache = this.getCepCache();
+        if (cache[cep]) {
+            return cache[cep].data;
+        }
+        
+        // Busca na API
+        try {
+            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await response.json();
+            
+            if (data.erro) {
+                return { error: true, message: 'CEP não encontrado' };
+            }
+            
+            // Normaliza resposta
+            const result = {
+                cep: data.cep,
+                logradouro: data.logradouro || '',
+                complemento: data.complemento || '',
+                bairro: data.bairro || '',
+                localidade: data.localidade || '',
+                uf: data.uf || ''
+            };
+            
+            // Salva no cache
+            this.setCepCache(cep, result);
+            
+            return result;
+        } catch (error) {
+            return { error: true, message: 'Erro ao buscar CEP', offline: !navigator.onLine };
+        }
+    },
+
+    // ==========================================
+    // RASCUNHO DE FORMULÁRIOS
+    // ==========================================
+    
+    /**
+     * Salva rascunho do formulário automaticamente
+     * @param {string} formId - Identificador único do formulário
+     * @param {object} data - Dados do formulário
+     */
+    saveDraft(formId, data) {
+        try {
+            const drafts = JSON.parse(localStorage.getItem('formDrafts') || '{}');
+            drafts[formId] = {
+                data: data,
+                savedAt: Date.now()
+            };
+            localStorage.setItem('formDrafts', JSON.stringify(drafts));
+            return true;
+        } catch (e) {
+            console.error('Erro ao salvar rascunho:', e);
+            return false;
+        }
+    },
+    
+    /**
+     * Recupera rascunho do formulário
+     * @param {string} formId - Identificador único do formulário
+     * @param {number} maxAge - Idade máxima do rascunho em ms (default: 24h)
+     */
+    getDraft(formId, maxAge = 24 * 60 * 60 * 1000) {
+        try {
+            const drafts = JSON.parse(localStorage.getItem('formDrafts') || '{}');
+            const draft = drafts[formId];
+            
+            if (!draft) return null;
+            
+            // Verifica se expirou
+            if (Date.now() - draft.savedAt > maxAge) {
+                this.clearDraft(formId);
+                return null;
+            }
+            
+            return draft.data;
+        } catch (e) {
+            return null;
+        }
+    },
+    
+    /**
+     * Limpa rascunho do formulário
+     * @param {string} formId - Identificador único do formulário
+     */
+    clearDraft(formId) {
+        try {
+            const drafts = JSON.parse(localStorage.getItem('formDrafts') || '{}');
+            delete drafts[formId];
+            localStorage.setItem('formDrafts', JSON.stringify(drafts));
+        } catch (e) {
+            // Ignore
+        }
+    },
+    
+    /**
+     * Configura auto-save para um formulário
+     * @param {string} formId - Identificador único do formulário
+     * @param {function} getDataFn - Função que retorna os dados atuais do formulário
+     * @param {number} interval - Intervalo de salvamento em ms (default: 5s)
+     */
+    setupFormAutoSave(formId, getDataFn, interval = 5000) {
+        // Salva a cada X segundos
+        const autoSaveInterval = setInterval(() => {
+            const data = getDataFn();
+            if (data && Object.keys(data).some(k => data[k])) {
+                this.saveDraft(formId, data);
+            }
+        }, interval);
+        
+        // Salva ao sair da página
+        window.addEventListener('beforeunload', () => {
+            const data = getDataFn();
+            if (data && Object.keys(data).some(k => data[k])) {
+                this.saveDraft(formId, data);
+            }
+        });
+        
+        // Retorna função para parar auto-save
+        return () => clearInterval(autoSaveInterval);
+    },
+
     // ==========================================
     // VALIDAÇÕES
     // ==========================================

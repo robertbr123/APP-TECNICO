@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS `clients` (
   `longitude` decimal(11, 8) DEFAULT NULL,
   `location_accuracy` decimal(10, 2) DEFAULT NULL,
   `registration_date` date NOT NULL,
+  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`cpf`),
   KEY `idx_clients_city` (`city`),
   KEY `idx_clients_city_name` (`city`, `name`),

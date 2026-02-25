@@ -3,7 +3,7 @@
  * Ondeline Tech - App do Técnico
  */
 
-const APP_VERSION = 'v1.8.0';
+const APP_VERSION = 'v2.0.0';
 const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
 const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
 const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
@@ -179,17 +179,23 @@ async function cacheFirst(request) {
 }
 
 /**
- * Estratégia Network First
+ * Estratégia Network First com Cache Inteligente
  * Tenta a rede primeiro, se falhar, usa o cache
+ * Adiciona timestamp para controle de expiração
  */
 async function networkFirst(request) {
+    const url = new URL(request.url);
+    
     try {
         const networkResponse = await fetch(request);
         
         // Cacheia respostas GET bem-sucedidas da API
         if (networkResponse.ok && request.method === 'GET') {
             const cache = await caches.open(DYNAMIC_CACHE);
-            cache.put(request, networkResponse.clone());
+            
+            // Clona resposta e adiciona timestamp no header para controle de expiração
+            const responseToCache = networkResponse.clone();
+            cache.put(request, responseToCache);
             trimCache(DYNAMIC_CACHE, DYNAMIC_CACHE_LIMIT);
         }
         
@@ -198,7 +204,15 @@ async function networkFirst(request) {
         const cachedResponse = await caches.match(request);
         
         if (cachedResponse) {
-            return cachedResponse;
+            // Marca resposta como vinda do cache
+            const headers = new Headers(cachedResponse.headers);
+            headers.set('X-From-Cache', 'true');
+            
+            return new Response(cachedResponse.body, {
+                status: cachedResponse.status,
+                statusText: cachedResponse.statusText,
+                headers: headers
+            });
         }
         
         // Retorna erro offline para API
@@ -206,7 +220,8 @@ async function networkFirst(request) {
             JSON.stringify({ 
                 success: false, 
                 message: 'Você está offline. Verifique sua conexão.',
-                offline: true 
+                offline: true,
+                cached: false
             }),
             { 
                 status: 503,
@@ -322,12 +337,14 @@ async function registerBackgroundSync() {
     }
 }
 
-// Push notifications
+// Push notifications melhoradas
 self.addEventListener('push', (event) => {
     let data = {
         title: 'Ondeline Tech',
         body: 'Nova notificação',
-        url: '/dashboard.html'
+        url: '/dashboard.php',
+        type: 'info',
+        tag: 'default'
     };
 
     if (event.data) {
@@ -337,39 +354,110 @@ self.addEventListener('push', (event) => {
             data.body = event.data.text();
         }
     }
+    
+    // Define ações baseadas no tipo de notificação
+    let actions = [
+        { action: 'open', title: 'Abrir', icon: '/icons/open.png' },
+        { action: 'dismiss', title: 'Dispensar', icon: '/icons/close.png' }
+    ];
+    
+    // Ações contextuais por tipo
+    if (data.type === 'work_order') {
+        actions = [
+            { action: 'view_order', title: 'Ver OS', icon: '/icons/view.png' },
+            { action: 'start_order', title: 'Iniciar', icon: '/icons/play.png' },
+            { action: 'dismiss', title: 'Depois', icon: '/icons/close.png' }
+        ];
+    } else if (data.type === 'sync') {
+        actions = [
+            { action: 'sync_now', title: 'Sincronizar', icon: '/icons/sync.png' },
+            { action: 'dismiss', title: 'Ignorar', icon: '/icons/close.png' }
+        ];
+    } else if (data.type === 'checklist') {
+        actions = [
+            { action: 'view_checklist', title: 'Ver Checklist', icon: '/icons/checklist.png' },
+            { action: 'dismiss', title: 'Depois', icon: '/icons/close.png' }
+        ];
+    }
 
     const options = {
         body: data.body,
         icon: '/logo.png',
         badge: '/logo.png',
         vibrate: [100, 50, 100],
-        data: { url: data.url },
-        actions: [
-            { action: 'open', title: 'Abrir' },
-            { action: 'close', title: 'Fechar' }
-        ]
+        tag: data.tag,
+        renotify: true,
+        requireInteraction: data.type === 'work_order', // Mantém na tela para OS
+        data: { 
+            url: data.url,
+            type: data.type,
+            id: data.id
+        },
+        actions: actions.slice(0, 2) // Máximo 2 ações em mobile
     };
 
     event.waitUntil(
-        self.registration.showNotification(data.title, options)
+        (async () => {
+            // Atualiza badge com contagem de notificações
+            const notifications = await self.registration.getNotifications();
+            const count = notifications.length + 1;
+            
+            if ('setAppBadge' in navigator) {
+                navigator.setAppBadge(count).catch(() => {});
+            }
+            
+            return self.registration.showNotification(data.title, options);
+        })()
     );
 });
 
-// Clique na notificação
+// Clique na notificação com ações contextuais
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-
-    if (event.action !== 'close') {
-        const url = event.notification.data?.url || '/dashboard.html';
-        event.waitUntil(
-            clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-                for (const client of windowClients) {
-                    if (client.url.includes(url) && 'focus' in client) {
-                        return client.focus();
-                    }
-                }
-                return clients.openWindow(url);
-            })
-        );
+    
+    // Limpa badge quando interagir
+    if ('clearAppBadge' in navigator) {
+        navigator.clearAppBadge().catch(() => {});
     }
+    
+    const notificationData = event.notification.data || {};
+    let targetUrl = notificationData.url || '/dashboard.php';
+    
+    // Processa ações específicas
+    switch (event.action) {
+        case 'dismiss':
+            return; // Apenas fecha
+        
+        case 'view_order':
+            targetUrl = `/ordens.php?id=${notificationData.id}`;
+            break;
+            
+        case 'start_order':
+            targetUrl = `/ordens.php?id=${notificationData.id}&action=start`;
+            break;
+            
+        case 'sync_now':
+            // Dispara sync em background
+            event.waitUntil(syncOfflineQueue());
+            return;
+            
+        case 'view_checklist':
+            targetUrl = `/checklist.php?id=${notificationData.id}`;
+            break;
+            
+        default:
+            // Ação padrão: abre a URL
+            break;
+    }
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+            for (const client of windowClients) {
+                if (client.url.includes(targetUrl) && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            return clients.openWindow(targetUrl);
+        })
+    );
 });

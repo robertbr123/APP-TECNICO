@@ -280,13 +280,44 @@ function handlePut($db, $userData) {
     $cpfValidation = Validator::validateCPF($data['cpf']);
     $cpf = $cpfValidation['valid'] ? $cpfValidation['clean'] : preg_replace('/\D/', '', $data['cpf']);
 
-    // Verifica se o cliente existe
-    $stmt = $db->prepare("SELECT cpf FROM clients WHERE cpf = ?");
+    // Verifica se o cliente existe e obtém dados atuais
+    $stmt = $db->prepare("SELECT * FROM clients WHERE cpf = ?");
     $stmt->execute([$cpf]);
-    if (!$stmt->fetch()) {
+    $existingClient = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$existingClient) {
         Logger::warning('Cliente não encontrado para atualização', ['cpf' => $cpf]);
         jsonResponse(['success' => false, 'message' => 'Cliente não encontrado'], 404);
     }
+    
+    // Verifica conflito baseado em updated_at (se não for force_update)
+    $forceUpdate = isset($data['_force_update']) && $data['_force_update'] === true;
+    
+    if (!$forceUpdate && isset($data['_last_sync']) && isset($existingClient['updated_at'])) {
+        $lastSync = strtotime($data['_last_sync']);
+        $serverUpdated = strtotime($existingClient['updated_at']);
+        
+        // Se o servidor foi atualizado depois do último sync do cliente, há conflito
+        if ($serverUpdated > $lastSync) {
+            Logger::info('Conflito detectado na atualização', [
+                'cpf' => $cpf, 
+                'server_updated' => $existingClient['updated_at'],
+                'client_last_sync' => $data['_last_sync']
+            ]);
+            
+            jsonResponse([
+                'success' => false, 
+                'message' => 'Conflito: O registro foi modificado por outro usuário',
+                'conflict' => true,
+                'server_data' => $existingClient
+            ], 409);
+        }
+    }
+    
+    // Remove campos de controle do update
+    unset($data['_force_update']);
+    unset($data['_resolved_conflict']);
+    unset($data['_last_sync']);
 
     // Monta a query de atualização
     $updateFields = [];
@@ -324,8 +355,17 @@ function handlePut($db, $userData) {
 
     Logger::logDatabase('UPDATE', 'clients', $stmt->rowCount());
     Logger::info('Cliente atualizado', ['cpf' => $cpf, 'fields' => array_keys($data)]);
+    
+    // Obtém o timestamp atualizado para sincronização futura
+    $stmt = $db->prepare("SELECT updated_at FROM clients WHERE cpf = ?");
+    $stmt->execute([$cpf]);
+    $updated = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    jsonResponse(['success' => true, 'message' => 'Cliente atualizado com sucesso']);
+    jsonResponse([
+        'success' => true, 
+        'message' => 'Cliente atualizado com sucesso',
+        'updated_at' => $updated['updated_at'] ?? date('Y-m-d H:i:s')
+    ]);
 }
 
 /**
