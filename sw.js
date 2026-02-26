@@ -1,470 +1,417 @@
 /**
- * Service Worker - PWA
+ * Service Worker - PWABuilder / Workbox
  * Ondeline Tech - App do Técnico
+ * Versão: v3.0.0
  */
 
-const APP_VERSION = 'v2.0.3';
-const CACHE_NAME = `ondeline-tech-${APP_VERSION}`;
-const STATIC_CACHE = `ondeline-static-${APP_VERSION}`;
-const DYNAMIC_CACHE = `ondeline-dynamic-${APP_VERSION}`;
-const DYNAMIC_CACHE_LIMIT = 100; // Máximo de itens no cache dinâmico (aumentado para CDN)
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.0.0/workbox-sw.js');
 
-// Arquivos estáticos para cache (páginas PHP + assets)
-const STATIC_ASSETS = [
-    '/',
-    '/login.php',
-    '/dashboard.php',
-    '/novo-cadastro.php',
-    '/consultar.php',
-    '/detalher.php',
-    '/ajustes.php',
-    '/vincular-equipamento.php',
-    '/historico.php',
-    '/mapa.php',
-    '/ponto.php',
-    '/estoque.php',
-    '/auditoria.php',
-    '/checklist.php',
-    '/admin.php',
-    '/ordens.php',
-    '/relatorios.php',
-    '/offline.php',
-    '/manifest.json',
-    '/js/api.js',
-    '/js/app.js',
-    '/js/animations.js',
-    '/js/ui-enhancements.js',
-    '/js/feedback.js',
-    '/js/utils.js',
-    '/js/geolocation.js',
-    '/js/components.js',
-    '/js/scanner.js',
-    '/js/pages/login.js',
-    '/js/pages/dashboard.js',
-    '/js/pages/cadastro.js',
-    '/js/pages/consulta.js',
-    '/js/pages/detalhes.js',
-    '/js/pages/vincular.js',
-    '/js/pages/ajustes.js',
-    '/js/pages/historico.js',
-    '/js/pages/ordens.js',
-    '/js/pages/relatorios.js',
-    '/css/transitions.css',
-    '/logo.png'
-];
+const APP_VERSION = 'v3.0.0';
 
-// CDN externo para pré-cachear (fontes e estilos críticos)
-const CDN_ASSETS = [
-    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
-    'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
-];
+// ─────────────────────────────────────────────
+// Configuração do Workbox
+// ─────────────────────────────────────────────
+workbox.setConfig({ debug: false });
 
-// Instalação do Service Worker
-self.addEventListener('install', (event) => {
-    event.waitUntil(
-        Promise.all([
-            // Cache de assets estáticos locais
-            caches.open(STATIC_CACHE).then((cache) => {
-                return Promise.allSettled(
-                    STATIC_ASSETS.map(url => cache.add(url).catch(() => null))
-                );
-            }),
-            // Cache de CDN externos (fontes, ícones)
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-                return Promise.allSettled(
-                    CDN_ASSETS.map(url => cache.add(url).catch(() => null))
-                );
-            })
-        ]).then(() => self.skipWaiting())
-    );
-});
+const { registerRoute, setCatchHandler } = workbox.routing;
 
-// Ativação do Service Worker
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys()
-            .then((cacheNames) => {
-                return Promise.all(
-                    cacheNames
-                        .filter((name) => name !== STATIC_CACHE && name !== DYNAMIC_CACHE)
-                        .map((name) => caches.delete(name))
-                );
-            })
-            .then(() => self.clients.claim())
-    );
-});
+const {
+    NetworkFirst,
+    StaleWhileRevalidate,
+    CacheFirst
+} = workbox.strategies;
 
-// Intercepta requisições
-self.addEventListener('fetch', (event) => {
-    const { request } = event;
-    const url = new URL(request.url);
+const { CacheableResponsePlugin } = workbox.cacheableResponse;
+const { ExpirationPlugin } = workbox.expiration;
+const { precacheAndRoute, cleanupOutdatedCaches, matchPrecache } = workbox.precaching;
+const { BackgroundSyncPlugin } = workbox.backgroundSync;
 
-    // Ignora requisições que não são HTTP/HTTPS (ex: chrome-extension://)
-    if (!url.protocol.startsWith('http')) {
-        return;
+// Limpa caches de versões antigas
+cleanupOutdatedCaches();
+
+// ─────────────────────────────────────────────
+// Precache - Assets estáticos críticos
+// ─────────────────────────────────────────────
+precacheAndRoute([
+    { url: '/offline.php',              revision: APP_VERSION },
+    { url: '/manifest.json',            revision: APP_VERSION },
+    { url: '/logo.png',                 revision: APP_VERSION },
+    { url: '/icons/icon-192.png',       revision: APP_VERSION },
+    { url: '/icons/icon-512.png',       revision: APP_VERSION },
+    { url: '/css/transitions.css',      revision: APP_VERSION },
+    { url: '/js/api.js',                revision: APP_VERSION },
+    { url: '/js/app.js',                revision: APP_VERSION },
+    { url: '/js/animations.js',         revision: APP_VERSION },
+    { url: '/js/ui-enhancements.js',    revision: APP_VERSION },
+    { url: '/js/feedback.js',           revision: APP_VERSION },
+    { url: '/js/utils.js',              revision: APP_VERSION },
+    { url: '/js/geolocation.js',        revision: APP_VERSION },
+    { url: '/js/components.js',         revision: APP_VERSION },
+    { url: '/js/scanner.js',            revision: APP_VERSION },
+    { url: '/js/pages/login.js',        revision: APP_VERSION },
+    { url: '/js/pages/dashboard.js',    revision: APP_VERSION },
+    { url: '/js/pages/cadastro.js',     revision: APP_VERSION },
+    { url: '/js/pages/consulta.js',     revision: APP_VERSION },
+    { url: '/js/pages/detalhes.js',     revision: APP_VERSION },
+    { url: '/js/pages/vincular.js',     revision: APP_VERSION },
+    { url: '/js/pages/ajustes.js',      revision: APP_VERSION },
+    { url: '/js/pages/historico.js',    revision: APP_VERSION },
+    { url: '/js/pages/ordens.js',       revision: APP_VERSION },
+    { url: '/js/pages/relatorios.js',   revision: APP_VERSION }
+]);
+
+// ─────────────────────────────────────────────
+// Estratégia: Fontes Google - CacheFirst (30 dias)
+// ─────────────────────────────────────────────
+registerRoute(
+    ({ url }) =>
+        url.origin === 'https://fonts.googleapis.com' ||
+        url.origin === 'https://fonts.gstatic.com',
+    new CacheFirst({
+        cacheName: 'google-fonts',
+        plugins: [
+            new CacheableResponsePlugin({ statuses: [0, 200] }),
+            new ExpirationPlugin({ maxEntries: 20, maxAgeSeconds: 30 * 24 * 60 * 60 })
+        ]
+    })
+);
+
+// ─────────────────────────────────────────────
+// Estratégia: Imagens locais - CacheFirst (7 dias)
+// ─────────────────────────────────────────────
+registerRoute(
+    ({ request }) => request.destination === 'image',
+    new CacheFirst({
+        cacheName: 'images-cache',
+        plugins: [
+            new CacheableResponsePlugin({ statuses: [0, 200] }),
+            new ExpirationPlugin({ maxEntries: 150, maxAgeSeconds: 7 * 24 * 60 * 60 })
+        ]
+    })
+);
+
+// ─────────────────────────────────────────────
+// Estratégia: CSS e JS - StaleWhileRevalidate
+// ─────────────────────────────────────────────
+registerRoute(
+    ({ request }) =>
+        request.destination === 'style' ||
+        request.destination === 'script',
+    new StaleWhileRevalidate({
+        cacheName: 'assets-cache',
+        plugins: [
+            new CacheableResponsePlugin({ statuses: [0, 200] }),
+            new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 7 * 24 * 60 * 60 })
+        ]
+    })
+);
+
+// ─────────────────────────────────────────────
+// Estratégia: API - NetworkFirst (fallback cache 24h)
+// ─────────────────────────────────────────────
+registerRoute(
+    ({ url }) => url.pathname.startsWith('/api/'),
+    new NetworkFirst({
+        cacheName: 'api-cache',
+        networkTimeoutSeconds: 3,
+        plugins: [
+            new CacheableResponsePlugin({ statuses: [0, 200] }),
+            new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 24 * 60 * 60 })
+        ]
+    })
+);
+
+// ─────────────────────────────────────────────
+// Estratégia: Páginas PHP - NetworkFirst (fallback cache)
+// ─────────────────────────────────────────────
+registerRoute(
+    ({ request }) => request.mode === 'navigate',
+    new NetworkFirst({
+        cacheName: 'pages-cache',
+        networkTimeoutSeconds: 3,
+        plugins: [
+            new CacheableResponsePlugin({ statuses: [0, 200] }),
+            new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 })
+        ]
+    })
+);
+
+// ─────────────────────────────────────────────
+// Fallback offline para navegação
+// ─────────────────────────────────────────────
+setCatchHandler(async ({ request }) => {
+    if (request.destination === 'document') {
+        return matchPrecache('/offline.php');
     }
-
-    // Ignora requisições para a API (sempre busca do servidor)
-    if (url.pathname.startsWith('/api/')) {
-        event.respondWith(networkFirst(request));
-        return;
-    }
-
-    // CDN externo (Google Fonts, TailwindCSS) - cache first para performance
-    if (url.hostname !== self.location.hostname) {
-        event.respondWith(cacheFirst(request));
-        return;
-    }
-
-    // Para PHP, JS e CSS, usa Network First (sempre busca atualização)
-    if (request.method === 'GET') {
-        const isPageOrScript = url.pathname.endsWith('.php') ||
-                               url.pathname.endsWith('.js') ||
-                               url.pathname.endsWith('.css') ||
-                               url.pathname === '/';
-
-        if (isPageOrScript) {
-            event.respondWith(networkFirst(request));
-        } else {
-            // Para imagens, fontes etc, usa cache primeiro
-            event.respondWith(cacheFirst(request));
-        }
-    }
-});
-
-/**
- * Limita o tamanho do cache dinâmico (LRU)
- */
-async function trimCache(cacheName, maxItems) {
-    const cache = await caches.open(cacheName);
-    const keys = await cache.keys();
-    if (keys.length > maxItems) {
-        await cache.delete(keys[0]);
-        if (keys.length - 1 > maxItems) {
-            await trimCache(cacheName, maxItems);
-        }
-    }
-}
-
-/**
- * Estratégia Cache First
- * Tenta o cache primeiro, se não encontrar, busca na rede
- */
-async function cacheFirst(request) {
-    const cachedResponse = await caches.match(request);
-
-    if (cachedResponse) {
-        return cachedResponse;
-    }
-
-    try {
-        const networkResponse = await fetch(request);
-
-        // Cacheia a resposta para uso futuro (somente URLs http/https)
-        const url = new URL(request.url);
-        if (networkResponse.ok && url.protocol.startsWith('http')) {
-            const cache = await caches.open(DYNAMIC_CACHE);
-            cache.put(request, networkResponse.clone());
-            trimCache(DYNAMIC_CACHE, DYNAMIC_CACHE_LIMIT);
-        }
-
-        return networkResponse;
-    } catch (error) {
-        // Se offline e não tem cache, retorna página offline dedicada
-        if (request.headers.get('accept')?.includes('text/html')) {
-            const fallback = await caches.match('/offline.php');
-            if (fallback) return fallback;
-        }
-        throw error;
-    }
-}
-
-/**
- * Estratégia Network First com Cache Inteligente
- * Tenta a rede primeiro, se falhar, usa o cache
- * Adiciona timestamp para controle de expiração
- */
-async function networkFirst(request) {
-    const url = new URL(request.url);
-    
-    try {
-        const networkResponse = await fetch(request);
-        
-        // Cacheia respostas GET bem-sucedidas da API
-        if (networkResponse.ok && request.method === 'GET') {
-            const cache = await caches.open(DYNAMIC_CACHE);
-            
-            // Clona resposta e adiciona timestamp no header para controle de expiração
-            const responseToCache = networkResponse.clone();
-            cache.put(request, responseToCache);
-            trimCache(DYNAMIC_CACHE, DYNAMIC_CACHE_LIMIT);
-        }
-        
-        return networkResponse;
-    } catch (error) {
-        const cachedResponse = await caches.match(request);
-        
-        if (cachedResponse) {
-            // Marca resposta como vinda do cache
-            const headers = new Headers(cachedResponse.headers);
-            headers.set('X-From-Cache', 'true');
-
-            return new Response(cachedResponse.body, {
-                status: cachedResponse.status,
-                statusText: cachedResponse.statusText,
-                headers: headers
-            });
-        }
-
-        // Sem cache: retorna página offline para requisições HTML
-        if (request.headers.get('accept')?.includes('text/html')) {
-            const offlinePage = await caches.match('/offline.php');
-            if (offlinePage) return offlinePage;
-        }
-
-        // Retorna erro offline para API
+    if (request.destination === 'image') {
         return new Response(
-            JSON.stringify({
-                success: false,
-                message: 'Você está offline. Verifique sua conexão.',
-                offline: true,
-                cached: false
-            }),
-            {
-                status: 503,
-                headers: { 'Content-Type': 'application/json' }
-            }
+            '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#f0f0f0"/><text x="100" y="100" text-anchor="middle" fill="#999" font-size="14">Offline</text></svg>',
+            { headers: { 'Content-Type': 'image/svg+xml' } }
         );
     }
-}
+    return Response.error();
+});
 
-// Listener de mensagens do cliente
-self.addEventListener('message', (event) => {
-    // Responder com a versão atual
-    if (event.data && event.data.type === 'GET_VERSION') {
-        event.ports[0].postMessage({ version: APP_VERSION });
-        return;
-    }
-    
-    // Retornar token de auth para sync em background
-    if (event.data && event.data.type === 'GET_AUTH_TOKEN') {
-        // O client responde via MessageChannel
-        return;
-    }
-    
-    // Client salvou dados offline - registra sync
-    if (event.data && event.data.type === 'OFFLINE_DATA_SAVED') {
-        registerBackgroundSync();
-        return;
-    }
-    
-    // Skip waiting para atualizar imediatamente
-    if (event.data && (event.data.type === 'SKIP_WAITING' || event.data === 'skipWaiting')) {
-        self.skipWaiting();
-        return;
+// ─────────────────────────────────────────────
+// Background Sync - Fila de requisições offline
+// ─────────────────────────────────────────────
+const bgSyncPlugin = new BackgroundSyncPlugin('ondeline-sync-queue', {
+    maxRetentionTime: 24 * 60, // 24 horas em minutos
+    onSync: async ({ queue }) => {
+        let entry;
+        while ((entry = await queue.shiftRequest())) {
+            try {
+                await fetch(entry.request);
+            } catch (error) {
+                await queue.unshiftRequest(entry);
+                throw error;
+            }
+        }
     }
 });
 
-// Sincronização em background (quando voltar online)
-self.addEventListener('sync', (event) => {
-    if (event.tag === 'sync-clients' || event.tag === 'sync-offline-queue') {
-        event.waitUntil(syncOfflineQueue());
+// Sync para POST de cadastro e OS (quando offline)
+// Captura requests que falharam e reexecuta automaticamente ao reconectar
+registerRoute(
+    ({ url, request }) =>
+        request.method === 'POST' && (
+            url.pathname.startsWith('/api/clients') ||      // cadastro de clientes
+            url.pathname.startsWith('/api/work-orders') ||  // ordens de serviço
+            url.pathname.startsWith('/api/checklist') ||    // checklists
+            url.pathname.startsWith('/api/inventory') ||    // estoque
+            url.pathname.startsWith('/api/time-clock')      // ponto
+        ),
+    new NetworkFirst({
+        cacheName: 'post-cache',
+        plugins: [bgSyncPlugin]
+    }),
+    'POST'
+);
+
+// ─────────────────────────────────────────────
+// Periodic Background Sync
+// ─────────────────────────────────────────────
+self.addEventListener('periodicsync', (event) => {
+    if (event.tag === 'sync-data') {
+        event.waitUntil(syncData());
+    }
+    if (event.tag === 'sync-location') {
+        event.waitUntil(syncLocation());
     }
 });
 
-/**
- * Sincroniza fila offline via IndexedDB/localStorage
- * Tenta processar cada item da fila diretamente do SW
- */
-async function syncOfflineQueue() {
-    // Primeiro tenta processar direto no SW (via API sync endpoint)
+async function syncData() {
     try {
         const allClients = await self.clients.matchAll();
-        
-        // Pega o token de auth do primeiro client disponível
-        let authToken = null;
-        for (const client of allClients) {
-            const response = await new Promise((resolve) => {
-                const channel = new MessageChannel();
-                channel.port1.onmessage = (e) => resolve(e.data);
-                client.postMessage({ type: 'GET_AUTH_TOKEN' }, [channel.port2]);
-                // Timeout de 2s
-                setTimeout(() => resolve(null), 2000);
-            });
-            if (response && response.token) {
-                authToken = response.token;
-                break;
-            }
-        }
+        allClients.forEach(client => {
+            client.postMessage({ type: 'PERIODIC_SYNC', tag: 'sync-data' });
+        });
+    } catch (e) {}
+}
 
-        if (authToken) {
-            // Tenta sincronizar via API
-            const syncResponse = await fetch('/api/sync.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + authToken
-                }
-            });
-            
-            if (syncResponse.ok) {
-                const result = await syncResponse.json();
-                // Notifica os clients sobre o resultado
-                allClients.forEach(client => {
-                    client.postMessage({ 
-                        type: 'SYNC_COMPLETE', 
-                        data: result 
-                    });
-                });
-                return;
-            }
-        }
+async function syncLocation() {
+    try {
+        const allClients = await self.clients.matchAll();
+        allClients.forEach(client => {
+            client.postMessage({ type: 'PERIODIC_SYNC', tag: 'sync-location' });
+        });
+    } catch (e) {}
+}
 
-        // Fallback: notifica clients para que eles façam o sync
+// ─────────────────────────────────────────────
+// Skip Waiting / Activate imediato
+// ─────────────────────────────────────────────
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => {
+    event.waitUntil(self.clients.claim());
+});
+
+// ─────────────────────────────────────────────
+// Mensagens do cliente
+// ─────────────────────────────────────────────
+self.addEventListener('message', (event) => {
+    if (!event.data) return;
+
+    switch (event.data.type) {
+        case 'GET_VERSION':
+            event.ports[0]?.postMessage({ version: APP_VERSION });
+            break;
+
+        case 'SKIP_WAITING':
+        case 'skipWaiting':
+            self.skipWaiting();
+            break;
+
+        case 'OFFLINE_DATA_SAVED':
+            registerSync();
+            break;
+
+        case 'CLEAR_CACHE':
+            clearAllCaches();
+            break;
+    }
+});
+
+// Tag separado do BackgroundSyncPlugin ('ondeline-sync-queue')
+// para não misturar os dois fluxos de sync
+async function registerSync() {
+    try {
+        await self.registration.sync.register('sync-offline-queue');
+    } catch (e) {}
+}
+
+// ─────────────────────────────────────────────
+// Sync listener - offline_queue manual
+// Chamado quando OFFLINE_DATA_SAVED → registerSync() → browser reconecta
+// Notifica os clients para chamar POST /api/sync.php
+// ─────────────────────────────────────────────
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'sync-offline-queue') {
+        event.waitUntil(processOfflineQueue());
+    }
+});
+
+async function processOfflineQueue() {
+    const allClients = await self.clients.matchAll({ includeUncontrolled: true });
+
+    if (allClients.length > 0) {
+        // App está aberto: avisa o cliente para processar
         allClients.forEach(client => {
             client.postMessage({ type: 'SYNC_OFFLINE' });
         });
-    } catch (error) {
-        // Se falhar, notifica clients para retry manual
-        const allClients = await self.clients.matchAll();
-        allClients.forEach(client => {
-            client.postMessage({ type: 'SYNC_FAILED', error: error.message });
-        });
+        return;
     }
-}
 
-/**
- * Registra sync quando detecta operações offline sendo salvas
- */
-async function registerBackgroundSync() {
+    // App está fechado: tenta sincronizar direto do SW via /api/sync.php
+    // Usa o token armazenado no cache se disponível
     try {
-        await self.registration.sync.register('sync-offline-queue');
+        const cache = await caches.open('api-cache');
+        const authResponse = await cache.match('/api/user.php');
+        if (!authResponse) return; // sem token, não é possível autenticar
+
+        // Envia sync sem corpo — o servidor usa a sessão/token do cache
+        await fetch('/api/sync.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
     } catch (e) {
-        // BackgroundSync não suportado - fallback via message
+        // Sem conexão ainda — o browser vai tentar novamente automaticamente
     }
 }
 
-// Push notifications melhoradas
+async function clearAllCaches() {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+}
+
+// ─────────────────────────────────────────────
+// Push Notifications - PWABuilder App Capabilities
+// ─────────────────────────────────────────────
 self.addEventListener('push', (event) => {
     let data = {
         title: 'Ondeline Tech',
         body: 'Nova notificação',
         url: '/dashboard.php',
         type: 'info',
-        tag: 'default'
+        tag: 'default',
+        id: null
     };
 
     if (event.data) {
-        try {
-            data = { ...data, ...event.data.json() };
-        } catch (e) {
-            data.body = event.data.text();
-        }
-    }
-    
-    // Define ações baseadas no tipo de notificação
-    let actions = [
-        { action: 'open', title: 'Abrir', icon: '/icons/open.png' },
-        { action: 'dismiss', title: 'Dispensar', icon: '/icons/close.png' }
-    ];
-    
-    // Ações contextuais por tipo
-    if (data.type === 'work_order') {
-        actions = [
-            { action: 'view_order', title: 'Ver OS', icon: '/icons/view.png' },
-            { action: 'start_order', title: 'Iniciar', icon: '/icons/play.png' },
-            { action: 'dismiss', title: 'Depois', icon: '/icons/close.png' }
-        ];
-    } else if (data.type === 'sync') {
-        actions = [
-            { action: 'sync_now', title: 'Sincronizar', icon: '/icons/sync.png' },
-            { action: 'dismiss', title: 'Ignorar', icon: '/icons/close.png' }
-        ];
-    } else if (data.type === 'checklist') {
-        actions = [
-            { action: 'view_checklist', title: 'Ver Checklist', icon: '/icons/checklist.png' },
-            { action: 'dismiss', title: 'Depois', icon: '/icons/close.png' }
-        ];
+        try { data = { ...data, ...event.data.json() }; }
+        catch (e) { data.body = event.data.text(); }
     }
 
-    const options = {
-        body: data.body,
-        icon: '/logo.png',
-        badge: '/logo.png',
-        vibrate: [100, 50, 100],
-        tag: data.tag,
-        renotify: true,
-        requireInteraction: data.type === 'work_order', // Mantém na tela para OS
-        data: { 
-            url: data.url,
-            type: data.type,
-            id: data.id
-        },
-        actions: actions.slice(0, 2) // Máximo 2 ações em mobile
+    const actionMap = {
+        work_order: [
+            { action: 'view_order',  title: 'Ver OS',      icon: '/icons/icon-192.png' },
+            { action: 'dismiss',     title: 'Depois',       icon: '/icons/icon-192.png' }
+        ],
+        sync: [
+            { action: 'sync_now',    title: 'Sincronizar', icon: '/icons/icon-192.png' },
+            { action: 'dismiss',     title: 'Ignorar',      icon: '/icons/icon-192.png' }
+        ],
+        checklist: [
+            { action: 'view_checklist', title: 'Ver Checklist', icon: '/icons/icon-192.png' },
+            { action: 'dismiss',        title: 'Depois',         icon: '/icons/icon-192.png' }
+        ],
+        default: [
+            { action: 'open',    title: 'Abrir',     icon: '/icons/icon-192.png' },
+            { action: 'dismiss', title: 'Dispensar', icon: '/icons/icon-192.png' }
+        ]
     };
 
-    event.waitUntil(
-        (async () => {
-            // Atualiza badge com contagem de notificações
-            const notifications = await self.registration.getNotifications();
-            const count = notifications.length + 1;
-            
-            if ('setAppBadge' in navigator) {
-                navigator.setAppBadge(count).catch(() => {});
-            }
-            
-            return self.registration.showNotification(data.title, options);
-        })()
-    );
-});
-
-// Clique na notificação com ações contextuais
-self.addEventListener('notificationclick', (event) => {
-    event.notification.close();
-    
-    // Limpa badge quando interagir
-    if ('clearAppBadge' in navigator) {
-        navigator.clearAppBadge().catch(() => {});
-    }
-    
-    const notificationData = event.notification.data || {};
-    let targetUrl = notificationData.url || '/dashboard.php';
-    
-    // Processa ações específicas
-    switch (event.action) {
-        case 'dismiss':
-            return; // Apenas fecha
-        
-        case 'view_order':
-            targetUrl = `/ordens.php?id=${notificationData.id}`;
-            break;
-            
-        case 'start_order':
-            targetUrl = `/ordens.php?id=${notificationData.id}&action=start`;
-            break;
-            
-        case 'sync_now':
-            // Dispara sync em background
-            event.waitUntil(syncOfflineQueue());
-            return;
-            
-        case 'view_checklist':
-            targetUrl = `/checklist.php?id=${notificationData.id}`;
-            break;
-            
-        default:
-            // Ação padrão: abre a URL
-            break;
-    }
+    const actions = actionMap[data.type] ?? actionMap.default;
 
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-            for (const client of windowClients) {
-                if (client.url.includes(targetUrl) && 'focus' in client) {
-                    return client.focus();
-                }
-            }
-            return clients.openWindow(targetUrl);
+        self.registration.showNotification(data.title, {
+            body: data.body,
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            vibrate: [100, 50, 100],
+            tag: data.tag,
+            renotify: true,
+            requireInteraction: data.type === 'work_order',
+            data: { url: data.url, type: data.type, id: data.id },
+            actions
         })
     );
 });
+
+// ─────────────────────────────────────────────
+// Notification Click - Roteamento contextual
+// ─────────────────────────────────────────────
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const { id, url } = event.notification.data || {};
+    let target = url || '/dashboard.php';
+
+    switch (event.action) {
+        case 'dismiss':       return;
+        case 'view_order':    target = `/ordens.php?id=${id}`; break;
+        case 'start_order':   target = `/ordens.php?id=${id}&action=start`; break;
+        case 'sync_now':      event.waitUntil(syncData()); return;
+        case 'view_checklist': target = `/checklist.php?id=${id}`; break;
+    }
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+            for (const client of list) {
+                if (client.url.includes(target) && 'focus' in client) return client.focus();
+            }
+            return clients.openWindow(target);
+        })
+    );
+});
+
+// ─────────────────────────────────────────────
+// Share Target - Recebe arquivos compartilhados
+// Usa registerRoute para integrar corretamente com Workbox
+// ─────────────────────────────────────────────
+registerRoute(
+    ({ url, request }) =>
+        url.pathname === '/share-target.php' && request.method === 'POST',
+    async ({ request }) => {
+        const formData = await request.formData();
+        const file  = formData.get('file');
+        const title = formData.get('title') || '';
+        const text  = formData.get('text')  || '';
+        const link  = formData.get('url')   || '';
+
+        // Armazena metadados no cache temporário para a página ler
+        const cache = await caches.open('share-target-cache');
+        const body  = JSON.stringify({ title, text, url: link, hasFile: !!file });
+        await cache.put('/share-data', new Response(body, {
+            headers: { 'Content-Type': 'application/json' }
+        }));
+
+        const redirectUrl = file
+            ? '/upload-foto.php?shared=1'
+            : `/novo-cadastro.php?title=${encodeURIComponent(title)}&text=${encodeURIComponent(text)}`;
+
+        return Response.redirect(redirectUrl, 303);
+    },
+    'POST'
+);

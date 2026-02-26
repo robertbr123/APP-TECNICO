@@ -213,10 +213,13 @@ function handleUnsubscribe($userData) {
 }
 
 function handleSend($data) {
-    $title = $data['title'] ?? 'Ondeline Tech';
-    $body = $data['body'] ?? 'Nova notificacao';
-    $url = $data['url'] ?? '/dashboard.php';
-    $targetUserId = $data['user_id'] ?? null; // null = enviar para todos
+    $title        = $data['title']   ?? 'Ondeline Tech';
+    $body         = $data['body']    ?? 'Nova notificacao';
+    $url          = $data['url']     ?? '/dashboard.php';
+    $type         = $data['type']    ?? 'info';        // work_order | checklist | sync | info
+    $tag          = $data['tag']     ?? 'default';
+    $id           = $data['id']      ?? null;          // ID da OS ou checklist
+    $targetUserId = $data['user_id'] ?? null;          // null = enviar para todos
 
     try {
         $db = Database::getInstance()->getConnection();
@@ -236,8 +239,11 @@ function handleSend($data) {
 
         $payload = json_encode([
             'title' => $title,
-            'body' => $body,
-            'url' => $url
+            'body'  => $body,
+            'url'   => $url,
+            'type'  => $type,
+            'tag'   => $tag,
+            'id'    => $id
         ], JSON_UNESCAPED_UNICODE);
 
         $sent = 0;

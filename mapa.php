@@ -31,6 +31,30 @@
     .marker-inactive {
         background: #ef4444;
     }
+
+    /* Marcador de técnico — roxo pulsante */
+    .marker-technician {
+        background: #7c3aed;
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 2px 10px rgba(124,58,237,0.5);
+        animation: tech-pulse 2s ease-in-out infinite;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-family: 'Material Symbols Outlined';
+        font-size: 14px;
+    }
+    .marker-technician-inactive {
+        background: #9ca3af;
+        animation: none;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    @keyframes tech-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0.5); }
+        50%       { box-shadow: 0 0 0 8px rgba(124,58,237,0); }
+    }
 </style>
 </head>
 <body class="min-h-screen">
@@ -94,6 +118,13 @@
         Inativos
     </span>
 </button>
+<!-- Botão Técnicos — visível somente para admin -->
+<button id="btn-technicians" class="hidden px-4 py-2 rounded-full text-sm font-medium bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-white/10 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all" onclick="toggleTechnicians()">
+    <span class="flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-lg" style="font-variation-settings:'FILL' 1">engineering</span>
+        Técnicos
+    </span>
+</button>
 <button id="btn-reload" class="ml-auto px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/30 flex items-center gap-1.5 hover:shadow-blue-500/50 transition-all btn-press" onclick="loadClients()">
     <span class="material-symbols-outlined text-lg">refresh</span>
     Atualizar
@@ -107,7 +138,7 @@
 <!-- Estatísticas com glassmorphism -->
 <div class="fixed bottom-20 left-3 right-3 z-30">
 <div class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/40 p-4">
-<div class="grid grid-cols-4 gap-3">
+<div class="grid grid-cols-4 gap-3" id="stats-grid">
 <div class="text-center p-2 rounded-xl bg-gray-50/50 dark:bg-white/5">
 <p class="text-2xl font-bold bg-gradient-to-br from-gray-700 to-gray-900 dark:from-white dark:to-gray-300 bg-clip-text text-transparent" id="stat-total">0</p>
 <p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</p>
@@ -123,6 +154,21 @@
 <div class="text-center p-2 rounded-xl bg-blue-50/50 dark:bg-blue-500/10">
 <p class="text-2xl font-bold text-blue-600" id="stat-with-location">0</p>
 <p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Com GPS</p>
+</div>
+</div>
+<!-- Linha de técnicos — visível somente admin -->
+<div id="tech-stats-row" class="hidden grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-white/10">
+<div class="text-center p-2 rounded-xl bg-purple-50/50 dark:bg-purple-500/10">
+<p class="text-2xl font-bold text-purple-600" id="stat-tech-active">0</p>
+<p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Em campo</p>
+</div>
+<div class="text-center p-2 rounded-xl bg-indigo-50/50 dark:bg-indigo-500/10">
+<p class="text-2xl font-bold text-indigo-500" id="stat-tech-total">0</p>
+<p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Técnicos</p>
+</div>
+<div class="text-center p-2 rounded-xl bg-gray-50/50 dark:bg-white/5 flex flex-col items-center justify-center gap-1">
+<span id="tech-refresh-indicator" class="size-2 rounded-full bg-green-500 animate-pulse"></span>
+<p class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ao vivo 30s</p>
 </div>
 </div>
 </div>
@@ -145,6 +191,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     let clients = [];
     let currentFilter = 'all';
     let routeLayer = null;
+
+    // ── Técnicos (admin only) ──
+    let techMarkers = [];
+    let showTechnicians = true;
+    let techRefreshTimer = null;
+    const isAdmin = (JSON.parse(localStorage.getItem('user_data') || '{}')).role === 'admin';
 
     // Inicializa mapa
     function initMap() {
@@ -509,13 +561,152 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
+    // ══════════════════════════════════════════════
+    // TÉCNICOS EM TEMPO REAL — somente admin
+    // ══════════════════════════════════════════════
+
+    function buildTechIcon(isActive) {
+        return L.divIcon({
+            className: 'custom-marker marker-technician' + (isActive ? '' : ' marker-technician-inactive'),
+            html: '<span style="font-family:\'Material Symbols Outlined\';font-size:14px;line-height:1;user-select:none">engineering</span>',
+            iconSize: [34, 34],
+            iconAnchor: [17, 17],
+            popupAnchor: [0, -20]
+        });
+    }
+
+    function timeAgo(minutesAgo) {
+        if (minutesAgo < 1)  return 'agora mesmo';
+        if (minutesAgo < 60) return `${minutesAgo} min atrás`;
+        const h = Math.floor(minutesAgo / 60);
+        return `${h}h atrás`;
+    }
+
+    async function loadTechnicians() {
+        if (!isAdmin || !showTechnicians) return;
+
+        try {
+            const res = await API.getActiveTechnicians();
+            if (!res.success) return;
+
+            const techs = res.data || [];
+
+            // Remove marcadores anteriores
+            techMarkers.forEach(m => map.removeLayer(m));
+            techMarkers = [];
+
+            techs.forEach(tech => {
+                const lat = parseFloat(tech.latitude);
+                const lng = parseFloat(tech.longitude);
+                if (isNaN(lat) || isNaN(lng)) return;
+
+                const active    = tech.is_active == 1 && tech.minutes_ago < 60;
+                const icon      = buildTechIcon(active);
+                const minsAgo   = parseInt(tech.minutes_ago) || 0;
+                const accuracy  = tech.accuracy ? `${Math.round(tech.accuracy)}m` : '—';
+                const lastAct   = (tech.last_activity || 'desconhecido').replace('_', ' ');
+                const statusBadge = active
+                    ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block"></span>Ativo</span>'
+                    : '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500">Inativo</span>';
+
+                const popup = `
+                    <div style="min-width:200px;font-family:'Inter',sans-serif">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                            <div style="width:36px;height:36px;border-radius:50%;background:#7c3aed;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <span style="font-family:'Material Symbols Outlined';color:white;font-size:18px">engineering</span>
+                            </div>
+                            <div>
+                                <p style="font-weight:700;font-size:13px;margin:0;color:#111">${escapeHtml(tech.full_name)}</p>
+                                <p style="font-size:11px;color:#6b7280;margin:2px 0 0">@${escapeHtml(tech.username)}</p>
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                            ${statusBadge}
+                            <span style="font-size:11px;color:#9ca3af">${timeAgo(minsAgo)}</span>
+                        </div>
+                        <div style="background:#f9fafb;border-radius:8px;padding:8px;font-size:11px;color:#6b7280;margin-bottom:8px">
+                            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                                <span>Atividade</span><span style="color:#374151;font-weight:500">${lastAct}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between">
+                                <span>Precisão GPS</span><span style="color:#374151;font-weight:500">${accuracy}</span>
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                            <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}"
+                               target="_blank" rel="noopener"
+                               style="display:flex;align-items:center;justify-content:center;gap:4px;padding:7px;background:#f3f4f6;border-radius:8px;text-decoration:none;font-size:11px;font-weight:600;color:#374151">
+                                <span style="font-family:'Material Symbols Outlined';font-size:14px">map</span>Maps
+                            </a>
+                            <a href="ordens.php?new=1&technician_id=${tech.user_id}"
+                               style="display:flex;align-items:center;justify-content:center;gap:4px;padding:7px;background:#7c3aed;border-radius:8px;text-decoration:none;font-size:11px;font-weight:600;color:white">
+                                <span style="font-family:'Material Symbols Outlined';font-size:14px">add_task</span>Criar OS
+                            </a>
+                        </div>
+                    </div>`;
+
+                const m = L.marker([lat, lng], { icon, zIndexOffset: 1000 })
+                    .addTo(map)
+                    .bindPopup(popup, { maxWidth: 260 });
+
+                m.techData = tech;
+                techMarkers.push(m);
+            });
+
+            // Atualiza stats
+            document.getElementById('stat-tech-total').textContent  = techs.length;
+            document.getElementById('stat-tech-active').textContent = techs.filter(t => t.is_active == 1 && t.minutes_ago < 60).length;
+
+        } catch (e) {
+            // silencioso — não interrompe o mapa
+        }
+    }
+
+    function toggleTechnicians() {
+        showTechnicians = !showTechnicians;
+        const btn = document.getElementById('btn-technicians');
+
+        if (showTechnicians) {
+            btn.classList.add('text-purple-600', 'dark:text-purple-400');
+            btn.classList.remove('text-gray-400', 'dark:text-gray-600', 'opacity-50');
+            loadTechnicians();
+        } else {
+            btn.classList.remove('text-purple-600', 'dark:text-purple-400');
+            btn.classList.add('text-gray-400', 'dark:text-gray-600', 'opacity-50');
+            techMarkers.forEach(m => map.removeLayer(m));
+            techMarkers = [];
+        }
+    }
+
+    function startTechRefresh() {
+        if (techRefreshTimer) clearInterval(techRefreshTimer);
+        techRefreshTimer = setInterval(() => {
+            if (showTechnicians) {
+                // pisca o indicador
+                const ind = document.getElementById('tech-refresh-indicator');
+                if (ind) { ind.style.opacity = '0'; setTimeout(() => ind.style.opacity = '1', 300); }
+                loadTechnicians();
+            }
+        }, 30000); // 30 segundos
+    }
+
     // Inicializa
     initMap();
     loadClients();
 
+    // Admin: exibe controles e carrega técnicos
+    if (isAdmin) {
+        document.getElementById('btn-technicians').classList.remove('hidden');
+        document.getElementById('tech-stats-row').classList.remove('hidden');
+        // grid passa de 4 para 4 colunas (mantém) + linha extra de técnicos
+        loadTechnicians();
+        startTechRefresh();
+    }
+
     // Expõe funções globalmente
-    window.initMap = initMap;
+    window.initMap     = initMap;
     window.loadClients = loadClients;
+    window.toggleTechnicians = toggleTechnicians;
 });
 </script>
 </body></html>

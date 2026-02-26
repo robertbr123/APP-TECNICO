@@ -782,13 +782,16 @@ const API = {
         });
     },
 
-    async sendPush(title, body, url, userId) {
+    async sendPush(title, body, url, userId, type = 'info', tag = 'default', id = null) {
         return this.post('push.php', {
             action: 'send',
-            title: title,
-            body: body,
-            url: url || '/dashboard.php',
-            user_id: userId || null
+            title,
+            body,
+            url:     url     || '/dashboard.php',
+            user_id: userId  || null,
+            type,   // work_order | checklist | sync | info
+            tag,
+            id
         });
     },
 
@@ -874,6 +877,60 @@ const API = {
 
     async getReport(reportType, dateFrom, dateTo) {
         return this.get('reports.php', { report: reportType, date_from: dateFrom, date_to: dateTo });
+    },
+
+    // ==========================================
+    // LOCALIZAÇÃO DO TÉCNICO (tempo real)
+    // ==========================================
+
+    /**
+     * Atualiza localização do técnico no servidor
+     * Chamado periodicamente enquanto o app está aberto
+     */
+    async updateTechnicianLocation(latitude, longitude, accuracy, heading = null, speed = null, lastActivity = 'app_active') {
+        return this.post('technician-location.php', {
+            action: 'update',
+            latitude,
+            longitude,
+            accuracy,
+            heading,
+            speed,
+            last_activity: lastActivity
+        });
+    },
+
+    /**
+     * Marca técnico como inativo (app fechado ou em background)
+     */
+    async setTechnicianInactive() {
+        return this.post('technician-location.php', { action: 'inactive' });
+    },
+
+    /**
+     * Retorna localização atual do técnico logado
+     */
+    async getMyLocation() {
+        return this.get('technician-location.php', { action: 'my' });
+    },
+
+    /**
+     * Lista técnicos ativos no mapa (admin)
+     */
+    async getActiveTechnicians() {
+        return this.get('technician-location.php', { action: 'list' });
+    },
+
+    /**
+     * Sugere técnico mais próximo de um cliente (admin)
+     * @param {string} clientCpf - CPF do cliente
+     * @param {number} lat - Latitude (opcional, usa do cliente se não informado)
+     * @param {number} lng - Longitude (opcional)
+     */
+    async getNearestTechnician(clientCpf, lat = null, lng = null) {
+        const params = { action: 'suggest', client_cpf: clientCpf };
+        if (lat) params.latitude  = lat;
+        if (lng) params.longitude = lng;
+        return this.get('technician-location.php', params);
     }
 };
 

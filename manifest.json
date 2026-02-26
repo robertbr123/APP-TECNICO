@@ -11,6 +11,7 @@
     "theme_color": "#135bec",
     "lang": "pt-BR",
     "dir": "ltr",
+
     "icons": [
         {
             "src": "icons/icon-192.png",
@@ -31,6 +32,7 @@
             "purpose": "maskable"
         }
     ],
+
     "screenshots": [
         {
             "src": "icons/screenshot-mobile.png",
@@ -40,6 +42,7 @@
             "label": "Dashboard principal"
         }
     ],
+
     "shortcuts": [
         {
             "name": "Novo Cadastro",
@@ -63,6 +66,55 @@
             "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
         }
     ],
+
+    "share_target": {
+        "action": "/share-target.php",
+        "method": "POST",
+        "enctype": "multipart/form-data",
+        "params": {
+            "title": "title",
+            "text": "text",
+            "url": "url",
+            "files": [
+                {
+                    "name": "file",
+                    "accept": ["image/png", "image/jpeg", "image/gif", "image/webp", "application/pdf"]
+                }
+            ]
+        }
+    },
+
+    "file_handlers": [
+        {
+            "action": "/upload-foto.php",
+            "accept": {
+                "image/png":  [".png"],
+                "image/jpeg": [".jpg", ".jpeg"],
+                "image/webp": [".webp"],
+                "application/pdf": [".pdf"]
+            },
+            "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }],
+            "launch_type": "single-client"
+        }
+    ],
+
+    "protocol_handlers": [
+        {
+            "protocol": "web+ondeline",
+            "url": "/detalher.php?id=%s"
+        }
+    ],
+
+    "handle_links": "preferred",
+
+    "launch_handler": {
+        "client_mode": ["focus-existing", "auto"]
+    },
+
+    "edge_side_panel": {
+        "preferred_width": 400
+    },
+
     "categories": ["business", "productivity"],
     "prefer_related_applications": false,
     "related_applications": []

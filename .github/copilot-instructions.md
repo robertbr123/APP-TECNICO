@@ -12,14 +12,19 @@
 - **Vanilla JavaScript** (ES6+) - sem frameworks
 - **Google Material Symbols Outlined** para icones
 - **Google Fonts (Inter)** para tipografia
-- **Service Worker** (`sw.js`) para suporte offline e cache
-- **PWA** com `manifest.json` para instalacao no dispositivo
+- **Service Worker** (`sw.js`) com **Workbox 7** para suporte offline e cache
+- **PWA** com `manifest.json` e App Capabilities completas
 
 ### Backend
 - **PHP 7.4+** com arquitetura RESTful
 - **MySQL/MariaDB** via PDO (prepared statements)
 - **JWT** para autenticacao (Bearer token)
 - **Hospedagem**: cPanel com Apache
+- **Push Notifications**: Web Push Protocol VAPID, RFC 8291, aes128gcm (sem biblioteca externa)
+
+### Publicacao
+- **PWABuilder** (TWA) para gerar `.aab` para Google Play Store
+- **manifest.json** com: `share_target`, `file_handlers`, `protocol_handlers`, `launch_handler`, `shortcuts`
 
 ### Banco de Dados
 - `onde2292_erp`: banco unico com todas as tabelas (usuarios, clientes, auditoria, ponto, fotos, estoque, checklists, planos, notificacoes, ordens de servico, fila offline)
@@ -185,13 +190,14 @@
 - Dashboard mostra progresso em barra de porcentagem animada
 - Contagem de cadastros do mes vs meta
 
-### Suporte Offline (PWA)
-- Service Worker com cache de paginas PHP e assets JS/CSS
-- CDN externo (fontes, icones) cacheado via cache-first
-- API GET cacheada via network-first (dados offline = ultimos dados)
-- Fila offline em `localStorage` (`offlineQueue`)
-- Sync automatico via BackgroundSync + fallback manual
+### Suporte Offline (PWA) — Workbox 7
+- Service Worker em `sw.js` usa **Workbox 7 via CDN** (`importScripts`)
+- Estratégias: CacheFirst (fontes/imagens), StaleWhileRevalidate (CSS/JS), NetworkFirst (PHP/API) com timeout de 3s
+- **Precache** de assets estáticos criticos (JS, CSS, imagens, offline.php)
+- **BackgroundSyncPlugin** captura POSTs offline para `/api/clients`, `/api/work-orders`, `/api/checklist`, `/api/inventory`, `/api/time-clock`
+- **Sync manual** via tag `'sync-offline-queue'` → notifica clients → `POST /api/sync.php`
 - Tabela `offline_queue` no banco para tracking server-side
+- Fallback offline: pagina `/offline.php` (precacheada) + SVG placeholder para imagens
 - Acoes offline suportadas: cadastro, atualizacao, vinculacao, upload de foto
 
 ## Regras de Negocio Importantes
@@ -218,6 +224,47 @@
 - `.htaccess` protegendo diretorio de uploads
 - HTTPS obrigatorio para PWA e geolocalizacao
 
+## Geolocalizacao
+
+Dois contextos distintos:
+
+### 1. Localizacao do cliente
+- Capturada no cadastro via `js/geolocation.js` (`enableHighAccuracy: true`)
+- Salva em `clients.latitude` / `clients.longitude`
+- Exibida no mapa e usada para sugerir tecnico mais proximo
+
+### 2. Localizacao do tecnico (tempo real)
+- Atualizada periodicamente via `API.updateTechnicianLocation(lat, lng, accuracy)`
+- Endpoint: `POST /api/technician-location.php { action: 'update', ... }`
+- Admin ve tecnicos ativos no mapa (ultimas 2 horas)
+- Admin pode sugerir tecnico mais proximo de um cliente: `API.getNearestTechnician(cpf)`
+- Formula Haversine no MySQL para calculo de distancia
+- Marcar inativo ao fechar app: `API.setTechnicianInactive()`
+- Periodic Sync (`'sync-location'`) notifica clients para enviar localizacao ao servidor
+
+## Push Notifications
+
+- Backend: `api/push.php` — subscribe, send, unsubscribe, list
+- Payload deve incluir: `title`, `body`, `url`, `type`, `tag`, `id`
+- Tipos suportados: `work_order`, `checklist`, `sync`, `info`
+- Cada tipo exibe botoes de acao diferentes no Android
+- Frontend: `API.sendPush(title, body, url, userId, type, tag, id)`
+- Para testar: `GET /api/push.php?test=1` (admin)
+- Chaves VAPID configuradas em `api/config.php` (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT)
+
+## Share Target
+
+- Configurado em `manifest.json > share_target`
+- Quando outro app Android compartilha foto/texto para este app, abre `share-target.php`
+- O SW intercepta o POST em `registerRoute(..., 'POST')` e redireciona para upload ou cadastro
+- Dados compartilhados ficam em `caches.open('share-target-cache')`
+
+## Atualizacao do Service Worker
+
+- Ao fazer mudancas no codigo, incrementar `APP_VERSION` em `sw.js`
+- O Workbox `cleanupOutdatedCaches()` limpa caches de versoes anteriores automaticamente
+- Forcar atualizacao no cliente: `navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' })`
+
 ## Como Contribuir
 
 1. Sempre testar em dispositivo movel (PWA mobile-first)
@@ -230,3 +277,6 @@
 8. Manter dark mode funcional em novos componentes
 9. Usar `escapeHtml()` ao inserir dados do usuario em innerHTML
 10. Comprimir imagens com `Utils.compressImage()` antes de upload
+11. Ao adicionar novos endpoints de POST offline, registrar a rota no sw.js (Background Sync)
+12. Ao criar novas paginas PHP, adicionar ao precache em `sw.js` se for critica para offline
+13. Geolocalizacao exige HTTPS — nunca testar localizacao em HTTP
