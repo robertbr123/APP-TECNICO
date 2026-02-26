@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "br.com.ondeline.app.twa",
+    "sha256_cert_fingerprints": ["71:CD:82:94:F6:59:4A:28:2F:82:3D:B0:E1:E8:E7:30:B1:1E:4E:4D:A7:FE:37:D8:12:3A:F1:D9:39:B7:37:3B"]
+  }
+}]
