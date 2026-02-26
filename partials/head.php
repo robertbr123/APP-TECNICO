@@ -1,4 +1,11 @@
     <meta charset="utf-8"/>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
     <meta name="theme-color" content="#135bec"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>

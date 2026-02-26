@@ -33,17 +33,7 @@
         }
     ],
 
-    "screenshots": [
-        {
-            "src": "icons/screenshot-mobile.png",
-            "sizes": "390x844",
-            "type": "image/png",
-            "form_factor": "narrow",
-            "label": "Dashboard principal"
-        }
-    ],
-
-    "shortcuts": [
+"shortcuts": [
         {
             "name": "Novo Cadastro",
             "short_name": "Cadastrar",
