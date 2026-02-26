@@ -1,7 +1,7 @@
 {
     "name": "Ondeline - Técnico",
     "short_name": "Ondeline",
-    "description": "App do Técnico - Cadastro e gestão de clientes",
+    "description": "App do Técnico - Cadastro e gestão de clientes, ordens de serviço e estoque",
     "id": "/dashboard.php",
     "start_url": "/dashboard.php",
     "scope": "/",
@@ -10,24 +10,34 @@
     "background_color": "#f6f6f8",
     "theme_color": "#135bec",
     "lang": "pt-BR",
+    "dir": "ltr",
     "icons": [
         {
-            "src": "logo.png",
+            "src": "icons/icon-192.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "logo.png",
+            "src": "icons/icon-512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "logo.png",
+            "src": "icons/icon-maskable-512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "icons/screenshot-mobile.png",
+            "sizes": "390x844",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Dashboard principal"
         }
     ],
     "shortcuts": [
@@ -36,23 +46,24 @@
             "short_name": "Cadastrar",
             "description": "Cadastrar novo cliente",
             "url": "/novo-cadastro.php",
-            "icons": [{ "src": "logo.png", "sizes": "96x96" }]
+            "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
         },
         {
             "name": "Consultar Clientes",
             "short_name": "Consultar",
             "description": "Buscar clientes cadastrados",
             "url": "/consultar.php",
-            "icons": [{ "src": "logo.png", "sizes": "96x96" }]
+            "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
         },
         {
             "name": "Ordens de Serviço",
             "short_name": "OS",
             "description": "Gerenciar ordens de serviço",
             "url": "/ordens.php",
-            "icons": [{ "src": "logo.png", "sizes": "96x96" }]
+            "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
         }
     ],
     "categories": ["business", "productivity"],
-    "prefer_related_applications": false
+    "prefer_related_applications": false,
+    "related_applications": []
 }
