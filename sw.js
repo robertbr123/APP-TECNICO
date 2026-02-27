@@ -6,7 +6,7 @@
 
 importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.0.0/workbox-sw.js');
 
-const APP_VERSION = 'v3.0.1';
+const APP_VERSION = 'v3.0.2';
 
 // ─────────────────────────────────────────────
 // Configuração do Workbox

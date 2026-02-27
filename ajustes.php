@@ -122,6 +122,55 @@
         </div>
     </section>
 
+    <!-- Notificações -->
+    <section class="mb-6">
+        <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-3">Notificações</h2>
+        <div class="bg-white dark:bg-card-dark rounded-ios-xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+            <div class="p-4 flex items-center gap-3">
+                <div id="push-icon-wrap" class="size-10 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-primary text-xl">notifications</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[15px] font-medium text-gray-900 dark:text-white">Notificações Push</p>
+                    <p id="push-status-text" class="text-xs text-gray-500 dark:text-gray-400 truncate">Verificando...</p>
+                </div>
+                <button id="btn-push-toggle" disabled
+                    class="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full bg-gray-200 dark:bg-gray-700 transition-colors duration-200 focus:outline-none">
+                    <span id="push-toggle-dot"
+                        class="inline-block size-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 translate-x-0.5"></span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sincronização Offline -->
+    <section class="mb-6">
+        <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-3">Sincronização Offline</h2>
+        <div class="bg-white dark:bg-card-dark rounded-ios-xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden">
+            <div class="p-4 flex items-center gap-3 border-b border-gray-100 dark:border-white/5">
+                <div class="size-10 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-amber-500 text-xl">cloud_sync</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-[15px] font-medium text-gray-900 dark:text-white">Itens Pendentes</p>
+                    <p id="offline-queue-count" class="text-xs text-gray-500 dark:text-gray-400">Verificando...</p>
+                </div>
+                <button id="btn-sync-now" class="px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hidden">
+                    Sincronizar
+                </button>
+            </div>
+            <div class="p-4 flex items-center gap-3">
+                <div id="online-icon-wrap" class="size-10 rounded-full bg-green-50 dark:bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                    <span id="online-status-icon" class="material-symbols-outlined text-green-500 text-xl">wifi</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-[15px] font-medium text-gray-900 dark:text-white">Conexão</p>
+                    <p id="online-status-text" class="text-xs text-gray-500 dark:text-gray-400">Verificando...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Sistema -->
     <section class="mb-6">
         <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 mb-3">Sistema</h2>
@@ -150,8 +199,10 @@
 
 <!-- Scripts do App -->
 <script src="js/api.js"></script>
+<script src="js/utils.js"></script>
 <script src="js/components.js"></script>
 <script src="js/app.js"></script>
+<script src="js/feedback.js"></script>
 <script>
 // Carregar versão do Service Worker
 async function loadAppVersion() {
