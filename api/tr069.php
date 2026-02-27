@@ -6,6 +6,52 @@
  * Permite buscar informações WiFi e alterar configurações remotamente.
  */
 
+// Habilita exibição de erros para debug (remover em produção)
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
+// Captura erros e converte em JSON
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Erro PHP',
+        'message' => $errstr,
+        'file' => basename($errfile),
+        'line' => $errline
+    ]);
+    exit;
+});
+
+// Captura exceções
+set_exception_handler(function($e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Exceção',
+        'message' => $e->getMessage(),
+        'file' => basename($e->getFile()),
+        'line' => $e->getLine()
+    ]);
+    exit;
+});
+
+// Captura erros fatais
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Erro Fatal',
+            'message' => $error['message'],
+            'file' => basename($error['file']),
+            'line' => $error['line']
+        ]);
+    }
+});
+
 require_once 'config.php';
 require_once 'tr069-config.php';
 
@@ -23,7 +69,7 @@ if (isset($headers['Authorization'])) {
 $userId = null;
 $userRole = null;
 if ($token) {
-    $tokenData = validateToken($token);
+    $tokenData = verifyToken($token);
     if ($tokenData) {
         $userId = $tokenData['user_id'] ?? null;
         $userRole = $tokenData['role'] ?? null;
