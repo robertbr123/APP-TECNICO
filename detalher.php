@@ -91,6 +91,149 @@ Sincronizar
 </div>
 </section>
 
+<!-- Gerenciamento WiFi via TR069 -->
+<section id="wifi-section" class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">wifi</span>
+<h3 class="text-[#111318] dark:text-white text-base font-bold">Configuração WiFi</h3>
+</div>
+<div id="wifi-status-badge" class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
+<div id="wifi-status-dot" class="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></div>
+<span id="wifi-status-text" class="text-[10px] font-medium text-gray-500">Verificando...</span>
+</div>
+</div>
+
+<!-- Estado: Carregando -->
+<div id="wifi-loading" class="flex flex-col items-center py-8">
+<div class="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin mb-3"></div>
+<p class="text-sm text-gray-500">Buscando dispositivo no TR069...</p>
+</div>
+
+<!-- Estado: Sem PPPoE -->
+<div id="wifi-no-pppoe" class="hidden flex flex-col items-center py-6 text-center">
+<div class="w-14 h-14 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-yellow-600 dark:text-yellow-400 text-2xl">warning</span>
+</div>
+<p class="text-sm font-medium text-gray-700 dark:text-gray-300">PPPoE não configurado</p>
+<p class="text-xs text-gray-500 mt-1">Configure o usuário PPPoE do cliente para gerenciar o WiFi</p>
+</div>
+
+<!-- Estado: Dispositivo não encontrado -->
+<div id="wifi-not-found" class="hidden flex flex-col items-center py-6 text-center">
+<div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-gray-400 text-2xl">router</span>
+</div>
+<p class="text-sm font-medium text-gray-700 dark:text-gray-300">Dispositivo não encontrado</p>
+<p class="text-xs text-gray-500 mt-1">O equipamento ainda não se conectou ao TR069</p>
+<button onclick="loadWifiInfo()" class="mt-3 text-xs bg-primary/10 text-primary font-semibold px-4 py-2 rounded-lg flex items-center gap-1 hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-sm">refresh</span>
+Tentar novamente
+</button>
+</div>
+
+<!-- Estado: Erro de conexão -->
+<div id="wifi-error" class="hidden flex flex-col items-center py-6 text-center">
+<div class="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-red-500 text-2xl">error</span>
+</div>
+<p class="text-sm font-medium text-gray-700 dark:text-gray-300">Erro ao conectar com TR069</p>
+<p id="wifi-error-msg" class="text-xs text-gray-500 mt-1">Verifique se o serviço está online</p>
+<button onclick="loadWifiInfo()" class="mt-3 text-xs bg-primary/10 text-primary font-semibold px-4 py-2 rounded-lg flex items-center gap-1 hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-sm">refresh</span>
+Tentar novamente
+</button>
+</div>
+
+<!-- Estado: Sucesso - Mostra informações -->
+<div id="wifi-info" class="hidden">
+<!-- Informações do Dispositivo -->
+<div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-4">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-gray-500 text-lg">router</span>
+<span class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Equipamento</span>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<div>
+<p class="text-[10px] text-gray-500 uppercase">Fabricante</p>
+<p id="wifi-manufacturer" class="text-sm font-semibold text-gray-800 dark:text-white">—</p>
+</div>
+<div>
+<p class="text-[10px] text-gray-500 uppercase">Modelo</p>
+<p id="wifi-model" class="text-sm font-semibold text-gray-800 dark:text-white">—</p>
+</div>
+<div>
+<p class="text-[10px] text-gray-500 uppercase">Serial</p>
+<p id="wifi-serial" class="text-xs font-mono text-gray-600 dark:text-gray-400">—</p>
+</div>
+<div>
+<p class="text-[10px] text-gray-500 uppercase">IP</p>
+<p id="wifi-ip" class="text-xs font-mono text-gray-600 dark:text-gray-400">—</p>
+</div>
+</div>
+</div>
+
+<!-- Configurações WiFi -->
+<div class="grid grid-cols-1 gap-3">
+<div class="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-600 dark:text-blue-400">wifi</span>
+</div>
+<div>
+<p class="text-[10px] text-blue-600 dark:text-blue-400 uppercase font-medium">Nome da Rede (SSID)</p>
+<p id="wifi-ssid" class="text-base font-bold text-gray-900 dark:text-white">—</p>
+</div>
+</div>
+<button onclick="openEditWifiModal('ssid')" class="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+</div>
+
+<div class="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-purple-600 dark:text-purple-400">key</span>
+</div>
+<div>
+<p class="text-[10px] text-purple-600 dark:text-purple-400 uppercase font-medium">Senha WiFi</p>
+<div class="flex items-center gap-2">
+<p id="wifi-password-display" class="text-base font-bold text-gray-900 dark:text-white font-mono">••••••••</p>
+<button onclick="toggleWifiPassword()" class="text-purple-500 hover:text-purple-700">
+<span id="wifi-password-icon" class="material-symbols-outlined text-sm">visibility</span>
+</button>
+</div>
+</div>
+</div>
+<button onclick="openEditWifiModal('password')" class="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/40 transition-colors">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+</div>
+
+<div class="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-green-600 dark:text-green-400">security</span>
+</div>
+<div>
+<p class="text-[10px] text-green-600 dark:text-green-400 uppercase font-medium">Segurança</p>
+<p id="wifi-security" class="text-sm font-semibold text-gray-900 dark:text-white">—</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Botão de Editar Tudo -->
+<button onclick="openEditWifiModal('all')" class="w-full mt-4 h-12 bg-primary/10 text-primary rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined">settings</span>
+Configurar WiFi Completo
+</button>
+
+<!-- Última atualização -->
+<p id="wifi-last-contact" class="text-[10px] text-gray-400 text-center mt-3">Último contato: —</p>
+</div>
+</section>
+
 <section class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
 <div class="flex items-center gap-2 mb-4">
 <span class="material-symbols-outlined text-primary text-xl">location_on</span>
@@ -191,6 +334,85 @@ Sincronizar
 </div>
 </div>
 
+<!-- Modal de Edição WiFi -->
+<div id="wifi-edit-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-end sm:items-center justify-center">
+<div class="bg-white dark:bg-gray-900 w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-6 pb-10 sm:pb-6" onclick="event.stopPropagation()">
+<div class="flex items-center justify-between mb-5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">wifi</span>
+<h3 id="wifi-modal-title" class="text-lg font-bold text-gray-900 dark:text-white">Configurar WiFi</h3>
+</div>
+<button onclick="closeWifiModal()" class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+<span class="material-symbols-outlined text-gray-500">close</span>
+</button>
+</div>
+
+<form id="wifi-edit-form" onsubmit="submitWifiChanges(event)">
+<!-- Campo SSID -->
+<div id="wifi-field-ssid" class="mb-4">
+<label class="text-xs font-semibold text-gray-500 uppercase mb-2 block">Nome da Rede (SSID)</label>
+<input type="text" id="wifi-input-ssid" name="ssid" 
+class="w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-4 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+placeholder="Digite o nome da rede WiFi"
+maxlength="32">
+<p class="text-[10px] text-gray-400 mt-1">Máximo 32 caracteres</p>
+</div>
+
+<!-- Campo Senha -->
+<div id="wifi-field-password" class="mb-4">
+<label class="text-xs font-semibold text-gray-500 uppercase mb-2 block">Senha WiFi</label>
+<div class="relative">
+<input type="password" id="wifi-input-password" name="password" 
+class="w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-4 pr-12 text-sm font-mono focus:ring-2 focus:ring-primary focus:border-transparent"
+placeholder="Digite a nova senha"
+minlength="8"
+maxlength="63">
+<button type="button" onclick="toggleModalPassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+<span id="modal-password-icon" class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+<p class="text-[10px] text-gray-400 mt-1">Mínimo 8 caracteres</p>
+</div>
+
+<!-- Campo Segurança (só aparece em edição completa) -->
+<div id="wifi-field-security" class="mb-4 hidden">
+<label class="text-xs font-semibold text-gray-500 uppercase mb-2 block">Modo de Segurança</label>
+<select id="wifi-input-security" name="security_mode"
+class="w-full h-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-4 text-sm">
+<option value="">Manter atual</option>
+<option value="WPA2-PSK">WPA2-PSK (Recomendado)</option>
+<option value="WPA-WPA2-PSK">WPA/WPA2-PSK (Compatibilidade)</option>
+<option value="WPA-PSK">WPA-PSK (Legado)</option>
+</select>
+</div>
+
+<!-- Aviso -->
+<div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3 mb-4">
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-yellow-600 text-lg flex-shrink-0">info</span>
+<div>
+<p class="text-xs text-yellow-800 dark:text-yellow-300 font-medium">Importante</p>
+<p class="text-[11px] text-yellow-700 dark:text-yellow-400 mt-0.5">As alterações serão aplicadas no próximo contato do equipamento com o servidor (geralmente em até 10 minutos).</p>
+</div>
+</div>
+</div>
+
+<!-- Botões -->
+<div class="flex gap-3">
+<button type="button" onclick="closeWifiModal()" 
+class="flex-1 h-12 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold">
+Cancelar
+</button>
+<button type="submit" id="wifi-submit-btn"
+class="flex-1 h-12 bg-primary text-white rounded-xl font-semibold flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">save</span>
+Salvar
+</button>
+</div>
+</form>
+</div>
+</div>
+
 <!-- Scripts do App -->
 <script src="js/api.js"></script>
 <script src="js/app.js"></script>
@@ -201,6 +423,14 @@ Sincronizar
     var currentContrato = '';
     var currentServidor = '';
     var currentClientData = null; // Armazena dados do cliente para edição
+    
+    // =====================================================
+    // VARIÁVEIS WIFI / TR069
+    // =====================================================
+    var currentPppoe = '';
+    var wifiData = null;
+    var wifiPasswordVisible = false;
+    var modalPasswordVisible = false;
     
     document.addEventListener('DOMContentLoaded', async function() {
         // Verifica se é admin e mostra botões de editar/excluir
@@ -578,6 +808,9 @@ Sincronizar
                 // PPPoE
                 var pppoeEl = document.getElementById('client-pppoe');
                 if (pppoeEl) pppoeEl.textContent = client.pppoe || client.pppoe_user || client.usuario_pppoe || 'Não informado';
+                
+                // Armazena PPPoE para uso no WiFi
+                currentPppoe = client.pppoe || client.pppoe_user || client.usuario_pppoe || '';
 
                 // Senha (armazena para toggle)
                 clientPassword = client.password || client.pppoe_password || client.senha || '';
@@ -643,6 +876,9 @@ Sincronizar
                     if (contratoEl) contratoEl.textContent = 'Não vinculado';
                     setConnectionStatus('unknown', 'Contrato não vinculado. Clique em Sincronizar.');
                 }
+                
+                // Carrega informações WiFi via TR069
+                await loadWifiInfo();
             } else {
                 alert('Cliente não encontrado');
             }
@@ -1284,6 +1520,375 @@ Sincronizar
                 btn.disabled = false;
             }
         }
+    }
+    
+    // =====================================================
+    // FUNÇÕES DE GERENCIAMENTO WIFI / TR069
+    // =====================================================
+    
+    /**
+     * Carrega informações WiFi do dispositivo via TR069
+     */
+    async function loadWifiInfo() {
+        // Esconde todos os estados
+        hideAllWifiStates();
+        document.getElementById('wifi-loading').classList.remove('hidden');
+        setWifiStatusBadge('loading', 'Carregando...');
+        
+        // Verifica se tem PPPoE configurado
+        if (!currentPppoe) {
+            hideAllWifiStates();
+            document.getElementById('wifi-no-pppoe').classList.remove('hidden');
+            setWifiStatusBadge('warning', 'Sem PPPoE');
+            return;
+        }
+        
+        try {
+            var token = localStorage.getItem('auth_token') || '';
+            var headers = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+            
+            // Primeiro verifica se o TR069 está online
+            var healthResponse = await fetch('/api/tr069.php?action=health', { headers: headers });
+            var healthResult = await healthResponse.json();
+            
+            if (!healthResult.success) {
+                hideAllWifiStates();
+                document.getElementById('wifi-error').classList.remove('hidden');
+                document.getElementById('wifi-error-msg').textContent = 'Serviço TR069 indisponível';
+                setWifiStatusBadge('error', 'Offline');
+                return;
+            }
+            
+            // Busca o dispositivo pelo PPPoE
+            var response = await fetch('/api/tr069.php?action=get_device&pppoe=' + encodeURIComponent(currentPppoe), {
+                headers: headers
+            });
+            var result = await response.json();
+            
+            console.log('TR069 Device:', result);
+            
+            if (!result.success) {
+                hideAllWifiStates();
+                if (response.status === 404) {
+                    document.getElementById('wifi-not-found').classList.remove('hidden');
+                    setWifiStatusBadge('warning', 'Não encontrado');
+                } else {
+                    document.getElementById('wifi-error').classList.remove('hidden');
+                    document.getElementById('wifi-error-msg').textContent = result.error || 'Erro desconhecido';
+                    setWifiStatusBadge('error', 'Erro');
+                }
+                return;
+            }
+            
+            // Sucesso - armazena dados e exibe
+            wifiData = result;
+            
+            // Preenche informações do dispositivo
+            document.getElementById('wifi-manufacturer').textContent = result.device?.manufacturer || '—';
+            document.getElementById('wifi-model').textContent = result.device?.model || '—';
+            document.getElementById('wifi-serial').textContent = result.device?.serial_number || '—';
+            document.getElementById('wifi-ip').textContent = result.device?.ip_address || '—';
+            
+            // Preenche informações WiFi
+            document.getElementById('wifi-ssid').textContent = result.wifi?.ssid || 'Não configurado';
+            document.getElementById('wifi-security').textContent = formatSecurityMode(result.wifi?.security_mode, result.wifi?.encryption);
+            
+            // Formata último contato
+            var lastContact = result.device?.last_contact;
+            if (lastContact) {
+                var date = new Date(lastContact);
+                document.getElementById('wifi-last-contact').textContent = 'Último contato: ' + date.toLocaleString('pt-BR');
+            } else {
+                document.getElementById('wifi-last-contact').textContent = 'Último contato: —';
+            }
+            
+            // Status online/offline
+            if (result.device?.is_online) {
+                setWifiStatusBadge('online', 'Online');
+            } else {
+                setWifiStatusBadge('offline', 'Offline');
+            }
+            
+            // Mostra a seção de informações
+            hideAllWifiStates();
+            document.getElementById('wifi-info').classList.remove('hidden');
+            
+        } catch (error) {
+            console.error('Erro ao carregar WiFi:', error);
+            hideAllWifiStates();
+            document.getElementById('wifi-error').classList.remove('hidden');
+            document.getElementById('wifi-error-msg').textContent = 'Erro de conexão: ' + error.message;
+            setWifiStatusBadge('error', 'Erro');
+        }
+    }
+    
+    /**
+     * Esconde todos os estados da seção WiFi
+     */
+    function hideAllWifiStates() {
+        document.getElementById('wifi-loading').classList.add('hidden');
+        document.getElementById('wifi-no-pppoe').classList.add('hidden');
+        document.getElementById('wifi-not-found').classList.add('hidden');
+        document.getElementById('wifi-error').classList.add('hidden');
+        document.getElementById('wifi-info').classList.add('hidden');
+    }
+    
+    /**
+     * Atualiza o badge de status WiFi
+     */
+    function setWifiStatusBadge(status, text) {
+        var badge = document.getElementById('wifi-status-badge');
+        var dot = document.getElementById('wifi-status-dot');
+        var textEl = document.getElementById('wifi-status-text');
+        
+        textEl.textContent = text;
+        dot.classList.remove('animate-pulse');
+        
+        switch (status) {
+            case 'online':
+                badge.className = 'flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30';
+                dot.className = 'w-2 h-2 rounded-full bg-green-500';
+                textEl.className = 'text-[10px] font-medium text-green-600 dark:text-green-400';
+                break;
+            case 'offline':
+                badge.className = 'flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30';
+                dot.className = 'w-2 h-2 rounded-full bg-red-500';
+                textEl.className = 'text-[10px] font-medium text-red-600 dark:text-red-400';
+                break;
+            case 'warning':
+                badge.className = 'flex items-center gap-1.5 px-2 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900/30';
+                dot.className = 'w-2 h-2 rounded-full bg-yellow-500';
+                textEl.className = 'text-[10px] font-medium text-yellow-600 dark:text-yellow-400';
+                break;
+            case 'error':
+                badge.className = 'flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30';
+                dot.className = 'w-2 h-2 rounded-full bg-red-500';
+                textEl.className = 'text-[10px] font-medium text-red-600 dark:text-red-400';
+                break;
+            case 'loading':
+            default:
+                badge.className = 'flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800';
+                dot.className = 'w-2 h-2 rounded-full bg-gray-400 animate-pulse';
+                textEl.className = 'text-[10px] font-medium text-gray-500';
+                break;
+        }
+    }
+    
+    /**
+     * Formata o modo de segurança
+     */
+    function formatSecurityMode(mode, encryption) {
+        if (!mode) return '—';
+        var formatted = mode;
+        if (encryption) {
+            formatted += ' / ' + encryption;
+        }
+        return formatted;
+    }
+    
+    /**
+     * Toggle de visibilidade da senha WiFi (na seção)
+     */
+    function toggleWifiPassword() {
+        wifiPasswordVisible = !wifiPasswordVisible;
+        var displayEl = document.getElementById('wifi-password-display');
+        var iconEl = document.getElementById('wifi-password-icon');
+        
+        if (wifiPasswordVisible && wifiData?.wifi?.password) {
+            var pass = wifiData.wifi.password;
+            displayEl.textContent = (pass === '[hidden]') ? '(Protegida)' : pass;
+            iconEl.textContent = 'visibility_off';
+        } else {
+            displayEl.textContent = '••••••••';
+            iconEl.textContent = 'visibility';
+        }
+    }
+    
+    /**
+     * Abre modal de edição WiFi
+     */
+    function openEditWifiModal(mode) {
+        var modal = document.getElementById('wifi-edit-modal');
+        var titleEl = document.getElementById('wifi-modal-title');
+        var fieldSsid = document.getElementById('wifi-field-ssid');
+        var fieldPassword = document.getElementById('wifi-field-password');
+        var fieldSecurity = document.getElementById('wifi-field-security');
+        
+        // Reseta formulário
+        document.getElementById('wifi-edit-form').reset();
+        
+        // Configura os campos visíveis baseado no modo
+        switch (mode) {
+            case 'ssid':
+                titleEl.textContent = 'Alterar Nome da Rede';
+                fieldSsid.classList.remove('hidden');
+                fieldPassword.classList.add('hidden');
+                fieldSecurity.classList.add('hidden');
+                // Preenche com valor atual
+                if (wifiData?.wifi?.ssid) {
+                    document.getElementById('wifi-input-ssid').value = wifiData.wifi.ssid;
+                }
+                break;
+            case 'password':
+                titleEl.textContent = 'Alterar Senha WiFi';
+                fieldSsid.classList.add('hidden');
+                fieldPassword.classList.remove('hidden');
+                fieldSecurity.classList.add('hidden');
+                break;
+            case 'all':
+            default:
+                titleEl.textContent = 'Configurar WiFi';
+                fieldSsid.classList.remove('hidden');
+                fieldPassword.classList.remove('hidden');
+                fieldSecurity.classList.remove('hidden');
+                // Preenche com valor atual
+                if (wifiData?.wifi?.ssid) {
+                    document.getElementById('wifi-input-ssid').value = wifiData.wifi.ssid;
+                }
+                break;
+        }
+        
+        // Mostra modal
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.onclick = function(e) { if (e.target === modal) closeWifiModal(); };
+    }
+    
+    /**
+     * Fecha modal de edição WiFi
+     */
+    function closeWifiModal() {
+        var modal = document.getElementById('wifi-edit-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modalPasswordVisible = false;
+    }
+    
+    /**
+     * Toggle senha no modal
+     */
+    function toggleModalPassword() {
+        modalPasswordVisible = !modalPasswordVisible;
+        var input = document.getElementById('wifi-input-password');
+        var icon = document.getElementById('modal-password-icon');
+        
+        input.type = modalPasswordVisible ? 'text' : 'password';
+        icon.textContent = modalPasswordVisible ? 'visibility_off' : 'visibility';
+    }
+    
+    /**
+     * Submete alterações WiFi
+     */
+    async function submitWifiChanges(event) {
+        event.preventDefault();
+        
+        if (!currentPppoe) {
+            alert('PPPoE não configurado');
+            return;
+        }
+        
+        var btn = document.getElementById('wifi-submit-btn');
+        var originalHTML = btn.innerHTML;
+        btn.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Salvando...';
+        btn.disabled = true;
+        
+        try {
+            // Coleta os dados do formulário
+            var ssid = document.getElementById('wifi-input-ssid').value.trim();
+            var password = document.getElementById('wifi-input-password').value;
+            var security = document.getElementById('wifi-input-security').value;
+            
+            // Verifica se pelo menos um campo foi preenchido
+            if (!ssid && !password && !security) {
+                alert('Preencha pelo menos um campo para alterar');
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                return;
+            }
+            
+            // Valida senha mínima
+            if (password && password.length < 8) {
+                alert('A senha deve ter no mínimo 8 caracteres');
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                return;
+            }
+            
+            // Prepara dados para enviar
+            var data = {
+                action: 'change_wifi',
+                pppoe: currentPppoe
+            };
+            if (ssid) data.ssid = ssid;
+            if (password) data.password = password;
+            if (security) data.security_mode = security;
+            
+            var token = localStorage.getItem('auth_token') || '';
+            var response = await fetch('/api/tr069.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify(data)
+            });
+            
+            var result = await response.json();
+            console.log('WiFi Change Result:', result);
+            
+            if (result.success) {
+                closeWifiModal();
+                
+                // Mostra mensagem de sucesso
+                showToast('success', 'Configurações enviadas! Serão aplicadas no próximo contato do equipamento.');
+                
+                // Atualiza a interface local imediatamente
+                if (ssid) {
+                    document.getElementById('wifi-ssid').textContent = ssid;
+                    if (wifiData && wifiData.wifi) {
+                        wifiData.wifi.ssid = ssid;
+                    }
+                }
+                
+                // Recarrega informações após 2 segundos
+                setTimeout(function() {
+                    loadWifiInfo();
+                }, 2000);
+            } else {
+                alert('Erro: ' + (result.error || 'Não foi possível salvar as alterações'));
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        } catch (error) {
+            console.error('Erro ao salvar WiFi:', error);
+            alert('Erro de conexão ao salvar alterações');
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+    }
+    
+    /**
+     * Exibe toast de notificação
+     */
+    function showToast(type, message) {
+        var bgColor = type === 'success' ? 'bg-green-500' : (type === 'error' ? 'bg-red-500' : 'bg-gray-700');
+        var icon = type === 'success' ? 'check_circle' : (type === 'error' ? 'error' : 'info');
+        
+        var toast = document.createElement('div');
+        toast.className = 'fixed top-20 left-1/2 -translate-x-1/2 ' + bgColor + ' text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2 max-w-xs text-sm';
+        toast.innerHTML = '<span class="material-symbols-outlined text-lg">' + icon + '</span> ' + message;
+        document.body.appendChild(toast);
+        
+        setTimeout(function() {
+            toast.style.transition = 'opacity 0.3s';
+            toast.style.opacity = '0';
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 4000);
     }
     
     function openScheduleMaintenance() {
