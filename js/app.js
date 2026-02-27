@@ -646,18 +646,22 @@ const App = {
         // Envia imediatamente
         sendLocation();
         
-        // Envia a cada 5 minutos
-        this._locationTrackingInterval = setInterval(sendLocation, 5 * 60 * 1000);
-        
-        // Marca como inativo ao sair
+        // Envia a cada 2 minutos
+        this._locationTrackingInterval = setInterval(sendLocation, 2 * 60 * 1000);
+
+        // Marca como inativo ao sair (fetch síncrono via keepalive)
         window.addEventListener('beforeunload', () => {
             const token = localStorage.getItem('auth_token');
             if (!token) return;
-            
-            // Usa sendBeacon para garantir envio antes de fechar
-            navigator.sendBeacon('/api/technician-location.php', JSON.stringify({
-                action: 'inactive'
-            }));
+            fetch('/api/technician-location.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ action: 'inactive' }),
+                keepalive: true
+            }).catch(() => {});
         });
         
         // Também atualiza quando o app volta do background
