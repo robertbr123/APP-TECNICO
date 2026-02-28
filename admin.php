@@ -1536,12 +1536,11 @@
             btn.innerHTML = '<span class="material-symbols-outlined animate-spin">autorenew</span> Importando...';
 
             try {
-                const token = localStorage.getItem('token');
                 const res = await fetch('/api/import-clients.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
+                        'Authorization': 'Bearer ' + API.getToken()
                     },
                     body: JSON.stringify({ clientes: importParsedData })
                 });

@@ -420,11 +420,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnIcon = document.getElementById('btnIcon');
     const toast = document.getElementById('toast');
 
-    // Hide splash after animation
-    setTimeout(() => {
-        splash.classList.add('fade-out');
-        setTimeout(() => splash.remove(), 600);
-    }, 2200);
+    // Oculta o splash assim que o DOM estiver pronto, mas garante pelo menos 800ms
+    // para a animação inicial completar (era 2200ms fixos antes)
+    const splashMinTime = 800;
+    const splashStart = Date.now();
+    function hideSplash() {
+        const elapsed = Date.now() - splashStart;
+        const remaining = Math.max(0, splashMinTime - elapsed);
+        setTimeout(() => {
+            splash.classList.add('fade-out');
+            setTimeout(() => splash.remove(), 600);
+        }, remaining);
+    }
+    if (document.readyState === 'complete') {
+        hideSplash();
+    } else {
+        window.addEventListener('load', hideSplash, { once: true });
+    }
 
     // Toggle password visibility
     togglePassword.addEventListener('click', function() {
@@ -487,10 +499,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('auth_token', data.token);
                 localStorage.setItem('user_data', JSON.stringify(data.user));
                 showToast('Login realizado com sucesso!', true);
-                
+
                 // Haptic feedback
                 if (navigator.vibrate) navigator.vibrate(50);
-                
+
+                // Garante que a senha não apareça em texto após o toggle do olhinho
+                password.type = 'password';
+                password.value = '';
+
                 setTimeout(() => {
                     window.location.href = 'dashboard.php';
                 }, 500);

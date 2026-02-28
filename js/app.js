@@ -85,16 +85,27 @@ const App = {
                 const registration = await navigator.serviceWorker.register('/sw.js');
                 registration.addEventListener('updatefound', () => {
                     const newWorker = registration.installing;
+                    // Só considera atualização real se já havia um SW ativo antes
+                    const hasActiveSW = !!navigator.serviceWorker.controller;
                     newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed') {
-                            this.showToast('Nova versão disponível! Atualizando...', 'info');
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // Só exibe o toast quando há realmente um SW anterior ativo (não na 1ª instalação)
+                            if (hasActiveSW) {
+                                this.showToast('Nova versão disponível! Atualizando...', 'info');
+                            }
                             if (registration.waiting) registration.waiting.postMessage('skipWaiting');
                         }
-                        if (newWorker.state === 'activated') window.location.reload();
+                        if (newWorker.state === 'activated' && hasActiveSW) window.location.reload();
                     });
                 });
+                // Ativa SW em espera silenciosamente (sem toast) — já foi notificado antes
                 if (registration.waiting) registration.waiting.postMessage('skipWaiting');
-                registration.update();
+                // Verifica atualizações uma vez por hora, não em toda navegação
+                const lastUpdateCheck = parseInt(localStorage.getItem('sw-last-update') || '0');
+                if (Date.now() - lastUpdateCheck > 60 * 60 * 1000) {
+                    registration.update();
+                    localStorage.setItem('sw-last-update', Date.now().toString());
+                }
 
                 // Escuta mensagens do SW para sync offline
                 navigator.serviceWorker.addEventListener('message', function(event) {
