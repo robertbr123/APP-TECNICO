@@ -52,6 +52,7 @@
                 <button onclick="showTab('auditoria')" id="tab-auditoria" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Auditoria</button>
                 <button onclick="showTab('push')" id="tab-push" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Push</button>
                 <button onclick="showTab('config')" id="tab-config" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Config</button>
+                <button onclick="showTab('importar')" id="tab-importar" class="tab-btn flex-1 px-4 py-3 text-sm font-medium text-gray-600">Importar</button>
             </div>
         </div>
 
@@ -358,6 +359,103 @@
             </div>
         </div>
 
+        <!-- Importar Panel -->
+        <div id="panel-importar" class="tab-content hidden">
+
+            <!-- Instruções -->
+            <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm mb-4">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-blue-500">upload_file</span>
+                    Importar Clientes via Planilha
+                </h3>
+                <p class="text-xs text-gray-500 mb-2">Selecione um arquivo <strong>.xlsx</strong>, <strong>.xls</strong> ou <strong>.csv</strong> exportado do Excel. As colunas devem estar na seguinte ordem:</p>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 overflow-x-auto">
+                    <p class="text-[11px] font-mono text-gray-600 dark:text-gray-300 whitespace-nowrap">Nome | CPF | Data Nasc. | Telefones | Endereço | Complemento | Bairro | CEP | Cidade | UF | PlanoId | Vencimento | Login | Senha</p>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-2">Clientes com CPF já cadastrado serão ignorados automaticamente.</p>
+            </div>
+
+            <!-- Upload -->
+            <div class="bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm mb-4">
+                <label id="import-drop-zone"
+                    class="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 cursor-pointer hover:border-blue-400 transition-colors"
+                    for="import-file-input">
+                    <span class="material-symbols-outlined text-5xl text-gray-400">cloud_upload</span>
+                    <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Clique ou arraste o arquivo aqui</span>
+                    <span class="text-xs text-gray-400">.xlsx · .xls · .csv</span>
+                    <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" class="hidden">
+                </label>
+                <div id="import-file-info" class="hidden mt-3 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <span class="material-symbols-outlined text-green-500">check_circle</span>
+                    <span id="import-file-name"></span>
+                    <button onclick="resetImport()" class="ml-auto text-xs text-red-400 underline">Remover</button>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div id="import-preview-section" class="hidden bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm mb-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-semibold text-gray-900 dark:text-white text-sm">Pré-visualização</h4>
+                    <span id="import-preview-count" class="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2 py-1 rounded-full"></span>
+                </div>
+                <div class="overflow-x-auto -mx-4 px-4">
+                    <table class="w-full text-xs" id="import-preview-table">
+                        <thead>
+                            <tr class="text-left text-gray-500 border-b border-gray-200 dark:border-gray-600">
+                                <th class="pb-2 pr-3 whitespace-nowrap">#</th>
+                                <th class="pb-2 pr-3 whitespace-nowrap">Nome</th>
+                                <th class="pb-2 pr-3 whitespace-nowrap">CPF</th>
+                                <th class="pb-2 pr-3 whitespace-nowrap">Cidade</th>
+                                <th class="pb-2 pr-3 whitespace-nowrap">Plano</th>
+                                <th class="pb-2 pr-3 whitespace-nowrap">Vencimento</th>
+                            </tr>
+                        </thead>
+                        <tbody id="import-preview-body" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
+                    </table>
+                </div>
+                <p id="import-preview-more" class="text-[11px] text-gray-400 mt-2 hidden"></p>
+            </div>
+
+            <!-- Botão importar -->
+            <div id="import-action-section" class="hidden mb-4">
+                <button onclick="executarImportacao()" id="import-btn"
+                    class="w-full py-3 bg-blue-600 text-white rounded-ios-lg font-semibold flex items-center justify-center gap-2 active:opacity-80">
+                    <span class="material-symbols-outlined">upload</span>
+                    Importar Clientes
+                </button>
+            </div>
+
+            <!-- Resultado -->
+            <div id="import-result-section" class="hidden bg-card-light dark:bg-card-dark rounded-ios-lg p-4 shadow-sm">
+                <!-- Resumo -->
+                <h4 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-green-500">task_alt</span>
+                    Resultado da Importação
+                </h4>
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-center">
+                        <p class="text-xl font-bold text-gray-900 dark:text-white" id="res-total">0</p>
+                        <p class="text-[11px] text-gray-500">Total</p>
+                    </div>
+                    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
+                        <p class="text-xl font-bold text-green-600" id="res-importados">0</p>
+                        <p class="text-[11px] text-gray-500">Importados</p>
+                    </div>
+                    <div class="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
+                        <p class="text-xl font-bold text-orange-500" id="res-ignorados">0</p>
+                        <p class="text-[11px] text-gray-500">Ignorados</p>
+                    </div>
+                </div>
+                <!-- Detalhes dos ignorados -->
+                <div id="res-detalhes-section" class="hidden">
+                    <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Registros não importados:</h5>
+                    <div id="res-detalhes-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                </div>
+                <button onclick="resetImport()" class="w-full mt-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-sm">Nova Importação</button>
+            </div>
+
+        </div>
+
     </div>
 
     <!-- Modal User -->
@@ -446,6 +544,9 @@
     <!-- Bottom Nav -->
     <?php $activePage = 'ajustes'; include 'partials/bottom-nav.php'; ?>
 
+    <!-- SheetJS para leitura de Excel/CSV no browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <script src="js/api.js"></script>
     <script src="js/feedback.js"></script>
     <script src="js/components.js"></script>
@@ -477,6 +578,7 @@
             if (tab === 'checklists') loadChecklists();
             if (tab === 'auditoria') initAuditoria();
             if (tab === 'push') loadPushSubscriptions();
+            if (tab === 'importar') initImportar();
         }
 
         let templatesData = [];
@@ -1276,6 +1378,225 @@
             } catch (e) {
                 resultEl.innerHTML = '<p class="text-red-500">Erro ao testar: ' + escapeHtml(e.message) + '</p>';
             }
+        }
+
+
+        // =====================================================
+        // IMPORTAÇÃO DE CLIENTES VIA PLANILHA
+        // =====================================================
+        let importParsedData = [];
+
+        // Mapeamento de cabeçalhos da planilha para chaves internas
+        const IMPORT_COLUMN_MAP = {
+            'nome'        : 'nome',
+            'cpf'         : 'cpf',
+            'data nasc.'  : 'dataNasc',
+            'data nasc'   : 'dataNasc',
+            'data de nasc': 'dataNasc',
+            'nascimento'  : 'dataNasc',
+            'telefones'   : 'telefones',
+            'telefone'    : 'telefones',
+            'fone'        : 'telefones',
+            'endereço'    : 'endereco',
+            'endereco'    : 'endereco',
+            'rua'         : 'endereco',
+            'complemento' : 'complemento',
+            'bairro'      : 'bairro',
+            'cep'         : 'cep',
+            'cidade'      : 'cidade',
+            'uf'          : 'uf',
+            'estado'      : 'uf',
+            'planoid'     : 'planoid',
+            'plano'       : 'planoid',
+            'plano id'    : 'planoid',
+            'vencimento'  : 'vencimento',
+            'dia vencimento': 'vencimento',
+            'login'       : 'login',
+            'usuario'     : 'login',
+            'senha'       : 'senha',
+            'password'    : 'senha'
+        };
+
+        function initImportar() {
+            const input = document.getElementById('import-file-input');
+            const zone  = document.getElementById('import-drop-zone');
+
+            // Previne re-binding de eventos
+            if (zone._bound) return;
+            zone._bound = true;
+
+            input.addEventListener('change', e => {
+                if (e.target.files[0]) handleImportFile(e.target.files[0]);
+            });
+
+            zone.addEventListener('dragover', e => {
+                e.preventDefault();
+                zone.classList.add('border-blue-400', 'bg-blue-50');
+            });
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('border-blue-400', 'bg-blue-50');
+            });
+            zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.classList.remove('border-blue-400', 'bg-blue-50');
+                if (e.dataTransfer.files[0]) handleImportFile(e.dataTransfer.files[0]);
+            });
+        }
+
+        function handleImportFile(file) {
+            const allowed = ['.xlsx', '.xls', '.csv'];
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            if (!allowed.includes(ext)) {
+                showError('Formato inválido. Use .xlsx, .xls ou .csv');
+                return;
+            }
+
+            document.getElementById('import-file-name').textContent = file.name;
+            document.getElementById('import-file-info').classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const wb = XLSX.read(e.target.result, { type: 'binary', cellDates: true });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+                    if (raw.length < 2) {
+                        showError('Planilha vazia ou sem dados.');
+                        return;
+                    }
+
+                    // Normaliza cabeçalhos
+                    const headers = raw[0].map(h => String(h).trim().toLowerCase());
+                    const mapped  = headers.map(h => IMPORT_COLUMN_MAP[h] || h);
+
+                    importParsedData = raw.slice(1)
+                        .filter(row => row.some(cell => String(cell).trim() !== ''))
+                        .map(row => {
+                            const obj = {};
+                            mapped.forEach((key, i) => {
+                                const val = row[i];
+                                // Converte datas do Excel para string
+                                if (val instanceof Date) {
+                                    const d = val;
+                                    obj[key] = d.getFullYear() + '-' +
+                                        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                                        String(d.getDate()).padStart(2, '0');
+                                } else {
+                                    obj[key] = String(val ?? '').trim();
+                                }
+                            });
+                            return obj;
+                        });
+
+                    renderImportPreview();
+                } catch (err) {
+                    showError('Erro ao ler arquivo: ' + err.message);
+                }
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        function renderImportPreview() {
+            const total = importParsedData.length;
+            document.getElementById('import-preview-count').textContent = total + ' registros encontrados';
+
+            const tbody = document.getElementById('import-preview-body');
+            const MAX_PREVIEW = 10;
+            const slice = importParsedData.slice(0, MAX_PREVIEW);
+
+            tbody.innerHTML = slice.map((c, i) => `
+                <tr>
+                    <td class="py-1.5 pr-3 text-gray-400">${i + 1}</td>
+                    <td class="py-1.5 pr-3 font-medium text-gray-900 dark:text-white whitespace-nowrap max-w-[120px] truncate">${escapeHtml(c.nome || '-')}</td>
+                    <td class="py-1.5 pr-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">${escapeHtml(c.cpf || '-')}</td>
+                    <td class="py-1.5 pr-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">${escapeHtml(c.cidade || '-')}</td>
+                    <td class="py-1.5 pr-3 text-gray-600 dark:text-gray-300">${escapeHtml(c.planoid || '-')}</td>
+                    <td class="py-1.5 pr-3 text-gray-600 dark:text-gray-300">${escapeHtml(c.vencimento || '-')}</td>
+                </tr>`).join('');
+
+            const moreEl = document.getElementById('import-preview-more');
+            if (total > MAX_PREVIEW) {
+                moreEl.textContent = `... e mais ${total - MAX_PREVIEW} registros`;
+                moreEl.classList.remove('hidden');
+            } else {
+                moreEl.classList.add('hidden');
+            }
+
+            document.getElementById('import-preview-section').classList.remove('hidden');
+            document.getElementById('import-action-section').classList.remove('hidden');
+            document.getElementById('import-result-section').classList.add('hidden');
+        }
+
+        async function executarImportacao() {
+            if (!importParsedData.length) return;
+
+            const btn = document.getElementById('import-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin">autorenew</span> Importando...';
+
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/import-clients.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ clientes: importParsedData })
+                });
+
+                const result = await res.json();
+
+                if (!result.success && !result.resultado) {
+                    showError(result.message || 'Erro na importação');
+                    btn.disabled = false;
+                    btn.innerHTML = '<span class="material-symbols-outlined">upload</span> Importar Clientes';
+                    return;
+                }
+
+                const r = result.resultado;
+                document.getElementById('res-total').textContent = r.total;
+                document.getElementById('res-importados').textContent = r.importados;
+                document.getElementById('res-ignorados').textContent = r.nao_importados;
+
+                const detSection = document.getElementById('res-detalhes-section');
+                const detList    = document.getElementById('res-detalhes-list');
+
+                if (r.nao_importados > 0 && r.detalhes && r.detalhes.length) {
+                    detList.innerHTML = r.detalhes.map(d => `
+                        <div class="flex items-start gap-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                            <span class="material-symbols-outlined text-sm text-orange-500 mt-0.5">warning</span>
+                            <div class="min-w-0">
+                                <p class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">${escapeHtml(d.nome)}</p>
+                                <p class="text-[11px] text-gray-500">CPF: ${escapeHtml(d.cpf)}</p>
+                                <p class="text-[11px] text-orange-600 dark:text-orange-400">${escapeHtml(d.motivo)}</p>
+                            </div>
+                        </div>`).join('');
+                    detSection.classList.remove('hidden');
+                } else {
+                    detSection.classList.add('hidden');
+                }
+
+                document.getElementById('import-action-section').classList.add('hidden');
+                document.getElementById('import-result-section').classList.remove('hidden');
+
+            } catch (err) {
+                showError('Erro de conexão: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined">upload</span> Importar Clientes';
+            }
+        }
+
+        function resetImport() {
+            importParsedData = [];
+            document.getElementById('import-file-input').value = '';
+            document.getElementById('import-file-info').classList.add('hidden');
+            document.getElementById('import-preview-section').classList.add('hidden');
+            document.getElementById('import-action-section').classList.add('hidden');
+            document.getElementById('import-result-section').classList.add('hidden');
+            const btn = document.getElementById('import-btn');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined">upload</span> Importar Clientes'; }
         }
 
     </script>
