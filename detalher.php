@@ -503,19 +503,16 @@ Salvar
             };
         }
         
-        // Carrega as fotos
-        await loadPhotos(cpf);
-        
-        // Carrega dados do cliente
-        await loadClientData(cpf);
-        
-        // Carrega histórico de OS do cliente
-        await loadOsHistory(cpf);
+        // Carrega em paralelo: fotos, dados do cliente, OS e checklists
+        // (todas independentes entre si — sem dependência de variáveis compartilhadas)
+        await Promise.all([
+            loadPhotos(cpf),
+            loadClientData(cpf),
+            loadOsHistory(cpf),
+            loadChecklistHistory(cpf)
+        ]);
 
-        // Carrega histórico de Checklists do cliente
-        await loadChecklistHistory(cpf);
-
-        // Carrega timeline completa do cliente
+        // Carrega timeline completa do cliente (fire-and-forget — não bloqueia renderização)
         loadTimeline(cpf);
     });
     

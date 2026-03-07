@@ -41,12 +41,13 @@ try {
         ]);
     }
     
-    // Busca as fotos do cliente
+    // Busca as fotos do cliente (limite de 50 para performance)
     $stmt = $db->prepare("
-        SELECT id, filename, type, created_at 
-        FROM client_photos 
-        WHERE cpf = ? 
+        SELECT id, filename, type, created_at
+        FROM client_photos
+        WHERE cpf = ?
         ORDER BY created_at DESC
+        LIMIT 50
     ");
     $stmt->execute([$cpf]);
     $photos = $stmt->fetchAll(PDO::FETCH_ASSOC);

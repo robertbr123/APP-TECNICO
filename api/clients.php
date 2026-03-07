@@ -487,106 +487,101 @@ function handleUpdateLocation($db, $userData, $data) {
 
 /**
  * Timeline completa do cliente — agrega OS, Checklists, Serial History e Fotos
+ * Usa UNION ALL + ORDER BY + LIMIT no SQL para eliminar usort() em PHP e reduzir roundtrips.
  */
 function handleTimeline($db, $cpfRaw) {
     $cpfValidation = Validator::validateCPF($cpfRaw);
     $cpf = $cpfValidation['valid'] ? $cpfValidation['clean'] : preg_replace('/\D/', '', $cpfRaw);
 
-    $events = [];
-
-    // Ordens de Serviço
     try {
+        // Uma única query UNION ALL substitui 4 queries separadas + usort() em PHP.
+        // O banco já entrega os eventos ordenados e limitados.
         $stmt = $db->prepare("
-            SELECT 'os' as event_type,
-                   id, order_number as ref, type as subtype,
-                   status, description,
-                   COALESCE(assigned_name, created_by_name, '') as actor,
-                   priority,
-                   COALESCE(completed_at, created_at) as event_date,
-                   created_at
-            FROM work_orders
-            WHERE client_cpf = ?
-            ORDER BY created_at DESC
-        ");
-        $stmt->execute([$cpf]);
-        $events = array_merge($events, $stmt->fetchAll());
-    } catch (Exception $e) { /* tabela pode não existir */ }
+            SELECT event_type, id, ref, subtype, status, description, actor, priority, event_date, created_at
+            FROM (
+                SELECT 'os' AS event_type,
+                       id,
+                       order_number AS ref,
+                       type AS subtype,
+                       status,
+                       COALESCE(description, '') AS description,
+                       COALESCE(assigned_name, created_by_name, '') AS actor,
+                       priority,
+                       COALESCE(completed_at, created_at) AS event_date,
+                       created_at
+                FROM work_orders
+                WHERE client_cpf = ?
 
-    // Checklists de instalação
-    try {
-        $stmt = $db->prepare("
-            SELECT 'checklist' as event_type,
-                   id, checklist_number as ref, installation_type as subtype,
-                   status, COALESCE(notes, '') as description,
-                   COALESCE(approved_by, '') as actor,
-                   '' as priority,
-                   COALESCE(completed_at, created_at) as event_date,
-                   created_at
-            FROM installation_checklists
-            WHERE client_cpf = ?
-            ORDER BY created_at DESC
-        ");
-        $stmt->execute([$cpf]);
-        $events = array_merge($events, $stmt->fetchAll());
-    } catch (Exception $e) { /* tabela pode não existir */ }
+                UNION ALL
 
-    // Histórico de serial (trocas de equipamento)
-    try {
-        $stmt = $db->prepare("
-            SELECT 'serial' as event_type,
-                   id,
-                   CONCAT(COALESCE(old_serial, '—'), ' → ', new_serial) as ref,
-                   reason as subtype,
-                   'Troca de Equipamento' as status,
-                   CONCAT(
-                       CASE reason
-                           WHEN 'installation' THEN 'Instalação'
-                           WHEN 'defect'       THEN 'Defeito'
-                           WHEN 'upgrade'      THEN 'Upgrade'
-                           WHEN 'transfer'     THEN 'Transferência'
-                           WHEN 'theft'        THEN 'Roubo/Furto'
-                           ELSE                     'Outro'
-                       END,
-                       CASE WHEN reason_description IS NOT NULL AND reason_description != ''
-                           THEN CONCAT(': ', reason_description)
-                           ELSE ''
-                       END
-                   ) as description,
-                   COALESCE(changed_by_name, 'sistema') as actor,
-                   '' as priority,
-                   created_at as event_date,
-                   created_at
-            FROM serial_history
-            WHERE cpf = ?
-            ORDER BY created_at DESC
-        ");
-        $stmt->execute([$cpf]);
-        $events = array_merge($events, $stmt->fetchAll());
-    } catch (Exception $e) { /* tabela pode não existir */ }
+                SELECT 'checklist' AS event_type,
+                       id,
+                       checklist_number AS ref,
+                       installation_type AS subtype,
+                       COALESCE(approval_status, status) AS status,
+                       COALESCE(notes, '') AS description,
+                       COALESCE(technician_name, '') AS actor,
+                       '' AS priority,
+                       COALESCE(completed_at, created_at) AS event_date,
+                       created_at
+                FROM installation_checklists
+                WHERE client_cpf = ?
 
-    // Fotos do cliente
-    try {
-        $stmt = $db->prepare("
-            SELECT 'foto' as event_type,
-                   id, file_path as ref, type as subtype,
-                   'Foto Registrada' as status,
-                   CONCAT('Tipo: ', COALESCE(type, 'instalação')) as description,
-                   COALESCE(uploaded_by, '') as actor,
-                   '' as priority,
-                   created_at as event_date,
-                   created_at
-            FROM client_photos
-            WHERE client_cpf = ?
-            ORDER BY created_at DESC
-        ");
-        $stmt->execute([$cpf]);
-        $events = array_merge($events, $stmt->fetchAll());
-    } catch (Exception $e) { /* tabela pode não existir */ }
+                UNION ALL
 
-    // Ordena tudo por data decrescente
-    usort($events, function($a, $b) {
-        return strtotime($b['event_date']) - strtotime($a['event_date']);
-    });
+                SELECT 'serial' AS event_type,
+                       id,
+                       CONCAT(COALESCE(old_serial, '—'), ' → ', new_serial) AS ref,
+                       reason AS subtype,
+                       'Troca de Equipamento' AS status,
+                       CONCAT(
+                           CASE reason
+                               WHEN 'installation' THEN 'Instalação'
+                               WHEN 'defect'       THEN 'Defeito'
+                               WHEN 'upgrade'      THEN 'Upgrade'
+                               WHEN 'transfer'     THEN 'Transferência'
+                               WHEN 'theft'        THEN 'Roubo/Furto'
+                               ELSE                     'Outro'
+                           END,
+                           CASE WHEN reason_description IS NOT NULL AND reason_description != ''
+                               THEN CONCAT(': ', reason_description)
+                               ELSE ''
+                           END
+                       ) AS description,
+                       COALESCE(changed_by_name, 'sistema') AS actor,
+                       '' AS priority,
+                       created_at AS event_date,
+                       created_at
+                FROM serial_history
+                WHERE cpf = ?
+
+                UNION ALL
+
+                SELECT 'foto' AS event_type,
+                       id,
+                       filename AS ref,
+                       type AS subtype,
+                       'Foto Registrada' AS status,
+                       CONCAT('Tipo: ', COALESCE(type, 'instalação')) AS description,
+                       COALESCE(uploaded_by, '') AS actor,
+                       '' AS priority,
+                       created_at AS event_date,
+                       created_at
+                FROM client_photos
+                WHERE cpf = ?
+            ) t
+            ORDER BY event_date DESC
+            LIMIT 100
+        ");
+
+        // 4 parâmetros — um por cada sub-query do UNION
+        $stmt->execute([$cpf, $cpf, $cpf, $cpf]);
+        $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    } catch (Exception $e) {
+        Logger::logException($e, ['context' => 'handleTimeline', 'cpf' => $cpf]);
+        $events = [];
+    }
 
     Logger::info('Timeline do cliente gerada', ['cpf' => $cpf, 'total_events' => count($events)]);
 

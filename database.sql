@@ -158,7 +158,8 @@ CREATE TABLE IF NOT EXISTS `client_photos` (
   PRIMARY KEY (`id`),
   KEY `cpf` (`cpf`),
   KEY `uploaded_by` (`uploaded_by`),
-  KEY `idx_client_photos_cpf_type` (`cpf`, `type`)
+  KEY `idx_client_photos_cpf_type` (`cpf`, `type`),
+  KEY `idx_client_photos_cpf_date` (`cpf`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
