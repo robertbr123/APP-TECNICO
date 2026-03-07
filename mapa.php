@@ -282,22 +282,28 @@ document.addEventListener('DOMContentLoaded', async function() {
             const lat = parseFloat(client.latitude);
             const lng = parseFloat(client.longitude);
             
+            const popupId = 'sgp-status-' + client.cpf.replace(/\D/g, '');
             const marker = L.marker([lat, lng], { icon })
                 .addTo(map)
                 .bindPopup(`
-                    <div class="p-2 min-w-[200px]">
-                        <h3 class="font-bold text-sm mb-1">${client.name}</h3>
+                    <div class="p-2 min-w-[220px]">
+                        <h3 class="font-bold text-sm mb-1">${escapeHtml(client.name)}</h3>
                         <p class="text-xs text-gray-600 mb-1">CPF: ${Utils.formatCPF(client.cpf)}</p>
-                        <p class="text-xs text-gray-600 mb-1">${client.address}, ${client.number}</p>
-                        <p class="text-xs text-gray-600 mb-2">${client.city}</p>
-                        <a href="detalher.php?cpf=${client.cpf}" 
+                        <p class="text-xs text-gray-600 mb-1">${escapeHtml(client.address || '')}, ${escapeHtml(client.number || '')}</p>
+                        <p class="text-xs text-gray-600 mb-2">${escapeHtml(client.city || '')}</p>
+                        <div id="${popupId}" class="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-gray-50" style="min-height:28px">
+                            <div class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div>
+                            <span class="text-xs text-yellow-600">Consultando SGP...</span>
+                        </div>
+                        <a href="detalher.php?cpf=${client.cpf}"
                            class="block text-center px-3 py-1.5 bg-primary text-white text-xs rounded-lg font-medium">
                             Ver Detalhes
                         </a>
                     </div>
-                `);
+                `, { maxWidth: 260 });
 
             marker.clientData = client;
+            marker.on('popupopen', () => checkSgpStatus(client, popupId));
             markers.push(marker);
         });
 
@@ -701,6 +707,106 @@ document.addEventListener('DOMContentLoaded', async function() {
         // grid passa de 4 para 4 colunas (mantém) + linha extra de técnicos
         loadTechnicians();
         startTechRefresh();
+    }
+
+    // ══════════════════════════════════════════════
+    // CONSULTA SGP SOB DEMANDA (ao abrir popup)
+    // ══════════════════════════════════════════════
+    const sgpCache = {}; // cache por CPF para não reconsultar
+
+    async function checkSgpStatus(client, popupId) {
+        const cpf = (client.cpf || '').replace(/\D/g, '');
+        if (!cpf) return;
+
+        // Se já consultou, usa cache
+        if (sgpCache[cpf]) {
+            renderSgpStatus(popupId, sgpCache[cpf]);
+            return;
+        }
+
+        const el = document.getElementById(popupId);
+        if (!el) return;
+
+        const token = API.getToken();
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        try {
+            // 1. Se já tem contrato salvo no banco, usa direto
+            let contrato = client.contrato || null;
+            let servidor = null;
+
+            if (!contrato) {
+                // Busca cliente no SGP pelo CPF
+                const res = await fetch('/api/sgp-status.php', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ action: 'buscar_cliente', cpf })
+                });
+                const data = await res.json();
+
+                if (!data.success || !data.data?.clientes?.length) {
+                    sgpCache[cpf] = { status: 'not_found' };
+                    renderSgpStatus(popupId, sgpCache[cpf]);
+                    return;
+                }
+
+                servidor = data.servidor || null;
+                const sgpClient = data.data.clientes[0];
+                if (sgpClient.contratos?.length) {
+                    contrato = sgpClient.contratos[0].id || sgpClient.contratos[0].contrato;
+                }
+            }
+
+            if (!contrato) {
+                sgpCache[cpf] = { status: 'no_contract' };
+                renderSgpStatus(popupId, sgpCache[cpf]);
+                return;
+            }
+
+            // 2. Verifica acesso (online/offline)
+            const bodyData = { action: 'verificar_acesso', contrato: String(contrato) };
+            if (servidor) bodyData.servidor = servidor;
+
+            const res2 = await fetch('/api/sgp-status.php', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(bodyData)
+            });
+            const data2 = await res2.json();
+
+            if (data2.success && data2.data) {
+                const msg = data2.data.msg || '';
+                const isOnline = msg.toLowerCase().includes('online');
+                sgpCache[cpf] = { status: isOnline ? 'online' : 'offline', msg };
+            } else {
+                sgpCache[cpf] = { status: 'error' };
+            }
+        } catch (e) {
+            console.error('SGP check error:', e);
+            sgpCache[cpf] = { status: 'error' };
+        }
+
+        renderSgpStatus(popupId, sgpCache[cpf]);
+    }
+
+    function renderSgpStatus(popupId, result) {
+        const el = document.getElementById(popupId);
+        if (!el) return;
+
+        const configs = {
+            online:      { dot: 'bg-green-500', bg: 'bg-green-50', text: 'text-green-700', label: 'Online' },
+            offline:     { dot: 'bg-red-500',   bg: 'bg-red-50',   text: 'text-red-700',   label: 'Offline' },
+            not_found:   { dot: 'bg-gray-400',  bg: 'bg-gray-50',  text: 'text-gray-500',  label: 'Não encontrado no SGP' },
+            no_contract: { dot: 'bg-gray-400',  bg: 'bg-gray-50',  text: 'text-gray-500',  label: 'Sem contrato' },
+            error:       { dot: 'bg-orange-400', bg: 'bg-orange-50', text: 'text-orange-600', label: 'Erro ao consultar' }
+        };
+
+        const c = configs[result.status] || configs.error;
+        el.className = 'flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg ' + c.bg;
+        el.innerHTML =
+            '<div class="w-2.5 h-2.5 rounded-full ' + c.dot + ' flex-shrink-0"></div>' +
+            '<span class="text-xs font-semibold ' + c.text + '">' + escapeHtml(result.msg || c.label) + '</span>';
     }
 
     // Expõe funções globalmente
