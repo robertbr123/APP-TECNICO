@@ -171,6 +171,19 @@
                 <div id="checklists-container" class="space-y-3">
                     <p class="text-gray-500 text-center py-4">Nenhum checklist encontrado</p>
                 </div>
+
+                <!-- Paginação -->
+                <div id="pagination-controls" class="hidden mt-4 flex items-center justify-between">
+                    <button id="btn-prev-page" onclick="changePage(-1)" class="flex items-center gap-1 px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed">
+                        <span class="material-symbols-outlined text-base">chevron_left</span>
+                        Anterior
+                    </button>
+                    <span id="pagination-info" class="text-sm text-gray-500 dark:text-gray-400"></span>
+                    <button id="btn-next-page" onclick="changePage(1)" class="flex items-center gap-1 px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed">
+                        Próximo
+                        <span class="material-symbols-outlined text-base">chevron_right</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -216,6 +229,9 @@
         let currentInstallationType = 'new';
         let tasks = [];
         let currentTaskId = null;
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentShowAll = null;
 
         // Categorias
         const categories = {
@@ -1173,16 +1189,23 @@
         }
 
         // Carrega checklists recentes
-        async function loadRecentChecklists(showAll = null) {
+        async function loadRecentChecklists(showAll = null, page = 1) {
             // Aguarda API estar disponível
             if (!checkAPI()) {
                 console.log('Aguardando API...');
-                setTimeout(() => loadRecentChecklists(showAll), 500);
+                setTimeout(() => loadRecentChecklists(showAll, page), 500);
                 return;
             }
 
             // Admin vê todos por padrão
-            if (showAll === null) showAll = isAdmin;
+            if (showAll === null) showAll = currentShowAll !== null ? currentShowAll : isAdmin;
+
+            // Reset page quando muda filtro
+            if (showAll !== currentShowAll) {
+                page = 1;
+            }
+            currentShowAll = showAll;
+            currentPage = page;
 
             // Atualiza visual dos botões de filtro
             const filterBtns = document.querySelectorAll('#admin-filters .flex.gap-2:first-child button');
@@ -1195,32 +1218,62 @@
             });
 
             try {
-                const params = { limit: 20 };
+                const params = { limit: 10, page: page };
                 if (isAdmin && showAll) {
                     params.mine = 'false';
                 }
-                
+
                 const response = await API.getChecklists(params);
                 if (response.success) {
                     if (response.is_admin !== undefined) isAdmin = response.is_admin;
                     if (response.data.length > 0) {
                         renderChecklistsList(response.data, response.counts);
                     } else {
-                        document.getElementById('checklists-container').innerHTML = 
+                        document.getElementById('checklists-container').innerHTML =
                             '<p class="text-gray-500 text-center py-4">Nenhum checklist encontrado</p>';
                     }
-                    
+
+                    // Atualiza paginação
+                    if (response.pagination) {
+                        totalPages = response.pagination.pages || 1;
+                        updatePagination(currentPage, totalPages, response.pagination.total);
+                    } else {
+                        document.getElementById('pagination-controls').classList.add('hidden');
+                    }
+
                     // Mostra contadores para admin
                     if (isAdmin && response.counts) {
                         renderAdminCounts(response.counts);
                     }
-                } else if (response.message && 
+                } else if (response.message &&
                           (response.message.includes('tabela') || response.message.includes('não configuradas'))) {
                     showSetupButton();
                 }
             } catch (error) {
                 console.error('Erro ao carregar checklists:', error);
             }
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                loadRecentChecklists(currentShowAll, newPage);
+                // Scroll para a seção de checklists
+                document.getElementById('checklists-list').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function updatePagination(page, pages, total) {
+            const controls = document.getElementById('pagination-controls');
+            if (pages <= 1) {
+                controls.classList.add('hidden');
+                return;
+            }
+            controls.classList.remove('hidden');
+
+            document.getElementById('pagination-info').textContent = `${page} de ${pages}`;
+            document.getElementById('btn-prev-page').disabled = page <= 1;
+            document.getElementById('btn-next-page').disabled = page >= pages;
         }
         
         // Renderiza contadores para admin
