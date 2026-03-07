@@ -2053,9 +2053,13 @@ Salvar
         };
 
         var subtypeLabels = {
+            // Tipos de OS
             installation: 'Instalação', repair: 'Reparo', maintenance: 'Manutenção',
             migration: 'Migração', removal: 'Remoção', other: 'Outro',
-            new: 'Nova Instalação', troca: 'Troca'
+            new: 'Nova Instalação', troca: 'Troca',
+            // Motivos de troca de serial (serial_history.reason)
+            defect: 'Defeito', upgrade: 'Upgrade', transfer: 'Transferência',
+            theft: 'Roubo/Furto'
         };
 
         var html = '<div class="relative">';

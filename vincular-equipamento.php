@@ -457,9 +457,7 @@
                     
                     if (result.success) {
                         showSuccess('Equipamento vinculado com sucesso!');
-                        setTimeout(function() {
-                            window.location.href = 'dashboard.php';
-                        }, 1000);
+                        showPostLinkPanel(result.data);
                     } else {
                         showError('Erro: ' + (result.message || 'Erro desconhecido'));
                     }
@@ -492,6 +490,68 @@
             return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
         }
         
+        // Exibe painel de pós-vínculo com aviso de estoque e botões de navegação
+        function showPostLinkPanel(data) {
+            // Oculta botão fixo de vincular
+            var footerBar = document.querySelector('.fixed.bottom-0');
+            if (footerBar) footerBar.classList.add('hidden');
+
+            // Monta aviso de estoque (se serial não encontrado no estoque)
+            var inventoryWarning = '';
+            if (data && data.inventory_found === false) {
+                inventoryWarning =
+                    '<div class="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 mb-4">' +
+                        '<span class="material-symbols-outlined text-amber-500 flex-shrink-0 mt-0.5">warning</span>' +
+                        '<div>' +
+                            '<p class="text-amber-800 dark:text-amber-300 font-semibold text-sm">Serial não encontrado no estoque</p>' +
+                            '<p class="text-amber-700 dark:text-amber-400 text-xs mt-1 leading-relaxed">O vínculo foi registrado, mas não houve baixa automática no estoque. ' +
+                            'Cadastre o equipamento na aba <strong>Estoque</strong> para rastreamento completo.</p>' +
+                        '</div>' +
+                    '</div>';
+            }
+
+            // Botão "Ver Timeline"
+            var clientCpf = (data && data.client_cpf) ? data.client_cpf : '';
+            var clientName = (data && data.client_name) ? data.client_name : 'Cliente';
+            var timelineBtn = clientCpf
+                ? '<a href="detalher.php?cpf=' + encodeURIComponent(clientCpf) + '" ' +
+                    'class="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 text-white font-semibold shadow-lg shadow-purple-500/30 hover:from-purple-500 hover:to-violet-500 transition-all btn-press">' +
+                    '<span class="material-symbols-outlined" style="font-variation-settings:\'FILL\' 1">timeline</span>' +
+                    'Ver Timeline de ' + clientName.split(' ')[0] +
+                  '</a>'
+                : '';
+
+            var panel =
+                '<div id="post-link-panel" class="glass-premium rounded-2xl p-5 stagger-item animate-stagger-in mt-2">' +
+                    '<div class="flex items-center gap-3 mb-5">' +
+                        '<div class="size-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30">' +
+                            '<span class="material-symbols-outlined text-white text-2xl" style="font-variation-settings:\'FILL\' 1">check_circle</span>' +
+                        '</div>' +
+                        '<div>' +
+                            '<p class="text-gray-900 dark:text-white font-bold">Vinculado com sucesso!</p>' +
+                            '<p class="text-gray-500 text-xs">O equipamento foi registrado na timeline do cliente.</p>' +
+                        '</div>' +
+                    '</div>' +
+                    inventoryWarning +
+                    '<div class="flex gap-3">' +
+                        timelineBtn +
+                        '<a href="dashboard.php" ' +
+                            'class="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all btn-press">' +
+                            '<span class="material-symbols-outlined">home</span>' +
+                            'Dashboard' +
+                        '</a>' +
+                    '</div>' +
+                '</div>';
+
+            // Injeta o painel no container principal
+            var container = document.querySelector('.flex.flex-col.gap-4.p-4');
+            if (container) {
+                container.insertAdjacentHTML('beforeend', panel);
+                // Scrolla até o painel
+                document.getElementById('post-link-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
         console.log('=== Inicialização concluída ===');
     });
 

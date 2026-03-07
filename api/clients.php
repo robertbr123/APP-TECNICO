@@ -535,17 +535,30 @@ function handleTimeline($db, $cpfRaw) {
         $stmt = $db->prepare("
             SELECT 'serial' as event_type,
                    id,
-                   CONCAT(COALESCE(old_serial,'—'), ' → ', new_serial) as ref,
-                   'troca' as subtype,
+                   CONCAT(COALESCE(old_serial, '—'), ' → ', new_serial) as ref,
+                   reason as subtype,
                    'Troca de Equipamento' as status,
-                   CONCAT('Serial anterior: ', COALESCE(old_serial, 'Primeiro registro'), ' | Novo: ', new_serial) as description,
-                   COALESCE(changed_by, '') as actor,
+                   CONCAT(
+                       CASE reason
+                           WHEN 'installation' THEN 'Instalação'
+                           WHEN 'defect'       THEN 'Defeito'
+                           WHEN 'upgrade'      THEN 'Upgrade'
+                           WHEN 'transfer'     THEN 'Transferência'
+                           WHEN 'theft'        THEN 'Roubo/Furto'
+                           ELSE                     'Outro'
+                       END,
+                       CASE WHEN reason_description IS NOT NULL AND reason_description != ''
+                           THEN CONCAT(': ', reason_description)
+                           ELSE ''
+                       END
+                   ) as description,
+                   COALESCE(changed_by_name, 'sistema') as actor,
                    '' as priority,
-                   changed_at as event_date,
-                   changed_at as created_at
+                   created_at as event_date,
+                   created_at
             FROM serial_history
-            WHERE client_cpf = ?
-            ORDER BY changed_at DESC
+            WHERE cpf = ?
+            ORDER BY created_at DESC
         ");
         $stmt->execute([$cpf]);
         $events = array_merge($events, $stmt->fetchAll());

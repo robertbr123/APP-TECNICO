@@ -136,6 +136,10 @@ try {
     
     if ($result) {
         // ==== INTEGRAÇÃO COM ESTOQUE ====
+        // Variáveis de resultado do estoque (acessíveis fora do try)
+        $inventoryFound = false;
+        $oldReturned = false;
+
         // Verifica se o equipamento existe no inventário e atualiza status
         try {
             // Se havia um serial antigo, retorna ao estoque
@@ -145,20 +149,21 @@ try {
                 $oldEquip = $oldEquipStmt->fetch(PDO::FETCH_ASSOC);
                 
                 if ($oldEquip) {
+                    $oldReturned = true;
                     // Retorna equipamento antigo ao estoque
                     $db->prepare("
-                        UPDATE equipment_inventory 
-                        SET status = 'available', 
+                        UPDATE equipment_inventory
+                        SET status = 'available',
                             current_user_id = NULL,
                             current_client_cpf = NULL,
                             location = 'Estoque Principal',
                             updated_at = NOW()
                         WHERE id = ?
                     ")->execute([$oldEquip['id']]);
-                    
+
                     // Registra movimentação de retorno
                     $db->prepare("
-                        INSERT INTO inventory_movements 
+                        INSERT INTO inventory_movements
                         (equipment_id, movement_type, from_location, to_location, user_id, username, client_cpf, client_name, notes)
                         VALUES (?, 'in', 'Em uso', 'Estoque Principal', ?, ?, ?, ?, ?)
                     ")->execute([
@@ -171,13 +176,14 @@ try {
                     ]);
                 }
             }
-            
+
             // Busca o novo equipamento no inventário
             $equipStmt = $db->prepare("SELECT id, location, status FROM equipment_inventory WHERE serial_number = ?");
             $equipStmt->execute([$serial]);
             $equipment = $equipStmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if ($equipment) {
+                $inventoryFound = true;
                 // Atualiza o status do equipamento para "em uso"
                 $db->prepare("
                     UPDATE equipment_inventory 
@@ -244,11 +250,13 @@ try {
             'success' => true,
             'message' => 'Equipamento vinculado com sucesso',
             'data' => [
-                'client_cpf' => $cpf,
-                'client_name' => $client['name'],
-                'old_serial' => $oldSerial,
-                'new_serial' => $serial,
-                'linked_by' => $userId
+                'client_cpf'     => $cpf,
+                'client_name'    => $client['name'],
+                'old_serial'     => $oldSerial,
+                'new_serial'     => $serial,
+                'linked_by'      => $userId,
+                'inventory_found' => $inventoryFound,
+                'old_returned'   => $oldReturned
             ]
         ]);
     } else {
