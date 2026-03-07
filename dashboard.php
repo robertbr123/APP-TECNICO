@@ -87,6 +87,44 @@
                 </div>
             </div>
         </div>
+
+        <!-- Card 4: Técnicos Online — Admin Only -->
+        <div id="card-tech-online" class="hidden col-span-2 glass-premium p-5 rounded-ios-xl shadow-lg group card-interactive">
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 rounded-xl bg-purple-500/10 text-purple-500">
+                        <span class="material-symbols-outlined text-[22px]" style="font-variation-settings:'FILL' 1">engineering</span>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Técnicos Online</p>
+                        <span id="stat-tech-online" class="text-3xl font-bold text-gray-900 dark:text-white">-</span>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end gap-1">
+                    <span id="tech-live-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                        <span class="size-1.5 rounded-full bg-green-500 animate-pulse inline-block"></span>Ao vivo
+                    </span>
+                    <span id="tech-last-update" class="text-[10px] text-gray-400 dark:text-gray-500">—</span>
+                </div>
+            </div>
+            <!-- OS Status Row -->
+            <div class="grid grid-cols-3 gap-2 mb-3" id="os-status-row">
+                <div class="text-center p-2 rounded-xl bg-yellow-50 dark:bg-yellow-900/20">
+                    <p class="text-lg font-bold text-yellow-600 dark:text-yellow-400" id="os-open-count">-</p>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Abertas</p>
+                </div>
+                <div class="text-center p-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20">
+                    <p class="text-lg font-bold text-indigo-600 dark:text-indigo-400" id="os-progress-count">-</p>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Em Andamento</p>
+                </div>
+                <div class="text-center p-2 rounded-xl bg-green-50 dark:bg-green-900/20">
+                    <p class="text-lg font-bold text-green-600 dark:text-green-400" id="os-done-count">-</p>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Concluídas</p>
+                </div>
+            </div>
+            <!-- Lista prévia dos técnicos -->
+            <div id="tech-list-preview" class="space-y-1.5"></div>
+        </div>
     </div>
 
     <!-- Quick Actions (Fab-like buttons in grid) -->
@@ -308,7 +346,100 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (statTotal && statTotal.textContent === '-') Animations.countUp(statTotal, 847, 1200);
         if (statTrend) setTimeout(() => { statTrend.style.opacity = '1'; }, 500);
     }, 400);
+
+    // ── Painel Técnicos Online — Admin Only ──
+    try {
+        const ud = JSON.parse(localStorage.getItem('user_data') || '{}');
+        if (ud.role === 'admin') {
+            const card = document.getElementById('card-tech-online');
+            if (card) card.classList.remove('hidden');
+            loadTechnicianWidget();
+            setInterval(loadTechnicianWidget, 60000); // Atualiza a cada 60s
+        }
+    } catch (e) {}
 });
+
+async function loadTechnicianWidget() {
+    try {
+        // Técnicos online
+        const techRes = await API.getActiveTechnicians();
+        if (techRes && techRes.success) {
+            const techs = techRes.data || [];
+            const onlineCount = techs.filter(t => t.is_active == 1 && parseInt(t.minutes_ago || 999) < 60).length;
+
+            const statEl = document.getElementById('stat-tech-online');
+            if (statEl) statEl.textContent = onlineCount;
+
+            // Timestamp da última atualização
+            const lastUpdateEl = document.getElementById('tech-last-update');
+            if (lastUpdateEl) {
+                const now = new Date();
+                lastUpdateEl.textContent = 'Atualizado ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            // Lista prévia dos técnicos (máx 4)
+            const listEl = document.getElementById('tech-list-preview');
+            if (listEl && techs.length > 0) {
+                const activityLabels = {
+                    app_active: 'Ativo', os_started: 'Em OS', break: 'Em pausa',
+                    app_background: 'Inativo', offline: 'Offline'
+                };
+                const activityColors = {
+                    app_active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                    os_started: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+                    break: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                    app_background: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
+                    offline: 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600'
+                };
+
+                listEl.innerHTML = techs.slice(0, 4).map(t => {
+                    const initials = (t.full_name || t.username || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+                    const minsAgo = parseInt(t.minutes_ago || 999);
+                    const isOnline = t.is_active == 1 && minsAgo < 60;
+                    const activity = t.last_activity || (isOnline ? 'app_active' : 'offline');
+                    const actLabel = activityLabels[activity] || activity.replace('_', ' ');
+                    const actColor = activityColors[activity] || activityColors.offline;
+
+                    return `<div class="flex items-center gap-2 py-1">
+                        <div class="relative flex-shrink-0">
+                            <div class="size-7 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-[10px] font-bold text-purple-700 dark:text-purple-300">${initials}</div>
+                            ${isOnline ? '<div class="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-green-500 border border-white dark:border-gray-900"></div>' : ''}
+                        </div>
+                        <span class="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate">${escapeHtmlDash(t.full_name || t.username)}</span>
+                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-medium ${actColor}">${actLabel}</span>
+                    </div>`;
+                }).join('');
+
+                if (techs.length > 4) {
+                    listEl.innerHTML += `<p class="text-[10px] text-gray-400 dark:text-gray-600 text-center mt-1">+${techs.length - 4} técnicos</p>`;
+                }
+            } else if (listEl) {
+                listEl.innerHTML = '<p class="text-xs text-gray-400 dark:text-gray-500 text-center py-1">Nenhum técnico online agora</p>';
+            }
+        }
+
+        // OS de hoje
+        const osRes = await API.getWorkOrders({ limit: 500 });
+        if (osRes && osRes.success) {
+            const today = new Date().toISOString().split('T')[0];
+            const allOS = osRes.data || [];
+            const todayOS = allOS.filter(o => (o.created_at || '').startsWith(today));
+            const openEl = document.getElementById('os-open-count');
+            const progEl = document.getElementById('os-progress-count');
+            const doneEl = document.getElementById('os-done-count');
+            if (openEl) openEl.textContent = allOS.filter(o => o.status === 'open' || o.status === 'assigned').length;
+            if (progEl) progEl.textContent = allOS.filter(o => o.status === 'in_progress').length;
+            if (doneEl) doneEl.textContent = todayOS.filter(o => o.status === 'completed').length;
+        }
+    } catch (e) {
+        console.warn('[Dashboard] Erro ao atualizar widget de técnicos:', e);
+    }
+}
+
+function escapeHtmlDash(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 </script>
 </body>
 </html>

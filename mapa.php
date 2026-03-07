@@ -4,6 +4,7 @@
 <?php include 'partials/head.php'; ?>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <style>
 #map {
         height: calc(100dvh - 140px);
@@ -139,6 +140,13 @@
         Técnicos
     </span>
 </button>
+<!-- Botão Mapa de Calor — visível somente para admin -->
+<button id="btn-heatmap" class="hidden px-4 py-2 rounded-full text-sm font-medium bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/50 dark:border-white/10 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all" onclick="toggleHeatmap()">
+    <span class="flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-lg" style="font-variation-settings:'FILL' 1">thermostat</span>
+        Calor
+    </span>
+</button>
 <button id="btn-reload" class="ml-auto px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/30 flex items-center gap-1.5 hover:shadow-blue-500/50 transition-all btn-press" onclick="loadClients()">
     <span class="material-symbols-outlined text-lg">refresh</span>
     Atualizar
@@ -211,6 +219,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     let showTechnicians = true;
     let techRefreshTimer = null;
     const isAdmin = (JSON.parse(localStorage.getItem('user_data') || '{}')).role === 'admin';
+
+    // ── Mapa de Calor (admin only) ──
+    let heatLayer = null;
+    let heatmapActive = false;
 
     // Inicializa mapa
     function initMap() {
@@ -392,6 +404,111 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         addMarkers(filtered);
+        buildHeatmap(filtered);
+    }
+
+    // ══════════════════════════════════════════════
+    // MAPA DE CALOR DE INFRAESTRUTURA — admin only
+    // ══════════════════════════════════════════════
+
+    function buildHeatmap(clientList) {
+        const points = clientList
+            .filter(c => {
+                const lat = parseFloat(c.latitude);
+                const lng = parseFloat(c.longitude);
+                return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+            })
+            .map(c => {
+                const isActive = c.active == 1 || c.status === 'ativo';
+                const isPending = c.status === 'pendente';
+                let intensity = isActive ? 1.0 : (isPending ? 0.6 : 0.3);
+                return [parseFloat(c.latitude), parseFloat(c.longitude), intensity];
+            });
+
+        if (heatLayer) map.removeLayer(heatLayer);
+
+        if (points.length === 0) {
+            heatLayer = null;
+            return;
+        }
+
+        heatLayer = L.heatLayer(points, {
+            radius: 35,
+            blur: 25,
+            maxZoom: 16,
+            max: 1.0,
+            gradient: {
+                0.0: '#313695',
+                0.2: '#4575b4',
+                0.4: '#74add1',
+                0.6: '#abd9e9',
+                0.7: '#fee090',
+                0.85: '#f46d43',
+                1.0: '#a50026'
+            }
+        });
+
+        if (heatmapActive) {
+            heatLayer.addTo(map);
+        }
+    }
+
+    function toggleHeatmap() {
+        heatmapActive = !heatmapActive;
+        const btn = document.getElementById('btn-heatmap');
+
+        if (heatmapActive) {
+            // Ativa heatmap — oculta marcadores de clientes para visualização limpa
+            markers.forEach(m => m.setOpacity(0.15));
+            if (heatLayer) {
+                heatLayer.addTo(map);
+            } else {
+                // Reconstrói se ainda não existe
+                let filtered = clients;
+                if (currentFilter === 'active') filtered = clients.filter(c => c.active == 1 || c.status === 'ativo');
+                else if (currentFilter === 'pending') filtered = clients.filter(c => c.status === 'pendente');
+                else if (currentFilter === 'inactive') filtered = clients.filter(c => c.active == 0 || c.status === 'inativo');
+                buildHeatmap(filtered);
+                if (heatLayer) heatLayer.addTo(map);
+            }
+            btn.classList.add('bg-gradient-to-r', 'from-orange-500', 'to-red-500', 'text-white', 'shadow-lg', 'shadow-orange-500/30', 'font-semibold');
+            btn.classList.remove('bg-white/60', 'dark:bg-gray-800/60', 'border', 'border-gray-200/50', 'dark:border-white/10', 'text-orange-600', 'dark:text-orange-400');
+            if (typeof UIEnhancements !== 'undefined') UIEnhancements.hapticLight();
+
+            // Mostra legenda
+            showHeatmapLegend();
+        } else {
+            // Desativa heatmap — restaura marcadores
+            markers.forEach(m => m.setOpacity(1.0));
+            if (heatLayer) map.removeLayer(heatLayer);
+            btn.classList.remove('bg-gradient-to-r', 'from-orange-500', 'to-red-500', 'text-white', 'shadow-lg', 'shadow-orange-500/30', 'font-semibold');
+            btn.classList.add('bg-white/60', 'dark:bg-gray-800/60', 'border', 'border-gray-200/50', 'dark:border-white/10', 'text-orange-600', 'dark:text-orange-400');
+            hideHeatmapLegend();
+        }
+    }
+
+    function showHeatmapLegend() {
+        if (document.getElementById('heatmap-legend')) return;
+        const legend = document.createElement('div');
+        legend.id = 'heatmap-legend';
+        legend.style.cssText = 'position:fixed;top:80px;right:12px;z-index:1000;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-radius:12px;padding:10px 14px;box-shadow:0 4px 20px rgba(0,0,0,0.15);border:1px solid rgba(0,0,0,0.08);font-family:Inter,sans-serif;min-width:130px;';
+        legend.innerHTML = `
+            <p style="font-size:11px;font-weight:700;color:#374151;margin:0 0 8px;text-transform:uppercase;letter-spacing:.5px;">Densidade</p>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+                <div style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;border-radius:50%;background:#a50026;display:inline-block;flex-shrink:0"></span><span style="font-size:11px;color:#374151;">Alta</span></div>
+                <div style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;border-radius:50%;background:#f46d43;display:inline-block;flex-shrink:0"></span><span style="font-size:11px;color:#374151;">Média-alta</span></div>
+                <div style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;border-radius:50%;background:#fee090;display:inline-block;flex-shrink:0"></span><span style="font-size:11px;color:#374151;">Média</span></div>
+                <div style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;border-radius:50%;background:#74add1;display:inline-block;flex-shrink:0"></span><span style="font-size:11px;color:#374151;">Baixa</span></div>
+                <div style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;border-radius:50%;background:#313695;display:inline-block;flex-shrink:0"></span><span style="font-size:11px;color:#374151;">Mínima</span></div>
+            </div>
+            <p style="font-size:10px;color:#9ca3af;margin:8px 0 0;">Intensidade: Ativos > Pendentes > Inativos</p>
+        `;
+        document.body.appendChild(legend);
+    }
+
+    function hideHeatmapLegend() {
+        const legend = document.getElementById('heatmap-legend');
+        if (legend) legend.remove();
     }
 
     // Calcular rota otimizada
@@ -728,6 +845,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Admin: exibe controles e carrega técnicos
     if (isAdmin) {
         document.getElementById('btn-technicians').classList.remove('hidden');
+        document.getElementById('btn-heatmap').classList.remove('hidden');
         document.getElementById('tech-stats-row').classList.remove('hidden');
         // grid passa de 4 para 4 colunas (mantém) + linha extra de técnicos
         loadTechnicians();
@@ -861,6 +979,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.initMap     = initMap;
     window.loadClients = loadClients;
     window.toggleTechnicians = toggleTechnicians;
+    window.toggleHeatmap = toggleHeatmap;
 });
 </script>
 </body></html>

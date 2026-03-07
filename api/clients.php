@@ -73,11 +73,18 @@ try {
 function handleGet($db) {
     global $userCity;
 
+    $action = $_GET['action'] ?? null;
     $cpf = $_GET['cpf'] ?? null;
     $search = $_GET['search'] ?? null;
     $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
     $limit = isset($_GET['limit']) ? min(1000, max(1, (int)$_GET['limit'])) : 20;
     $offset = ($page - 1) * $limit;
+
+    // Timeline completa do cliente
+    if ($action === 'timeline' && $cpf) {
+        handleTimeline($db, $cpf);
+        return;
+    }
 
     // Busca por CPF específico
     if ($cpf) {
@@ -476,4 +483,99 @@ function handleUpdateLocation($db, $userData, $data) {
     ]);
 
     jsonResponse(['success' => true, 'message' => 'Localização atualizada com sucesso']);
+}
+
+/**
+ * Timeline completa do cliente — agrega OS, Checklists, Serial History e Fotos
+ */
+function handleTimeline($db, $cpfRaw) {
+    $cpfValidation = Validator::validateCPF($cpfRaw);
+    $cpf = $cpfValidation['valid'] ? $cpfValidation['clean'] : preg_replace('/\D/', '', $cpfRaw);
+
+    $events = [];
+
+    // Ordens de Serviço
+    try {
+        $stmt = $db->prepare("
+            SELECT 'os' as event_type,
+                   id, order_number as ref, type as subtype,
+                   status, description,
+                   COALESCE(assigned_name, created_by_name, '') as actor,
+                   priority,
+                   COALESCE(completed_at, created_at) as event_date,
+                   created_at
+            FROM work_orders
+            WHERE client_cpf = ?
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([$cpf]);
+        $events = array_merge($events, $stmt->fetchAll());
+    } catch (Exception $e) { /* tabela pode não existir */ }
+
+    // Checklists de instalação
+    try {
+        $stmt = $db->prepare("
+            SELECT 'checklist' as event_type,
+                   id, checklist_number as ref, installation_type as subtype,
+                   status, COALESCE(notes, '') as description,
+                   COALESCE(approved_by, '') as actor,
+                   '' as priority,
+                   COALESCE(completed_at, created_at) as event_date,
+                   created_at
+            FROM installation_checklists
+            WHERE client_cpf = ?
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([$cpf]);
+        $events = array_merge($events, $stmt->fetchAll());
+    } catch (Exception $e) { /* tabela pode não existir */ }
+
+    // Histórico de serial (trocas de equipamento)
+    try {
+        $stmt = $db->prepare("
+            SELECT 'serial' as event_type,
+                   id,
+                   CONCAT(COALESCE(old_serial,'—'), ' → ', new_serial) as ref,
+                   'troca' as subtype,
+                   'Troca de Equipamento' as status,
+                   CONCAT('Serial anterior: ', COALESCE(old_serial, 'Primeiro registro'), ' | Novo: ', new_serial) as description,
+                   COALESCE(changed_by, '') as actor,
+                   '' as priority,
+                   changed_at as event_date,
+                   changed_at as created_at
+            FROM serial_history
+            WHERE client_cpf = ?
+            ORDER BY changed_at DESC
+        ");
+        $stmt->execute([$cpf]);
+        $events = array_merge($events, $stmt->fetchAll());
+    } catch (Exception $e) { /* tabela pode não existir */ }
+
+    // Fotos do cliente
+    try {
+        $stmt = $db->prepare("
+            SELECT 'foto' as event_type,
+                   id, file_path as ref, type as subtype,
+                   'Foto Registrada' as status,
+                   CONCAT('Tipo: ', COALESCE(type, 'instalação')) as description,
+                   COALESCE(uploaded_by, '') as actor,
+                   '' as priority,
+                   created_at as event_date,
+                   created_at
+            FROM client_photos
+            WHERE client_cpf = ?
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([$cpf]);
+        $events = array_merge($events, $stmt->fetchAll());
+    } catch (Exception $e) { /* tabela pode não existir */ }
+
+    // Ordena tudo por data decrescente
+    usort($events, function($a, $b) {
+        return strtotime($b['event_date']) - strtotime($a['event_date']);
+    });
+
+    Logger::info('Timeline do cliente gerada', ['cpf' => $cpf, 'total_events' => count($events)]);
+
+    jsonResponse(['success' => true, 'data' => $events, 'total' => count($events)]);
 }

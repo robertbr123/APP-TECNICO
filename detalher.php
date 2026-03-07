@@ -321,6 +321,43 @@ Configurar WiFi Completo
 </div>
 </div>
 </section>
+
+<!-- Timeline Completa do Cliente -->
+<section id="section-timeline" class="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-500 text-xl" style="font-variation-settings:'FILL' 1">timeline</span>
+<h3 class="text-[#111318] dark:text-white text-base font-bold">Timeline Completa</h3>
+</div>
+<span id="timeline-count" class="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full font-medium">0 eventos</span>
+</div>
+
+<!-- Filtros por tipo -->
+<div class="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-1 px-1">
+<button class="timeline-filter-btn active flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500 text-white transition-all" data-filter="all">Tudo</button>
+<button class="timeline-filter-btn flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 transition-all" data-filter="os">
+    <span class="material-symbols-outlined text-xs align-middle" style="font-size:12px">assignment</span> OS
+</button>
+<button class="timeline-filter-btn flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 transition-all" data-filter="checklist">
+    <span class="material-symbols-outlined text-xs align-middle" style="font-size:12px">checklist</span> Instalações
+</button>
+<button class="timeline-filter-btn flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 transition-all" data-filter="serial">
+    <span class="material-symbols-outlined text-xs align-middle" style="font-size:12px">swap_horiz</span> Equipamentos
+</button>
+<button class="timeline-filter-btn flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 transition-all" data-filter="foto">
+    <span class="material-symbols-outlined text-xs align-middle" style="font-size:12px">photo_camera</span> Fotos
+</button>
+</div>
+
+<!-- Linha do tempo -->
+<div id="timeline-container" class="relative">
+<!-- Skeleton loading -->
+<div class="timeline-skeleton space-y-4">
+<div class="flex gap-3"><div class="size-9 rounded-full bg-gray-100 dark:bg-gray-800 flex-shrink-0 animate-pulse"></div><div class="flex-1 space-y-2 pt-1"><div class="h-3.5 bg-gray-100 dark:bg-gray-800 rounded w-2/3 animate-pulse"></div><div class="h-3 bg-gray-100 dark:bg-gray-800 rounded w-1/3 animate-pulse"></div></div></div>
+<div class="flex gap-3"><div class="size-9 rounded-full bg-gray-100 dark:bg-gray-800 flex-shrink-0 animate-pulse"></div><div class="flex-1 space-y-2 pt-1"><div class="h-3.5 bg-gray-100 dark:bg-gray-800 rounded w-3/4 animate-pulse"></div><div class="h-3 bg-gray-100 dark:bg-gray-800 rounded w-1/2 animate-pulse"></div></div></div>
+</div>
+</div>
+</section>
 </div>
 <div class="p-4 flex flex-col gap-3 mb-10">
 <!-- Botões de Ação (Agendar visível para todos) -->
@@ -474,9 +511,12 @@ Salvar
         
         // Carrega histórico de OS do cliente
         await loadOsHistory(cpf);
-        
+
         // Carrega histórico de Checklists do cliente
         await loadChecklistHistory(cpf);
+
+        // Carrega timeline completa do cliente
+        loadTimeline(cpf);
     });
     
     function togglePassword() {
@@ -1932,6 +1972,166 @@ Salvar
     function openScheduleMaintenance() {
         // Placeholder para agendar manutenção
         alert('Funcionalidade de agendamento em desenvolvimento.\n\nCliente: ' + (document.getElementById('client-name')?.textContent || currentCpf));
+    }
+
+    // ══════════════════════════════════════════════
+    // TIMELINE COMPLETA DO CLIENTE
+    // ══════════════════════════════════════════════
+
+    var timelineAllEvents = [];
+    var currentTimelineFilter = 'all';
+
+    async function loadTimeline(cpf) {
+        var container = document.getElementById('timeline-container');
+        var countEl = document.getElementById('timeline-count');
+
+        try {
+            var token = localStorage.getItem('auth_token');
+            var response = await fetch('/api/clients.php?action=timeline&cpf=' + encodeURIComponent(cpf), {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            var result = await response.json();
+
+            if (result.success && result.data) {
+                timelineAllEvents = result.data;
+                var count = timelineAllEvents.length;
+                countEl.textContent = count + ' evento' + (count !== 1 ? 's' : '');
+                renderTimeline(timelineAllEvents);
+            } else {
+                container.innerHTML = '<p class="text-gray-400 dark:text-gray-600 text-center text-sm py-6">Nenhum evento registrado</p>';
+                countEl.textContent = '0 eventos';
+            }
+        } catch (err) {
+            container.innerHTML = '<p class="text-red-400 text-center text-sm py-6">Erro ao carregar timeline</p>';
+        }
+    }
+
+    function renderTimeline(events) {
+        var container = document.getElementById('timeline-container');
+
+        if (!events || events.length === 0) {
+            container.innerHTML = '<p class="text-gray-400 dark:text-gray-600 text-center text-sm py-6">Nenhum evento para este filtro</p>';
+            return;
+        }
+
+        var typeConfig = {
+            os: {
+                icon: 'assignment',
+                iconBg: 'bg-primary/10 dark:bg-primary/20',
+                iconColor: 'text-primary',
+                badgeColor: { open: 'bg-yellow-100 text-yellow-700', assigned: 'bg-blue-100 text-blue-700', in_progress: 'bg-indigo-100 text-indigo-700', completed: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-600' },
+                label: 'Ordem de Serviço'
+            },
+            checklist: {
+                icon: 'checklist',
+                iconBg: 'bg-green-100 dark:bg-green-900/30',
+                iconColor: 'text-green-600 dark:text-green-400',
+                badgeColor: { pending: 'bg-yellow-100 text-yellow-700', approved: 'bg-green-100 text-green-700', rejected: 'bg-red-100 text-red-600', completed: 'bg-teal-100 text-teal-700' },
+                label: 'Checklist'
+            },
+            serial: {
+                icon: 'swap_horiz',
+                iconBg: 'bg-purple-100 dark:bg-purple-900/30',
+                iconColor: 'text-purple-600 dark:text-purple-400',
+                badgeColor: { default: 'bg-purple-100 text-purple-700' },
+                label: 'Equipamento'
+            },
+            foto: {
+                icon: 'photo_camera',
+                iconBg: 'bg-amber-100 dark:bg-amber-900/30',
+                iconColor: 'text-amber-600 dark:text-amber-400',
+                badgeColor: { default: 'bg-amber-100 text-amber-700' },
+                label: 'Foto'
+            }
+        };
+
+        var statusLabels = {
+            open: 'Aberta', assigned: 'Atribuída', in_progress: 'Em Andamento',
+            completed: 'Concluída', cancelled: 'Cancelada',
+            pending: 'Pendente', approved: 'Aprovado', rejected: 'Rejeitado',
+            troca: 'Troca', 'Troca de Equipamento': 'Troca', 'Foto Registrada': 'Foto', 'Foto adicionada': 'Foto'
+        };
+
+        var subtypeLabels = {
+            installation: 'Instalação', repair: 'Reparo', maintenance: 'Manutenção',
+            migration: 'Migração', removal: 'Remoção', other: 'Outro',
+            new: 'Nova Instalação', troca: 'Troca'
+        };
+
+        var html = '<div class="relative">';
+        // Linha vertical
+        html += '<div class="absolute left-4 top-2 bottom-2 w-0.5 bg-gray-100 dark:bg-gray-800 rounded-full"></div>';
+
+        events.forEach(function(event, idx) {
+            var cfg = typeConfig[event.event_type] || typeConfig.os;
+            var badgeColorKey = event.status in (cfg.badgeColor || {}) ? event.status : 'default';
+            var badgeClass = cfg.badgeColor?.[badgeColorKey] || cfg.badgeColor?.default || 'bg-gray-100 text-gray-600';
+            var statusText = statusLabels[event.status] || event.status || '—';
+            var subtypeText = subtypeLabels[event.subtype] || event.subtype || '';
+            var isLast = idx === events.length - 1;
+
+            // Formata data
+            var dateStr = '—';
+            try {
+                var d = new Date(event.event_date || event.created_at);
+                dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                    + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            } catch(e) {}
+
+            html += '<div class="flex gap-3 ' + (isLast ? '' : 'pb-5') + '" data-event-type="' + event.event_type + '">';
+            // Ícone
+            html += '<div class="relative flex-shrink-0 z-10">';
+            html += '<div class="size-9 rounded-full ' + cfg.iconBg + ' flex items-center justify-center border-2 border-white dark:border-gray-900">';
+            html += '<span class="material-symbols-outlined text-base ' + cfg.iconColor + '" style="font-size:16px;font-variation-settings:\'FILL\' 1">' + cfg.icon + '</span>';
+            html += '</div></div>';
+            // Conteúdo
+            html += '<div class="flex-1 min-w-0 pt-1">';
+            html += '<div class="flex items-center gap-2 flex-wrap mb-1">';
+            html += '<span class="text-sm font-semibold text-gray-900 dark:text-white">' + escapeHtmlStr(event.ref || cfg.label) + '</span>';
+            if (subtypeText) html += '<span class="text-xs text-gray-400 dark:text-gray-500">· ' + escapeHtmlStr(subtypeText) + '</span>';
+            html += '</div>';
+            html += '<div class="flex items-center gap-2 flex-wrap mb-1.5">';
+            html += '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ' + badgeClass + '">' + escapeHtmlStr(statusText) + '</span>';
+            if (event.actor) html += '<span class="text-[10px] text-gray-400 dark:text-gray-500">por ' + escapeHtmlStr(event.actor) + '</span>';
+            html += '</div>';
+            if (event.description && event.description !== '') {
+                html += '<p class="text-xs text-gray-500 dark:text-gray-400 mb-1 line-clamp-2">' + escapeHtmlStr(event.description) + '</p>';
+            }
+            html += '<p class="text-[10px] text-gray-400 dark:text-gray-600">' + escapeHtmlStr(dateStr) + '</p>';
+            html += '</div></div>';
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    // Filtros da timeline
+    document.querySelectorAll('.timeline-filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            currentTimelineFilter = btn.dataset.filter;
+
+            document.querySelectorAll('.timeline-filter-btn').forEach(function(b) {
+                b.classList.remove('bg-amber-500', 'text-white');
+                b.classList.add('bg-gray-100', 'dark:bg-gray-800', 'text-gray-600', 'dark:text-gray-400');
+            });
+            btn.classList.add('bg-amber-500', 'text-white');
+            btn.classList.remove('bg-gray-100', 'dark:bg-gray-800', 'text-gray-600', 'dark:text-gray-400');
+
+            var filtered = currentTimelineFilter === 'all'
+                ? timelineAllEvents
+                : timelineAllEvents.filter(function(e) { return e.event_type === currentTimelineFilter; });
+
+            renderTimeline(filtered);
+        });
+    });
+
+    function escapeHtmlStr(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
     }
 </script>
 </body></html>
