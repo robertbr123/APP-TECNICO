@@ -31,6 +31,20 @@
     .marker-inactive {
         background: #ef4444;
     }
+    .marker-sgp-online {
+        background: #22c55e;
+        border-color: #16a34a;
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3), 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .marker-sgp-offline {
+        background: #ef4444;
+        border-color: #dc2626;
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3), 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .marker-sgp-unknown {
+        background: #9ca3af;
+        border-color: #6b7280;
+    }
 
     /* Marcador de técnico — roxo pulsante */
     .marker-technician {
@@ -303,7 +317,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 `, { maxWidth: 260 });
 
             marker.clientData = client;
-            marker.on('popupopen', () => checkSgpStatus(client, popupId));
+            marker.on('popupopen', () => checkSgpStatus(client, popupId, marker));
             markers.push(marker);
         });
 
@@ -316,15 +330,26 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Atualiza estatísticas
     function updateStats(clientList) {
-        var userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-        document.getElementById('stat-total').textContent = (userData.role === 'admin') ? clientList.length : '100+';
-        document.getElementById('stat-active').textContent = clientList.filter(c => c.active == 1 || c.status === 'ativo').length;
-        document.getElementById('stat-pending').textContent = clientList.filter(c => c.status === 'pendente').length;
-        document.getElementById('stat-with-location').textContent = clientList.filter(c => {
+        const isAdminUser = (JSON.parse(localStorage.getItem('user_data') || '{}')).role === 'admin';
+        const activeCount = clientList.filter(c => c.active == 1 || c.status === 'ativo').length;
+        const pendingCount = clientList.filter(c => c.status === 'pendente').length;
+        const withLocationCount = clientList.filter(c => {
             const lat = parseFloat(c.latitude);
             const lng = parseFloat(c.longitude);
             return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
         }).length;
+
+        if (isAdminUser) {
+            document.getElementById('stat-total').textContent = clientList.length;
+            document.getElementById('stat-active').textContent = activeCount;
+            document.getElementById('stat-pending').textContent = pendingCount;
+            document.getElementById('stat-with-location').textContent = withLocationCount;
+        } else {
+            document.getElementById('stat-total').textContent = '100+';
+            document.getElementById('stat-active').textContent = '100+';
+            document.getElementById('stat-pending').textContent = '—';
+            document.getElementById('stat-with-location').textContent = '—';
+        }
     }
 
     // Filtros
@@ -714,13 +739,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ══════════════════════════════════════════════
     const sgpCache = {}; // cache por CPF para não reconsultar
 
-    async function checkSgpStatus(client, popupId) {
+    async function checkSgpStatus(client, popupId, marker) {
         const cpf = (client.cpf || '').replace(/\D/g, '');
         if (!cpf) return;
 
         // Se já consultou, usa cache
         if (sgpCache[cpf]) {
-            renderSgpStatus(popupId, sgpCache[cpf]);
+            renderSgpStatus(popupId, sgpCache[cpf], marker);
             return;
         }
 
@@ -787,10 +812,30 @@ document.addEventListener('DOMContentLoaded', async function() {
             sgpCache[cpf] = { status: 'error' };
         }
 
-        renderSgpStatus(popupId, sgpCache[cpf]);
+        renderSgpStatus(popupId, sgpCache[cpf], marker);
     }
 
-    function renderSgpStatus(popupId, result) {
+    function updateMarkerColor(marker, status) {
+        if (!marker) return;
+        const sgpClassMap = {
+            online: 'marker-sgp-online',
+            offline: 'marker-sgp-offline',
+            not_found: 'marker-sgp-unknown',
+            no_contract: 'marker-sgp-unknown',
+            error: '' // mantém cor original
+        };
+        const sgpClass = sgpClassMap[status] || '';
+        if (!sgpClass) return;
+
+        const newIcon = L.divIcon({
+            className: 'custom-marker ' + sgpClass,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+        marker.setIcon(newIcon);
+    }
+
+    function renderSgpStatus(popupId, result, marker) {
         const el = document.getElementById(popupId);
         if (!el) return;
 
@@ -807,6 +852,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         el.innerHTML =
             '<div class="w-2.5 h-2.5 rounded-full ' + c.dot + ' flex-shrink-0"></div>' +
             '<span class="text-xs font-semibold ' + c.text + '">' + escapeHtml(result.msg || c.label) + '</span>';
+
+        // Atualiza cor do marcador no mapa
+        updateMarkerColor(marker, result.status);
     }
 
     // Expõe funções globalmente

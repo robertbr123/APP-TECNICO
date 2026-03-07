@@ -613,88 +613,173 @@ const App = {
 
         // Verifica suporte a geolocalização
         if (!navigator.geolocation) {
-            console.debug('[LocationTracking] Geolocation não suportada');
+            console.warn('[LocationTracking] Geolocation não suportada');
             return;
         }
 
-        // Pede permissão proativamente (importante para funcionar)
-        navigator.permissions?.query({ name: 'geolocation' }).then(result => {
-            if (result.state === 'prompt') {
-                console.debug('[LocationTracking] Permissão pendente, será solicitada na próxima chamada');
-            } else if (result.state === 'denied') {
-                console.debug('[LocationTracking] Permissão de localização negada pelo usuário');
-            }
-        }).catch(() => {});
-
-        // Função para enviar localização
-        const sendLocation = async () => {
-            try {
-                const position = await new Promise((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, {
-                        enableHighAccuracy: true,
-                        timeout: 15000,
-                        maximumAge: 60000
-                    });
-                });
-
-                const token = localStorage.getItem('auth_token');
-                if (!token) return;
-
-                await fetch('/api/technician-location.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
-                    body: JSON.stringify({
-                        action: 'update',
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        accuracy: position.coords.accuracy,
-                        heading: position.coords.heading,
-                        speed: position.coords.speed,
-                        last_activity: 'app_active'
-                    })
-                });
-
-                console.debug('[LocationTracking] Localização enviada:', position.coords.latitude, position.coords.longitude);
-            } catch (err) {
-                console.debug('[LocationTracking] Erro:', err.message || err.code);
-            }
-        };
-
-        // Envia imediatamente
-        sendLocation();
-
-        // Envia a cada 2 minutos
-        this._locationTrackingInterval = setInterval(sendLocation, 2 * 60 * 1000);
-
-        // Marca como inativo somente ao fechar o app de verdade (não em navegação interna)
-        // visibilitychange 'hidden' é mais confiável que beforeunload para detectar saída real
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                // Cancela marcação de inativo se voltou rápido
-                if (this._inactiveTimeout) clearTimeout(this._inactiveTimeout);
-                // App voltou do background - atualiza localização
-                sendLocation();
-            } else {
-                // App foi para background - marca inativo após 30s
-                // Se o usuário voltar antes, o timer é cancelado pelo sendLocation
-                this._inactiveTimeout = setTimeout(() => {
+        // Função para enviar localização ao servidor
+        const sendLocation = () => {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
                     const token = localStorage.getItem('auth_token');
                     if (!token) return;
+
                     fetch('/api/technician-location.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': 'Bearer ' + token
                         },
-                        body: JSON.stringify({ action: 'inactive' }),
-                        keepalive: true
+                        body: JSON.stringify({
+                            action: 'update',
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            heading: position.coords.heading,
+                            speed: position.coords.speed,
+                            last_activity: 'app_active'
+                        })
+                    }).then(() => {
+                        console.debug('[LocationTracking] Enviada:', position.coords.latitude.toFixed(5), position.coords.longitude.toFixed(5));
                     }).catch(() => {});
-                }, 30000);
-            }
+                },
+                (err) => {
+                    console.warn('[LocationTracking] Erro GPS:', err.message);
+                    // Se permissão negada, mostra banner para o técnico
+                    if (err.code === 1) {
+                        this.showLocationDeniedBanner();
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 60000
+                }
+            );
+        };
+
+        // Verifica estado da permissão antes de tudo
+        const startTracking = () => {
+            // Primeira chamada - dispara o popup de permissão do navegador
+            sendLocation();
+
+            // Envia a cada 2 minutos
+            this._locationTrackingInterval = setInterval(sendLocation, 2 * 60 * 1000);
+
+            // Controle de visibilidade
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    if (this._inactiveTimeout) clearTimeout(this._inactiveTimeout);
+                    sendLocation();
+                } else {
+                    this._inactiveTimeout = setTimeout(() => {
+                        const token = localStorage.getItem('auth_token');
+                        if (!token) return;
+                        fetch('/api/technician-location.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + token
+                            },
+                            body: JSON.stringify({ action: 'inactive' }),
+                            keepalive: true
+                        }).catch(() => {});
+                    }, 30000);
+                }
+            });
+        };
+
+        // Checa permissão: se já concedida, inicia direto. Se prompt, mostra banner pedindo.
+        if (navigator.permissions) {
+            navigator.permissions.query({ name: 'geolocation' }).then(result => {
+                if (result.state === 'granted') {
+                    startTracking();
+                } else if (result.state === 'prompt') {
+                    this.showLocationRequestBanner(startTracking);
+                } else {
+                    // denied
+                    this.showLocationDeniedBanner();
+                }
+            }).catch(() => {
+                // Fallback: tenta direto (vai disparar o popup nativo)
+                startTracking();
+            });
+        } else {
+            // Navegador sem Permissions API: tenta direto
+            startTracking();
+        }
+    },
+
+    /**
+     * Banner pedindo permissão de localização (para técnicos)
+     */
+    showLocationRequestBanner(onAllow) {
+        const currentPage = window.location.pathname.split('/').pop() || '';
+        if (currentPage !== 'dashboard.php') {
+            // Só mostra no dashboard para não ser intrusivo
+            onAllow();
+            return;
+        }
+
+        // Não mostra se já dismissou recentemente (12h)
+        const dismissedAt = parseInt(localStorage.getItem('loc-banner-dismissed') || '0');
+        if (Date.now() - dismissedAt < 12 * 60 * 60 * 1000) {
+            onAllow();
+            return;
+        }
+
+        if (document.getElementById('location-banner')) return;
+
+        const banner = document.createElement('div');
+        banner.id = 'location-banner';
+        banner.className = 'fixed bottom-20 left-4 right-4 bg-purple-600 text-white rounded-2xl p-4 z-40 flex items-center gap-3 shadow-lg';
+        banner.style.animation = 'slide-up 0.3s ease';
+        banner.innerHTML = `
+            <span class="material-symbols-outlined text-2xl flex-shrink-0">location_on</span>
+            <div class="flex-1">
+                <p class="text-sm font-semibold">Ativar localização</p>
+                <p class="text-xs opacity-80">Permite que o admin veja sua posição no mapa</p>
+            </div>
+            <button id="loc-banner-allow" class="bg-white text-purple-600 text-xs font-bold px-3 py-1.5 rounded-xl flex-shrink-0">Ativar</button>
+            <button id="loc-banner-dismiss" class="text-white/70 ml-1 flex-shrink-0"><span class="material-symbols-outlined text-xl">close</span></button>
+        `;
+        document.body.appendChild(banner);
+
+        document.getElementById('loc-banner-allow').addEventListener('click', () => {
+            banner.remove();
+            onAllow();
         });
+        document.getElementById('loc-banner-dismiss').addEventListener('click', () => {
+            banner.remove();
+            localStorage.setItem('loc-banner-dismissed', Date.now().toString());
+        });
+    },
+
+    /**
+     * Banner informando que localização foi negada
+     */
+    showLocationDeniedBanner() {
+        const currentPage = window.location.pathname.split('/').pop() || '';
+        if (currentPage !== 'dashboard.php') return;
+        if (document.getElementById('location-denied-banner')) return;
+
+        // Só mostra 1 vez por sessão
+        if (sessionStorage.getItem('loc-denied-shown')) return;
+        sessionStorage.setItem('loc-denied-shown', '1');
+
+        const banner = document.createElement('div');
+        banner.id = 'location-denied-banner';
+        banner.className = 'fixed top-20 left-4 right-4 bg-orange-500 text-white rounded-2xl p-4 z-40 flex items-center gap-3 shadow-lg';
+        banner.innerHTML = `
+            <span class="material-symbols-outlined text-2xl flex-shrink-0">location_off</span>
+            <div class="flex-1">
+                <p class="text-sm font-semibold">Localização bloqueada</p>
+                <p class="text-xs opacity-80">Ative nas configurações do navegador para aparecer no mapa</p>
+            </div>
+            <button onclick="this.closest('#location-denied-banner').remove()" class="text-white/70 flex-shrink-0"><span class="material-symbols-outlined text-xl">close</span></button>
+        `;
+        document.body.appendChild(banner);
+        setTimeout(() => { if (banner.parentNode) banner.remove(); }, 8000);
     },
     
     /**
