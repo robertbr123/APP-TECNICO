@@ -34,8 +34,8 @@ const App = {
             'vincular-equipamento.php': 'vincular',
             'ajustes.php': 'ajustes',
             'historico.php': 'historico',
-            'ordens.php': 'ordens',
-            'relatorios.php': 'relatorios'
+            'ordens.php': 'ordens'
+            // relatorios.php já inclui js/pages/relatorios.js estaticamente
         };
 
         const initMap = {
