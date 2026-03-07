@@ -257,7 +257,6 @@
     .form-group:nth-child(1) { animation-delay: 0.5s; }
     .form-group:nth-child(2) { animation-delay: 0.6s; }
     .form-group:nth-child(3) { animation-delay: 0.7s; }
-    .form-group:nth-child(4) { animation-delay: 0.8s; }
     @keyframes form-stagger {
         to { opacity: 1; transform: translateY(0); }
     }
@@ -374,12 +373,6 @@
                         </div>
                     </div>
 
-                    <div class="form-group flex justify-end">
-                        <a href="#" class="text-blue-400 text-sm font-medium hover:text-blue-300 transition-colors">
-                            Esqueci minha senha
-                        </a>
-                    </div>
-
                     <div class="form-group pt-2">
                         <button 
                             type="submit" 
@@ -472,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle form submit
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
+
         const user = username.value.trim();
         const pass = password.value;
 
@@ -484,20 +477,9 @@ document.addEventListener('DOMContentLoaded', function() {
         setLoading(true);
 
         try {
-            const response = await fetch('api/login.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    username: user, 
-                    password: pass 
-                })
-            });
+            const result = await API.login(user, pass);
 
-            const data = await response.json();
-
-            if (data.success && data.token) {
-                localStorage.setItem('auth_token', data.token);
-                localStorage.setItem('user_data', JSON.stringify(data.user));
+            if (result.success) {
                 showToast('Login realizado com sucesso!', true);
 
                 // Haptic feedback
@@ -511,12 +493,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.location.href = 'dashboard.php';
                 }, 500);
             } else {
-                showToast(data.message || 'Credenciais inválidas');
+                showToast(result.message || 'Credenciais inválidas');
                 setLoading(false);
             }
         } catch (error) {
             console.error('Login error:', error);
-            showToast('Erro de conexão. Tente novamente.');
+            showToast(error.message || 'Erro de conexão. Tente novamente.');
             setLoading(false);
         }
     });

@@ -26,6 +26,44 @@ $password = $data['password'];
 try {
     $db = Database::getInstance()->getConnection();
 
+    // =====================================================
+    // RATE LIMITING - máx 5 tentativas por IP a cada 15 min
+    // =====================================================
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS `login_attempts` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `ip_address` varchar(45) NOT NULL,
+            `username` varchar(100) NOT NULL,
+            `attempted_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `ip_time` (`ip_address`, `attempted_at`),
+            KEY `cleanup` (`attempted_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $windowMinutes = 15;
+    $maxAttempts = 5;
+
+    // Limpa tentativas antigas (> 1 hora) para não crescer infinitamente
+    $db->exec("DELETE FROM login_attempts WHERE attempted_at < DATE_SUB(NOW(), INTERVAL 1 HOUR)");
+
+    // Conta tentativas recentes deste IP
+    $rateLimitStmt = $db->prepare("
+        SELECT COUNT(*) as attempts FROM login_attempts
+        WHERE ip_address = ? AND attempted_at > DATE_SUB(NOW(), INTERVAL ? MINUTE)
+    ");
+    $rateLimitStmt->execute([$ip, $windowMinutes]);
+    $attempts = $rateLimitStmt->fetch()['attempts'];
+
+    if ($attempts >= $maxAttempts) {
+        Logger::warning('Rate limit atingido', ['ip' => $ip, 'attempts' => $attempts]);
+        jsonResponse([
+            'success' => false,
+            'message' => 'Muitas tentativas de login. Aguarde 15 minutos.'
+        ], 429);
+    }
+
     // Verifica se a coluna 'active' existe (necessário para verificar usuários desativados)
     $stmt = $db->prepare("SELECT id, username, password, full_name, email, role, city, photo, active FROM users WHERE username = ? LIMIT 1");
     $stmt->execute([$username]);
@@ -61,8 +99,16 @@ try {
     }
 
     if (!$passwordValid) {
+        // Registra tentativa falha
+        $attemptStmt = $db->prepare("INSERT INTO login_attempts (ip_address, username) VALUES (?, ?)");
+        $attemptStmt->execute([$ip, $username]);
+        Logger::info('Login falhou', ['ip' => $ip, 'username' => $username]);
         jsonResponse(['success' => false, 'message' => 'Usuário ou senha incorretos'], 401);
     }
+
+    // Login OK - limpa tentativas deste IP
+    $clearStmt = $db->prepare("DELETE FROM login_attempts WHERE ip_address = ?");
+    $clearStmt->execute([$ip]);
 
     // Migra senha para bcrypt automaticamente se necessário
     if ($needsRehash) {
