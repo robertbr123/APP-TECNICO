@@ -597,39 +597,49 @@ const App = {
     // RASTREAMENTO DE LOCALIZAÇÃO DO TÉCNICO
     // ========================================
     _locationTrackingInterval: null,
+    _inactiveTimeout: null,
     
     /**
      * Inicia rastreamento de localização do técnico
      * Envia posição a cada 5 minutos para permitir auto-atribuição de OS
      */
     startLocationTracking() {
-        // Só rastreia se estiver logado e for técnico
+        // Só rastreia se estiver logado
         const userData = API.getUser();
         if (!userData || !userData.user_id) return;
-        
-        // Não rastreia admin (opcional)
-        // if (userData.role === 'admin') return;
-        
+
+        // Admin não precisa ser rastreado
+        if (userData.role === 'admin') return;
+
         // Verifica suporte a geolocalização
         if (!navigator.geolocation) {
             console.debug('[LocationTracking] Geolocation não suportada');
             return;
         }
-        
+
+        // Pede permissão proativamente (importante para funcionar)
+        navigator.permissions?.query({ name: 'geolocation' }).then(result => {
+            if (result.state === 'prompt') {
+                console.debug('[LocationTracking] Permissão pendente, será solicitada na próxima chamada');
+            } else if (result.state === 'denied') {
+                console.debug('[LocationTracking] Permissão de localização negada pelo usuário');
+            }
+        }).catch(() => {});
+
         // Função para enviar localização
         const sendLocation = async () => {
             try {
                 const position = await new Promise((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(resolve, reject, {
-                        enableHighAccuracy: false, // Economia de bateria
-                        timeout: 10000,
-                        maximumAge: 60000 // Cache de 1 minuto
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 60000
                     });
                 });
-                
+
                 const token = localStorage.getItem('auth_token');
                 if (!token) return;
-                
+
                 await fetch('/api/technician-location.php', {
                     method: 'POST',
                     headers: {
@@ -646,39 +656,43 @@ const App = {
                         last_activity: 'app_active'
                     })
                 });
-                
-                console.debug('[LocationTracking] Localização enviada');
+
+                console.debug('[LocationTracking] Localização enviada:', position.coords.latitude, position.coords.longitude);
             } catch (err) {
-                // Falha silenciosa - não é crítico
-                console.debug('[LocationTracking] Erro:', err.message);
+                console.debug('[LocationTracking] Erro:', err.message || err.code);
             }
         };
-        
+
         // Envia imediatamente
         sendLocation();
-        
+
         // Envia a cada 2 minutos
         this._locationTrackingInterval = setInterval(sendLocation, 2 * 60 * 1000);
 
-        // Marca como inativo ao sair (fetch síncrono via keepalive)
-        window.addEventListener('beforeunload', () => {
-            const token = localStorage.getItem('auth_token');
-            if (!token) return;
-            fetch('/api/technician-location.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify({ action: 'inactive' }),
-                keepalive: true
-            }).catch(() => {});
-        });
-        
-        // Também atualiza quando o app volta do background
+        // Marca como inativo somente ao fechar o app de verdade (não em navegação interna)
+        // visibilitychange 'hidden' é mais confiável que beforeunload para detectar saída real
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
+                // Cancela marcação de inativo se voltou rápido
+                if (this._inactiveTimeout) clearTimeout(this._inactiveTimeout);
+                // App voltou do background - atualiza localização
                 sendLocation();
+            } else {
+                // App foi para background - marca inativo após 30s
+                // Se o usuário voltar antes, o timer é cancelado pelo sendLocation
+                this._inactiveTimeout = setTimeout(() => {
+                    const token = localStorage.getItem('auth_token');
+                    if (!token) return;
+                    fetch('/api/technician-location.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({ action: 'inactive' }),
+                        keepalive: true
+                    }).catch(() => {});
+                }, 30000);
             }
         });
     },
@@ -690,6 +704,10 @@ const App = {
         if (this._locationTrackingInterval) {
             clearInterval(this._locationTrackingInterval);
             this._locationTrackingInterval = null;
+        }
+        if (this._inactiveTimeout) {
+            clearTimeout(this._inactiveTimeout);
+            this._inactiveTimeout = null;
         }
     }
 };

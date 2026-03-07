@@ -79,8 +79,8 @@ function handleGet($db, $userData) {
                 TIMESTAMPDIFF(MINUTE, tl.updated_at, NOW()) as minutes_ago
             FROM technician_locations tl
             JOIN users u ON u.id = tl.user_id
-            WHERE u.active = 1 
-            AND u.role = 'user'
+            WHERE u.active = 1
+            AND u.role IN ('user', 'tecnico')
             AND tl.updated_at > DATE_SUB(NOW(), INTERVAL 2 HOUR)
             ORDER BY tl.updated_at DESC
         ");
@@ -151,8 +151,8 @@ function handleGet($db, $userData) {
                 ) AS distance_km
             FROM technician_locations tl
             JOIN users u ON u.id = tl.user_id
-            WHERE u.active = 1 
-            AND u.role = 'user'
+            WHERE u.active = 1
+            AND u.role IN ('user', 'tecnico')
             AND tl.updated_at > DATE_SUB(NOW(), INTERVAL 2 HOUR)
             ORDER BY distance_km ASC
             LIMIT 5
