@@ -75,14 +75,35 @@ try {
             jsonResponse(['success' => false, 'message' => 'Tipo de relatório inválido'], 400);
     }
 } catch (PDOException $e) {
-    jsonResponse(['success' => false, 'message' => 'Erro ao gerar relatório'], 500);
+    jsonResponse(['success' => false, 'message' => 'Erro ao gerar relatório: ' . $e->getMessage()], 500);
+} catch (Exception $e) {
+    jsonResponse(['success' => false, 'message' => 'Erro: ' . $e->getMessage()], 500);
 }
 
 function handleClientsReport($db, $cityFilter, $cityParam, $dateFrom, $dateTo) {
-    $sql = "SELECT c.cpf, c.name, c.phone, c.address, c.number, c.neighborhood, c.city, c.state,
-                   c.plan, c.pppoe_user, c.installer, c.serial, c.registration_date, c.created_at
+    // Detecta colunas existentes na tabela clients
+    $availableCols = [];
+    try {
+        $colStmt = $db->query("SHOW COLUMNS FROM clients");
+        $availableCols = array_column($colStmt->fetchAll(), 'Field');
+    } catch (Exception $e) {}
+
+    // Colunas que queremos (com fallback se nao existirem)
+    $wantedCols = ['cpf', 'name', 'phone', 'address', 'number', 'neighborhood', 'city', 'state',
+                   'plan', 'pppoe_user', 'installer', 'serial', 'registration_date', 'created_at'];
+    $selectCols = [];
+    foreach ($wantedCols as $col) {
+        if (in_array($col, $availableCols)) {
+            $selectCols[] = "c.$col";
+        }
+    }
+    if (empty($selectCols)) {
+        $selectCols = ['c.*'];
+    }
+
+    $sql = "SELECT " . implode(', ', $selectCols) . "
             FROM clients c
-            WHERE DATE(c.created_at) BETWEEN ? AND ?" . str_replace('c.city', 'c.city', $cityFilter) . "
+            WHERE DATE(c.created_at) BETWEEN ? AND ?" . $cityFilter . "
             ORDER BY c.created_at DESC";
 
     $stmt = $db->prepare($sql);
@@ -123,6 +144,7 @@ function handleClientsReport($db, $cityFilter, $cityParam, $dateFrom, $dateTo) {
 }
 
 function handleTimeClockReport($db, $userData, $dateFrom, $dateTo) {
+    try {
     $where = "WHERE tc.clock_date BETWEEN ? AND ?";
     $params = [$dateFrom, $dateTo];
 
@@ -165,115 +187,129 @@ function handleTimeClockReport($db, $userData, $dateFrom, $dateTo) {
             ['key' => 'notes', 'label' => 'Observações']
         ]
     ]);
+    } catch (Exception $e) {
+        jsonResponse(['success' => true, 'data' => [], 'summary' => ['total_days' => 0, 'total_hours' => '00:00:00'], 'columns' => [], 'message' => 'Tabela de ponto nao encontrada']);
+    }
 }
 
 function handleInventoryReport($db) {
-    $sql = "SELECT ei.serial_number, ei.model, ei.brand, ei.type, ei.status, ei.location,
-                   ei.current_client_cpf, ei.purchase_date, ei.warranty_until, ei.notes
-            FROM equipment_inventory ei ORDER BY ei.type, ei.status, ei.model";
+    try {
+        $sql = "SELECT ei.serial_number, ei.model, ei.brand, ei.type, ei.status, ei.location,
+                       ei.current_client_cpf, ei.purchase_date, ei.warranty_until, ei.notes
+                FROM equipment_inventory ei ORDER BY ei.type, ei.status, ei.model";
 
-    $stmt = $db->prepare($sql);
-    $stmt->execute();
-    $data = $stmt->fetchAll();
+        $stmt = $db->prepare($sql);
+        $stmt->execute();
+        $data = $stmt->fetchAll();
 
-    // Summary by status
-    $statsStmt = $db->prepare("SELECT status, COUNT(*) as total FROM equipment_inventory GROUP BY status");
-    $statsStmt->execute();
-    $statsByStatus = $statsStmt->fetchAll();
+        $statsStmt = $db->prepare("SELECT status, COUNT(*) as total FROM equipment_inventory GROUP BY status");
+        $statsStmt->execute();
+        $statsByStatus = $statsStmt->fetchAll();
 
-    // Summary by type
-    $typeStmt = $db->prepare("SELECT type, COUNT(*) as total FROM equipment_inventory GROUP BY type");
-    $typeStmt->execute();
-    $statsByType = $typeStmt->fetchAll();
+        $typeStmt = $db->prepare("SELECT type, COUNT(*) as total FROM equipment_inventory GROUP BY type");
+        $typeStmt->execute();
+        $statsByType = $typeStmt->fetchAll();
 
-    jsonResponse([
-        'success' => true,
-        'message' => 'Relatório gerado com sucesso',
-        'data' => $data,
-        'summary' => [
-            'total' => count($data),
-            'by_status' => $statsByStatus,
-            'by_type' => $statsByType
-        ],
-        'columns' => [
-            ['key' => 'serial_number', 'label' => 'Serial'],
-            ['key' => 'model', 'label' => 'Modelo'],
-            ['key' => 'brand', 'label' => 'Marca'],
-            ['key' => 'type', 'label' => 'Tipo'],
-            ['key' => 'status', 'label' => 'Status'],
-            ['key' => 'location', 'label' => 'Localização'],
-            ['key' => 'current_client_cpf', 'label' => 'CPF Cliente'],
-            ['key' => 'warranty_until', 'label' => 'Garantia Até']
-        ]
-    ]);
+        jsonResponse([
+            'success' => true,
+            'data' => $data,
+            'summary' => ['total' => count($data), 'by_status' => $statsByStatus, 'by_type' => $statsByType],
+            'columns' => [
+                ['key' => 'serial_number', 'label' => 'Serial'],
+                ['key' => 'model', 'label' => 'Modelo'],
+                ['key' => 'brand', 'label' => 'Marca'],
+                ['key' => 'type', 'label' => 'Tipo'],
+                ['key' => 'status', 'label' => 'Status'],
+                ['key' => 'location', 'label' => 'Localização'],
+                ['key' => 'current_client_cpf', 'label' => 'CPF Cliente'],
+                ['key' => 'warranty_until', 'label' => 'Garantia Até']
+            ]
+        ]);
+    } catch (Exception $e) {
+        jsonResponse(['success' => true, 'data' => [], 'summary' => ['total' => 0], 'columns' => [], 'message' => 'Tabela de estoque nao encontrada']);
+    }
 }
 
 function handleChecklistsReport($db, $dateFrom, $dateTo, $technicianId = null) {
-    $where = "WHERE DATE(ic.created_at) BETWEEN ? AND ?";
-    $params = [$dateFrom, $dateTo];
+    try {
+        $where = "WHERE DATE(ic.created_at) BETWEEN ? AND ?";
+        $params = [$dateFrom, $dateTo];
 
-    if ($technicianId) {
-        $where .= " AND ic.technician_id = ?";
-        $params[] = $technicianId;
+        if ($technicianId) {
+            $where .= " AND ic.technician_id = ?";
+            $params[] = $technicianId;
+        }
+
+        $sql = "SELECT ic.id, ic.client_name, ic.client_cpf, ic.installation_type,
+                       ic.status, ic.approval_status, ic.completed_tasks, ic.total_tasks,
+                       u.full_name as technician_name,
+                       DATE_FORMAT(ic.created_at, '%d/%m/%Y') as data,
+                       DATE_FORMAT(ic.created_at, '%H:%i') as horario,
+                       ic.notes
+                FROM installation_checklists ic
+                LEFT JOIN users u ON u.id = ic.technician_id
+                $where
+                ORDER BY ic.created_at DESC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $data = $stmt->fetchAll();
+
+        // Traduz tipos
+        $typeLabels = ['new' => 'Nova Instalacao', 'migration' => 'Migracao', 'repair' => 'Reparo', 'maintenance' => 'Manutencao'];
+        $statusLabels = ['pending' => 'Pendente', 'in_progress' => 'Em andamento', 'completed' => 'Concluido', 'cancelled' => 'Cancelado'];
+
+        foreach ($data as &$row) {
+            $row['installation_type'] = $typeLabels[$row['installation_type']] ?? $row['installation_type'];
+            $row['status'] = $statusLabels[$row['status']] ?? $row['status'];
+            $row['progresso'] = $row['total_tasks'] > 0
+                ? round(($row['completed_tasks'] / $row['total_tasks']) * 100) . '%'
+                : '0%';
+        }
+
+        // Summary por tecnico
+        $byTechnician = [];
+        try {
+            $summaryStmt = $db->prepare("
+                SELECT u.full_name, COUNT(*) as total
+                FROM installation_checklists ic
+                LEFT JOIN users u ON u.id = ic.technician_id
+                $where
+                GROUP BY ic.technician_id
+                ORDER BY total DESC
+            ");
+            $summaryStmt->execute($params);
+            $byTechnician = $summaryStmt->fetchAll();
+        } catch (Exception $e) {}
+
+        jsonResponse([
+            'success' => true,
+            'data' => $data,
+            'summary' => [
+                'total' => count($data),
+                'by_technician' => $byTechnician
+            ],
+            'columns' => [
+                ['key' => 'technician_name', 'label' => 'Tecnico'],
+                ['key' => 'client_name', 'label' => 'Cliente'],
+                ['key' => 'client_cpf', 'label' => 'CPF'],
+                ['key' => 'installation_type', 'label' => 'Tipo'],
+                ['key' => 'status', 'label' => 'Status'],
+                ['key' => 'progresso', 'label' => 'Progresso'],
+                ['key' => 'data', 'label' => 'Data'],
+                ['key' => 'horario', 'label' => 'Horario']
+            ]
+        ]);
+    } catch (Exception $e) {
+        // Tabela pode nao existir
+        jsonResponse([
+            'success' => true,
+            'data' => [],
+            'summary' => ['total' => 0, 'by_technician' => []],
+            'columns' => [],
+            'message' => 'Tabela de checklists nao encontrada'
+        ]);
     }
-
-    $sql = "SELECT ic.id, ic.client_name, ic.client_cpf, ic.installation_type,
-                   ic.status, ic.approval_status, ic.completed_tasks, ic.total_tasks,
-                   u.full_name as technician_name,
-                   DATE_FORMAT(ic.created_at, '%d/%m/%Y') as data,
-                   DATE_FORMAT(ic.created_at, '%H:%i') as horario,
-                   ic.notes
-            FROM installation_checklists ic
-            LEFT JOIN users u ON u.id = ic.technician_id
-            $where
-            ORDER BY ic.created_at DESC";
-
-    $stmt = $db->prepare($sql);
-    $stmt->execute($params);
-    $data = $stmt->fetchAll();
-
-    // Traduz tipos
-    $typeLabels = ['new' => 'Nova Instalacao', 'migration' => 'Migracao', 'repair' => 'Reparo', 'maintenance' => 'Manutencao'];
-    $statusLabels = ['pending' => 'Pendente', 'in_progress' => 'Em andamento', 'completed' => 'Concluido', 'cancelled' => 'Cancelado'];
-
-    foreach ($data as &$row) {
-        $row['installation_type'] = $typeLabels[$row['installation_type']] ?? $row['installation_type'];
-        $row['status'] = $statusLabels[$row['status']] ?? $row['status'];
-        $row['progresso'] = $row['total_tasks'] > 0
-            ? round(($row['completed_tasks'] / $row['total_tasks']) * 100) . '%'
-            : '0%';
-    }
-
-    // Summary por tecnico
-    $summaryStmt = $db->prepare("
-        SELECT u.full_name, COUNT(*) as total
-        FROM installation_checklists ic
-        LEFT JOIN users u ON u.id = ic.technician_id
-        $where
-        GROUP BY ic.technician_id
-        ORDER BY total DESC
-    ");
-    $summaryStmt->execute($params);
-    $byTechnician = $summaryStmt->fetchAll();
-
-    jsonResponse([
-        'success' => true,
-        'data' => $data,
-        'summary' => [
-            'total' => count($data),
-            'by_technician' => $byTechnician
-        ],
-        'columns' => [
-            ['key' => 'technician_name', 'label' => 'Tecnico'],
-            ['key' => 'client_name', 'label' => 'Cliente'],
-            ['key' => 'client_cpf', 'label' => 'CPF'],
-            ['key' => 'installation_type', 'label' => 'Tipo'],
-            ['key' => 'status', 'label' => 'Status'],
-            ['key' => 'progresso', 'label' => 'Progresso'],
-            ['key' => 'data', 'label' => 'Data'],
-            ['key' => 'horario', 'label' => 'Horario']
-        ]
-    ]);
 }
 
 function handleTechnicianDetailReport($db, $dateFrom, $dateTo, $technicianId) {
@@ -388,42 +424,91 @@ function handleTechnicianDetailReport($db, $dateFrom, $dateTo, $technicianId) {
 }
 
 function handleRankingReport($db, $dateFrom, $dateTo) {
-    // Ranking consolidado: cadastros + checklists + OS por tecnico
-    $stmt = $db->prepare("
-        SELECT
-            u.id,
-            u.full_name,
-            u.username,
-            u.photo,
-            COALESCE(cli.total_cadastros, 0) as total_cadastros,
-            COALESCE(chk.total_checklists, 0) as total_checklists,
-            COALESCE(os.total_ordens, 0) as total_ordens,
-            (COALESCE(cli.total_cadastros, 0) + COALESCE(chk.total_checklists, 0) + COALESCE(os.total_ordens, 0)) as total_geral
-        FROM users u
-        LEFT JOIN (
-            SELECT installer, COUNT(*) as total_cadastros
-            FROM clients
-            WHERE DATE(created_at) BETWEEN ? AND ?
-            GROUP BY installer
-        ) cli ON cli.installer = u.username
-        LEFT JOIN (
-            SELECT technician_id, COUNT(*) as total_checklists
-            FROM installation_checklists
-            WHERE DATE(created_at) BETWEEN ? AND ?
-            GROUP BY technician_id
-        ) chk ON chk.technician_id = u.id
-        LEFT JOIN (
-            SELECT assigned_to, COUNT(*) as total_ordens
-            FROM work_orders
-            WHERE DATE(created_at) BETWEEN ? AND ?
-            GROUP BY assigned_to
-        ) os ON os.assigned_to = u.id
-        WHERE u.active = 1 AND u.role IN ('user', 'tecnico')
-        HAVING total_geral > 0
-        ORDER BY total_geral DESC
-    ");
-    $stmt->execute([$dateFrom, $dateTo, $dateFrom, $dateTo, $dateFrom, $dateTo]);
-    $ranking = $stmt->fetchAll();
+    // Monta ranking com subqueries opcionais (tabelas podem nao existir)
+    $ranking = [];
+
+    // Cadastros por tecnico
+    $cadastrosByUser = [];
+    try {
+        $stmt = $db->prepare("
+            SELECT c.installer as username, u.id as user_id, COALESCE(u.full_name, c.installer) as full_name, u.photo,
+                   COUNT(*) as total_cadastros
+            FROM clients c
+            LEFT JOIN users u ON u.username = c.installer
+            WHERE DATE(c.created_at) BETWEEN ? AND ?
+            AND c.installer IS NOT NULL AND c.installer != ''
+            GROUP BY c.installer
+        ");
+        $stmt->execute([$dateFrom, $dateTo]);
+        foreach ($stmt->fetchAll() as $row) {
+            $key = $row['username'];
+            $cadastrosByUser[$key] = $row;
+        }
+    } catch (Exception $e) {}
+
+    // Checklists por tecnico
+    $checklistsByUser = [];
+    try {
+        $stmt = $db->prepare("
+            SELECT u.username, u.id as user_id, u.full_name, u.photo, COUNT(*) as total_checklists
+            FROM installation_checklists ic
+            JOIN users u ON u.id = ic.technician_id
+            WHERE DATE(ic.created_at) BETWEEN ? AND ?
+            GROUP BY ic.technician_id
+        ");
+        $stmt->execute([$dateFrom, $dateTo]);
+        foreach ($stmt->fetchAll() as $row) {
+            $checklistsByUser[$row['username']] = $row;
+        }
+    } catch (Exception $e) {}
+
+    // OS por tecnico
+    $ordensByUser = [];
+    try {
+        $stmt = $db->prepare("
+            SELECT u.username, u.id as user_id, u.full_name, u.photo, COUNT(*) as total_ordens
+            FROM work_orders wo
+            JOIN users u ON u.id = wo.assigned_to
+            WHERE DATE(wo.created_at) BETWEEN ? AND ?
+            GROUP BY wo.assigned_to
+        ");
+        $stmt->execute([$dateFrom, $dateTo]);
+        foreach ($stmt->fetchAll() as $row) {
+            $ordensByUser[$row['username']] = $row;
+        }
+    } catch (Exception $e) {}
+
+    // Consolida
+    $allUsers = array_unique(array_merge(
+        array_keys($cadastrosByUser),
+        array_keys($checklistsByUser),
+        array_keys($ordensByUser)
+    ));
+
+    foreach ($allUsers as $username) {
+        $cad = $cadastrosByUser[$username] ?? null;
+        $chk = $checklistsByUser[$username] ?? null;
+        $os = $ordensByUser[$username] ?? null;
+
+        $totalCad = $cad ? (int)$cad['total_cadastros'] : 0;
+        $totalChk = $chk ? (int)$chk['total_checklists'] : 0;
+        $totalOs = $os ? (int)$os['total_ordens'] : 0;
+
+        $ref = $cad ?? $chk ?? $os;
+        $ranking[] = [
+            'id' => $ref['user_id'] ?? 0,
+            'full_name' => $ref['full_name'] ?? $username,
+            'username' => $username,
+            'photo' => $ref['photo'] ?? null,
+            'total_cadastros' => $totalCad,
+            'total_checklists' => $totalChk,
+            'total_ordens' => $totalOs,
+            'total_geral' => $totalCad + $totalChk + $totalOs
+        ];
+    }
+
+    // Ordena por total desc
+    usort($ranking, function($a, $b) { return $b['total_geral'] - $a['total_geral']; });
 
     jsonResponse([
         'success' => true,
@@ -451,49 +536,46 @@ function handleTechniciansListReport($db) {
 }
 
 function handleWorkOrdersReport($db, $userData, $dateFrom, $dateTo) {
-    $where = "WHERE DATE(wo.created_at) BETWEEN ? AND ?";
-    $params = [$dateFrom, $dateTo];
+    try {
+        $where = "WHERE DATE(wo.created_at) BETWEEN ? AND ?";
+        $params = [$dateFrom, $dateTo];
 
-    if ($userData['role'] !== 'admin') {
-        $where .= " AND (wo.assigned_to = ? OR wo.created_by = ?)";
-        $params[] = $userData['user_id'];
-        $params[] = $userData['user_id'];
+        if ($userData['role'] !== 'admin') {
+            $where .= " AND (wo.assigned_to = ? OR wo.created_by = ?)";
+            $params[] = $userData['user_id'];
+            $params[] = $userData['user_id'];
+        }
+
+        $sql = "SELECT wo.order_number, wo.client_name, wo.client_cpf, wo.type, wo.priority, wo.status,
+                       wo.assigned_name, wo.description, wo.resolution, wo.scheduled_date, wo.created_at, wo.completed_at
+                FROM work_orders wo $where ORDER BY wo.created_at DESC";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $data = $stmt->fetchAll();
+
+        $summaryStmt = $db->prepare("SELECT status, COUNT(*) as total FROM work_orders wo $where GROUP BY status");
+        $summaryStmt->execute($params);
+        $byStatus = $summaryStmt->fetchAll();
+
+        jsonResponse([
+            'success' => true,
+            'data' => $data,
+            'summary' => ['total' => count($data), 'by_status' => $byStatus, 'date_from' => $dateFrom, 'date_to' => $dateTo],
+            'columns' => [
+                ['key' => 'order_number', 'label' => 'Numero'],
+                ['key' => 'client_name', 'label' => 'Cliente'],
+                ['key' => 'type', 'label' => 'Tipo'],
+                ['key' => 'priority', 'label' => 'Prioridade'],
+                ['key' => 'status', 'label' => 'Status'],
+                ['key' => 'assigned_name', 'label' => 'Tecnico'],
+                ['key' => 'description', 'label' => 'Descricao'],
+                ['key' => 'resolution', 'label' => 'Resolucao'],
+                ['key' => 'scheduled_date', 'label' => 'Agendado'],
+                ['key' => 'created_at', 'label' => 'Criado Em']
+            ]
+        ]);
+    } catch (Exception $e) {
+        jsonResponse(['success' => true, 'data' => [], 'summary' => ['total' => 0], 'columns' => [], 'message' => 'Tabela de ordens nao encontrada']);
     }
-
-    $sql = "SELECT wo.order_number, wo.client_name, wo.client_cpf, wo.type, wo.priority, wo.status,
-                   wo.assigned_name, wo.description, wo.resolution, wo.scheduled_date, wo.created_at, wo.completed_at
-            FROM work_orders wo $where ORDER BY wo.created_at DESC";
-
-    $stmt = $db->prepare($sql);
-    $stmt->execute($params);
-    $data = $stmt->fetchAll();
-
-    // Summary
-    $summaryStmt = $db->prepare("SELECT status, COUNT(*) as total FROM work_orders wo $where GROUP BY status");
-    $summaryStmt->execute($params);
-    $byStatus = $summaryStmt->fetchAll();
-
-    jsonResponse([
-        'success' => true,
-        'message' => 'Relatório gerado com sucesso',
-        'data' => $data,
-        'summary' => [
-            'total' => count($data),
-            'by_status' => $byStatus,
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo
-        ],
-        'columns' => [
-            ['key' => 'order_number', 'label' => 'Número'],
-            ['key' => 'client_name', 'label' => 'Cliente'],
-            ['key' => 'type', 'label' => 'Tipo'],
-            ['key' => 'priority', 'label' => 'Prioridade'],
-            ['key' => 'status', 'label' => 'Status'],
-            ['key' => 'assigned_name', 'label' => 'Técnico'],
-            ['key' => 'description', 'label' => 'Descrição'],
-            ['key' => 'resolution', 'label' => 'Resolução'],
-            ['key' => 'scheduled_date', 'label' => 'Agendado'],
-            ['key' => 'created_at', 'label' => 'Criado Em']
-        ]
-    ]);
 }
