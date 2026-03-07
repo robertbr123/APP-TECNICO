@@ -14,6 +14,72 @@ if ($method !== 'GET') {
     jsonResponse(['success' => false, 'message' => 'Metodo nao permitido'], 405);
 }
 
+$action = $_GET['action'] ?? 'stats';
+
+// Ranking/Leaderboard - apenas admin
+if ($action === 'leaderboard') {
+    if ($userData['role'] !== 'admin') {
+        jsonResponse(['success' => false, 'message' => 'Acesso negado'], 403);
+    }
+
+    try {
+        $db = Database::getInstance()->getConnection();
+        $monthStart = date('Y-m-01');
+
+        // Ranking de cadastros (clients) por tecnico no mes
+        $stmt = $db->prepare("
+            SELECT
+                c.installer as username,
+                COALESCE(u.full_name, c.installer) as full_name,
+                u.photo,
+                COUNT(*) as total_cadastros
+            FROM clients c
+            LEFT JOIN users u ON u.username = c.installer
+            WHERE DATE(c.created_at) >= ?
+            AND c.installer IS NOT NULL AND c.installer != ''
+            GROUP BY c.installer
+            ORDER BY total_cadastros DESC
+        ");
+        $stmt->execute([$monthStart]);
+        $cadastrosRanking = $stmt->fetchAll();
+
+        // Ranking de checklists concluidos por tecnico no mes
+        $checklistRanking = [];
+        try {
+            $stmt = $db->prepare("
+                SELECT
+                    ic.technician_id,
+                    COALESCE(u.full_name, u.username) as full_name,
+                    u.username,
+                    u.photo,
+                    COUNT(*) as total_checklists
+                FROM installation_checklists ic
+                JOIN users u ON u.id = ic.technician_id
+                WHERE ic.status = 'completed'
+                AND DATE(ic.created_at) >= ?
+                GROUP BY ic.technician_id
+                ORDER BY total_checklists DESC
+            ");
+            $stmt->execute([$monthStart]);
+            $checklistRanking = $stmt->fetchAll();
+        } catch (Exception $e) { /* tabela pode nao existir */ }
+
+        $months = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+        $monthLabel = $months[(int)date('m') - 1] . ' ' . date('Y');
+
+        jsonResponse([
+            'success' => true,
+            'data' => [
+                'month' => $monthLabel,
+                'cadastros' => $cadastrosRanking,
+                'checklists' => $checklistRanking
+            ]
+        ]);
+    } catch (PDOException $e) {
+        jsonResponse(['success' => false, 'message' => 'Erro ao buscar ranking'], 500);
+    }
+}
+
 try {
     $db = Database::getInstance()->getConnection();
 

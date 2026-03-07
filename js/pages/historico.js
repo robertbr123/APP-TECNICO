@@ -97,6 +97,11 @@ App.initHistoricoPage = async function() {
 
         this.setMotivationMessage(d);
 
+        // Carrega leaderboard se admin
+        if (d.role === 'admin') {
+            this.loadLeaderboard();
+        }
+
     } catch (error) {
         this.showToast('Erro ao carregar dados de desempenho', 'error');
 
@@ -222,3 +227,94 @@ App.renderDailyChart = function(dailyData) {
         });
     }, 100);
 };
+
+// =====================================================
+// Leaderboard (Admin)
+// =====================================================
+
+App._leaderboardData = null;
+App._leaderboardTab = 'cadastros';
+
+App.loadLeaderboard = async function() {
+    try {
+        const response = await API.getLeaderboard();
+        if (!response.success) return;
+
+        this._leaderboardData = response.data;
+        document.getElementById('leaderboard-section').classList.remove('hidden');
+        document.getElementById('leaderboard-month').textContent = response.data.month;
+        this.renderLeaderboard('cadastros');
+    } catch (e) {
+        console.error('Erro ao carregar ranking:', e);
+    }
+};
+
+App.renderLeaderboard = function(tab) {
+    this._leaderboardTab = tab;
+    const list = document.getElementById('leaderboard-list');
+    const data = this._leaderboardData;
+    if (!data) return;
+
+    const items = tab === 'cadastros' ? data.cadastros : data.checklists;
+    const countKey = tab === 'cadastros' ? 'total_cadastros' : 'total_checklists';
+    const label = tab === 'cadastros' ? 'cadastros' : 'checklists';
+
+    if (!items || items.length === 0) {
+        list.innerHTML = '<p class="text-gray-400 text-center text-sm py-4">Nenhum registro no mes</p>';
+        return;
+    }
+
+    const medals = ['bg-yellow-400', 'bg-gray-300', 'bg-orange-400'];
+    const maxVal = items[0][countKey];
+
+    list.innerHTML = items.map((item, i) => {
+        const percent = maxVal > 0 ? Math.round((item[countKey] / maxVal) * 100) : 0;
+        const position = i + 1;
+        const medalClass = i < 3 ? medals[i] : 'bg-gray-200 dark:bg-gray-700';
+        const textClass = i < 3 ? 'text-white' : 'text-gray-500 dark:text-gray-400';
+        const initials = (item.full_name || '?').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+        return `
+        <div class="flex items-center gap-3 p-3 rounded-xl ${i === 0 ? 'bg-yellow-50 dark:bg-yellow-500/5 border border-yellow-200 dark:border-yellow-500/10' : ''}">
+            <div class="w-7 h-7 rounded-full ${medalClass} flex items-center justify-center flex-shrink-0">
+                <span class="text-xs font-bold ${textClass}">${position}</span>
+            </div>
+            ${item.photo
+                ? `<img src="${item.photo}" class="w-9 h-9 rounded-full object-cover flex-shrink-0" alt="">`
+                : `<div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <span class="text-xs font-bold text-primary">${initials}</span>
+                  </div>`
+            }
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">${item.full_name || item.username}</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <div class="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-primary rounded-full" style="width: ${percent}%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-right flex-shrink-0">
+                <p class="text-lg font-bold text-gray-900 dark:text-white">${item[countKey]}</p>
+                <p class="text-[10px] text-gray-400">${label}</p>
+            </div>
+        </div>`;
+    }).join('');
+};
+
+// Funcao global para os botoes de tab
+function switchLeaderboardTab(tab) {
+    App._leaderboardTab = tab;
+
+    const btnCadastros = document.getElementById('tab-cadastros');
+    const btnChecklists = document.getElementById('tab-checklists');
+
+    if (tab === 'cadastros') {
+        btnCadastros.className = 'px-3 py-1.5 text-xs font-semibold rounded-md bg-primary text-white';
+        btnChecklists.className = 'px-3 py-1.5 text-xs font-semibold rounded-md text-gray-500';
+    } else {
+        btnCadastros.className = 'px-3 py-1.5 text-xs font-semibold rounded-md text-gray-500';
+        btnChecklists.className = 'px-3 py-1.5 text-xs font-semibold rounded-md bg-primary text-white';
+    }
+
+    App.renderLeaderboard(tab);
+}

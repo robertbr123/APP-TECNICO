@@ -146,6 +146,25 @@
 </div>
 </section>
 
+<!-- Ranking da Equipe (admin only) -->
+<section id="leaderboard-section" class="mb-6 hidden">
+<div class="bg-white dark:bg-card-dark rounded-ios-xl p-5 border border-gray-100 dark:border-white/5 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<div>
+<h3 class="text-[15px] font-bold text-gray-900 dark:text-white">Ranking da Equipe</h3>
+<p id="leaderboard-month" class="text-xs text-gray-400 mt-0.5"></p>
+</div>
+<div class="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+<button id="tab-cadastros" onclick="switchLeaderboardTab('cadastros')" class="px-3 py-1.5 text-xs font-semibold rounded-md bg-primary text-white">Cadastros</button>
+<button id="tab-checklists" onclick="switchLeaderboardTab('checklists')" class="px-3 py-1.5 text-xs font-semibold rounded-md text-gray-500">Checklists</button>
+</div>
+</div>
+<div id="leaderboard-list" class="space-y-2">
+<p class="text-gray-400 text-center text-sm py-4">Carregando...</p>
+</div>
+</div>
+</section>
+
 </main>
 
 <?php $activePage = 'inicio'; include 'partials/bottom-nav.php'; ?>

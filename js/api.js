@@ -412,6 +412,10 @@ const API = {
         return this.get('historico.php');
     },
 
+    async getLeaderboard() {
+        return this.get('historico.php', { action: 'leaderboard' });
+    },
+
     // ==========================================
     // SINCRONIZAÇÃO OFFLINE
     // ==========================================
