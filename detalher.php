@@ -21,7 +21,16 @@
 <h2 id="client-name" class="text-[#111318] dark:text-white text-xl font-bold">Carregando...</h2>
 <span id="client-status" class="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">...</span>
 </div>
+<div class="flex items-center gap-3 flex-wrap">
 <p id="client-cpf" class="text-[#616f89] dark:text-gray-400 text-sm">CPF: ...</p>
+<span class="text-gray-300 dark:text-gray-600 text-sm">|</span>
+<p id="client-birth" class="text-[#616f89] dark:text-gray-400 text-sm"></p>
+<span id="client-phone-sep" class="text-gray-300 dark:text-gray-600 text-sm hidden">|</span>
+<a id="client-phone" href="#" class="text-primary dark:text-blue-400 text-sm font-medium flex items-center gap-1 hidden">
+<span class="material-symbols-outlined text-sm" style="font-size:14px">chat</span>
+<span id="client-phone-text"></span>
+</a>
+</div>
 <div id="connection-status" class="flex items-center gap-1.5 mt-1">
 <div id="status-dot" class="w-2.5 h-2.5 rounded-full bg-gray-300 animate-pulse"></div>
 <span id="status-text" class="text-xs text-gray-400">Verificando conexão...</span>
@@ -792,7 +801,36 @@ Salvar
                 // CPF
                 var cpfEl = document.getElementById('client-cpf');
                 if (cpfEl) cpfEl.textContent = 'CPF: ' + formatCPF(client.cpf);
-                
+
+                // Data de Nascimento
+                var birthEl = document.getElementById('client-birth');
+                if (birthEl) {
+                    if (client.birthDate && client.birthDate !== '0000-00-00') {
+                        var parts = client.birthDate.split('-');
+                        birthEl.textContent = 'Nasc: ' + parts[2] + '/' + parts[1] + '/' + parts[0];
+                    } else {
+                        birthEl.textContent = 'Nasc: Não informado';
+                    }
+                }
+
+                // Telefone com link WhatsApp
+                var phoneRaw = client.phone || client.phone_number || '';
+                var phoneEl = document.getElementById('client-phone');
+                var phoneSep = document.getElementById('client-phone-sep');
+                var phoneText = document.getElementById('client-phone-text');
+                if (phoneEl && phoneRaw) {
+                    var digits = phoneRaw.replace(/\D/g, '');
+                    if (digits.length >= 10) {
+                        var whatsNumber = digits.startsWith('55') ? digits : '55' + digits;
+                        phoneEl.href = 'https://wa.me/' + whatsNumber;
+                        phoneEl.target = '_blank';
+                        phoneEl.rel = 'noopener';
+                        phoneText.textContent = phoneRaw;
+                        phoneEl.classList.remove('hidden');
+                        phoneSep.classList.remove('hidden');
+                    }
+                }
+
                 // Plano
                 var planEl = document.getElementById('client-plan');
                 if (planEl) {
