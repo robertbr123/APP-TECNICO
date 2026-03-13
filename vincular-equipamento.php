@@ -351,6 +351,11 @@
         function selectClient(client) {
             console.log('Cliente selecionado:', client);
             selectedClient = client;
+
+            // Sincroniza com o módulo App para que checkVincularButton funcione
+            if (typeof App !== 'undefined') {
+                App.selectedClient = client;
+            }
             
             document.getElementById('selected-name').textContent = client.name || 'Sem nome';
             document.getElementById('selected-cpf').textContent = formatCPF(client.cpf || '');
