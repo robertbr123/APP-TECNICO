@@ -53,12 +53,19 @@ try {
             $cityStmt->execute([$userData['user_id']]);
             $userCity = trim($cityStmt->fetch()['city'] ?? '');
 
-            // Se cidade vazia, técnico vê todos (sem filtro)
-            if (empty($userCity)) {
-                $userCity = null;
-            }
+            Logger::debug("Filtro cidade", ['user_id' => $userData['user_id'], 'role' => $userData['role'], 'city' => $userCity ?: 'NAO CONFIGURADA']);
 
-            Logger::debug("Filtro cidade", ['user_id' => $userData['user_id'], 'role' => $userData['role'], 'city' => $userCity ?? 'SEM FILTRO']);
+            // Cidade não configurada: retorna vazio (não expõe clientes de outros municípios)
+            if (empty($userCity)) {
+                jsonResponse([
+                    'success' => true,
+                    'data' => [],
+                    'count' => 0,
+                    'message' => 'Cidade não configurada no seu perfil. Solicite ao administrador que configure sua cidade em Ajustes.',
+                    'filtered_by_city' => false,
+                    'city_not_configured' => true
+                ]);
+            }
         } catch (Exception $e) {
             Logger::logException($e, ['context' => 'buscar cidade usuario']);
         }

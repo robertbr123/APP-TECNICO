@@ -29,16 +29,22 @@ if ($isTechnician) {
         $cityStmt->execute([$userData['user_id']]);
         $userCity = trim($cityStmt->fetch()['city'] ?? '');
 
-        // Se cidade vazia, técnico vê todos (sem filtro)
-        if (empty($userCity)) {
-            $userCity = null;
-        }
-
         Logger::info('Filtro de cidade', [
             'user_id' => $userData['user_id'],
             'role' => $userData['role'],
-            'city' => $userCity ?? 'SEM FILTRO (sem cidade configurada)'
+            'city' => $userCity ?: 'NAO CONFIGURADA'
         ]);
+
+        // Cidade não configurada: não expõe clientes de outros municípios
+        if (empty($userCity)) {
+            jsonResponse([
+                'success' => true,
+                'data' => [],
+                'total' => 0,
+                'message' => 'Cidade não configurada no seu perfil. Solicite ao administrador que configure sua cidade em Ajustes.',
+                'city_not_configured' => true
+            ]);
+        }
     } catch (Exception $e) {
         Logger::warning('Erro ao buscar cidade do técnico', ['user_id' => $userData['user_id']]);
     }

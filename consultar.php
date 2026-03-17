@@ -163,6 +163,17 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log('Clientes:', result);
             
+            // Cidade não configurada no perfil do técnico
+            if (result.city_not_configured) {
+                container.innerHTML = '<div class="text-center py-10 px-4">' +
+                    '<span class="material-symbols-outlined text-5xl text-orange-400">location_off</span>' +
+                    '<p class="text-gray-700 dark:text-gray-300 font-semibold mt-3">Cidade não configurada</p>' +
+                    '<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Solicite ao administrador que configure sua cidade no painel de usuários.</p>' +
+                    '<a href="ajustes.php" class="inline-block mt-4 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">Ir para Ajustes</a>' +
+                '</div>';
+                return;
+            }
+            
             if (result.success && result.data && result.data.length > 0) {
                 // Contagem de resultados removida conforme solicitado
                 // resultCount.textContent = result.data.length + ' cliente(s) encontrado(s)';
