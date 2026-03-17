@@ -100,7 +100,10 @@ function handlePut($db, $userData) {
     $stmt->execute([$userData['user_id']]);
     $user = $stmt->fetch();
 
-    jsonResponse(['success' => true, 'message' => 'Perfil atualizado com sucesso', 'data' => $user]);
+    // Re-gera token com cidade atualizada (garante que filtro de município funcione imediatamente)
+    $newToken = generateToken($userData['user_id'], $userData['username'], $userData['role'], $user['city'] ?? '');
+
+    jsonResponse(['success' => true, 'message' => 'Perfil atualizado com sucesso', 'data' => $user, 'token' => $newToken]);
 }
 
 /**

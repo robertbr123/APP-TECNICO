@@ -123,8 +123,8 @@ try {
         }
     }
 
-    // Gera o token JWT
-    $token = generateToken($user['id'], $user['username'], $user['role']);
+    // Gera o token JWT (inclui cidade para filtro de mônicipio)
+    $token = generateToken($user['id'], $user['username'], $user['role'], $user['city'] ?? '');
 
     // Remove a senha do objeto de retorno
     unset($user['password']);

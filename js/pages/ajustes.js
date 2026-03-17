@@ -106,6 +106,10 @@ App.initAjustesPage = async function() {
                 const response = await API.updateProfile(data);
                 if (response.success) {
                     API.setUser({ ...API.getUser(), ...response.data });
+                    // Atualiza o token se cidade foi alterada (garante filtro de município imediato)
+                    if (response.token) {
+                        API.setToken(response.token);
+                    }
                     const nameEl = document.getElementById('profile-name');
                     const emailEl = document.getElementById('profile-email');
                     const cityEl = document.getElementById('profile-city');

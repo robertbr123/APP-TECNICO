@@ -92,12 +92,13 @@ class Database {
 /**
  * Gera um token JWT simples
  */
-function generateToken($userId, $username, $role) {
+function generateToken($userId, $username, $role, $city = '') {
     $header = base64_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
     $payload = base64_encode(json_encode([
         'user_id' => $userId,
         'username' => $username,
         'role' => $role,
+        'city' => $city,
         'exp' => time() + JWT_EXPIRATION,
         'iat' => time()
     ]));

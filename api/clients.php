@@ -23,30 +23,39 @@ Logger::logRequest('clients.php', $method, array_merge($_GET, ['body' => file_ge
 $userCity = null;
 $isTechnician = ($userData['role'] === 'tecnico' || $userData['role'] === 'user');
 if ($isTechnician) {
-    try {
-        $tmpDb = Database::getInstance()->getConnection();
-        $cityStmt = $tmpDb->prepare("SELECT city FROM users WHERE id = ?");
-        $cityStmt->execute([$userData['user_id']]);
-        $userCity = trim($cityStmt->fetch()['city'] ?? '');
+    // Primário: cidade do JWT (rápido e confiável)
+    $userCity = isset($userData['city']) ? trim($userData['city']) : '';
 
-        Logger::info('Filtro de cidade', [
-            'user_id' => $userData['user_id'],
-            'role' => $userData['role'],
-            'city' => $userCity ?: 'NAO CONFIGURADA'
-        ]);
-
-        // Cidade não configurada: não expõe clientes de outros municípios
-        if (empty($userCity)) {
-            jsonResponse([
-                'success' => true,
-                'data' => [],
-                'total' => 0,
-                'message' => 'Cidade não configurada no seu perfil. Solicite ao administrador que configure sua cidade em Ajustes.',
-                'city_not_configured' => true
-            ]);
+    // Fallback: busca no banco se JWT não tiver cidade (tokens antigos)
+    if (empty($userCity)) {
+        try {
+            $tmpDb = Database::getInstance()->getConnection();
+            $cityStmt = $tmpDb->prepare("SELECT city FROM users WHERE id = ?");
+            $cityStmt->execute([$userData['user_id']]);
+            $row = $cityStmt->fetch();
+            $userCity = $row ? trim($row['city'] ?? '') : '';
+        } catch (Exception $e) {
+            Logger::warning('Erro ao buscar cidade do técnico - fallback DB', ['user_id' => $userData['user_id']]);
+            $userCity = ''; // fail-secure
         }
-    } catch (Exception $e) {
-        Logger::warning('Erro ao buscar cidade do técnico', ['user_id' => $userData['user_id']]);
+    }
+
+    Logger::info('Filtro de cidade', [
+        'user_id' => $userData['user_id'],
+        'role' => $userData['role'],
+        'city' => $userCity ?: 'NAO CONFIGURADA',
+        'source' => !empty($userData['city']) ? 'jwt' : 'db'
+    ]);
+
+    // Cidade não configurada: não expõe clientes de outros municípios
+    if (empty($userCity)) {
+        jsonResponse([
+            'success' => true,
+            'data' => [],
+            'total' => 0,
+            'message' => 'Cidade não configurada no seu perfil. Solicite ao administrador que configure sua cidade em Ajustes.',
+            'city_not_configured' => true
+        ]);
     }
 }
 
