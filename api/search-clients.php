@@ -46,13 +46,19 @@ try {
     
     // Busca cidade do usuário para filtro (técnico ou user)
     $userCity = null;
-    if ($userData['role'] === 'tecnico' || $userData['role'] === 'user') {
+    $isTechnician = ($userData['role'] === 'tecnico' || $userData['role'] === 'user');
+    if ($isTechnician) {
         try {
             $cityStmt = $db->prepare("SELECT city FROM users WHERE id = ?");
             $cityStmt->execute([$userData['user_id']]);
-            $userCity = $cityStmt->fetch()['city'] ?? null;
-            
-            Logger::debug("Filtro cidade", ['user_id' => $userData['user_id'], 'role' => $userData['role'], 'city' => $userCity]);
+            $userCity = trim($cityStmt->fetch()['city'] ?? '');
+
+            // Se cidade vazia, técnico vê todos (sem filtro)
+            if (empty($userCity)) {
+                $userCity = null;
+            }
+
+            Logger::debug("Filtro cidade", ['user_id' => $userData['user_id'], 'role' => $userData['role'], 'city' => $userCity ?? 'SEM FILTRO']);
         } catch (Exception $e) {
             Logger::logException($e, ['context' => 'buscar cidade usuario']);
         }

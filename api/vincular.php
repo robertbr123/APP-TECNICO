@@ -87,8 +87,12 @@ try {
             $userStmt = $db->prepare("SELECT role, city FROM users WHERE id = ?");
             $userStmt->execute([$userId]);
             $userInfo = $userStmt->fetch(PDO::FETCH_ASSOC);
-            if ($userInfo && ($userInfo['role'] === 'tecnico' || $userInfo['role'] === 'user') && !empty($userInfo['city'])) {
-                $userCity = $userInfo['city'];
+            if ($userInfo && ($userInfo['role'] === 'tecnico' || $userInfo['role'] === 'user')) {
+                $userCity = trim($userInfo['city'] ?? '');
+                // Se cidade vazia, não filtra (técnico pode vincular qualquer cliente)
+                if (empty($userCity)) {
+                    $userCity = null;
+                }
             }
         } catch (Exception $e) {
             // Se falhar, não filtra

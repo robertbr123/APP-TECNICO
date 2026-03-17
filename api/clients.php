@@ -21,18 +21,23 @@ Logger::logRequest('clients.php', $method, array_merge($_GET, ['body' => file_ge
 
 // Busca a cidade do técnico/user para filtro
 $userCity = null;
-if ($userData['role'] === 'tecnico' || $userData['role'] === 'user') {
+$isTechnician = ($userData['role'] === 'tecnico' || $userData['role'] === 'user');
+if ($isTechnician) {
     try {
         $tmpDb = Database::getInstance()->getConnection();
         $cityStmt = $tmpDb->prepare("SELECT city FROM users WHERE id = ?");
         $cityStmt->execute([$userData['user_id']]);
-        $userCity = $cityStmt->fetch()['city'] ?? null;
-        
-        // Log para debug
-        Logger::info('Filtro de cidade aplicado', [
+        $userCity = trim($cityStmt->fetch()['city'] ?? '');
+
+        // Se cidade vazia, técnico vê todos (sem filtro)
+        if (empty($userCity)) {
+            $userCity = null;
+        }
+
+        Logger::info('Filtro de cidade', [
             'user_id' => $userData['user_id'],
             'role' => $userData['role'],
-            'city' => $userCity
+            'city' => $userCity ?? 'SEM FILTRO (sem cidade configurada)'
         ]);
     } catch (Exception $e) {
         Logger::warning('Erro ao buscar cidade do técnico', ['user_id' => $userData['user_id']]);
@@ -175,6 +180,7 @@ function handleGet($db) {
  * POST - Criar novo cliente ou ações especiais
  */
 function handlePost($db, $userData) {
+    global $userCity, $isTechnician;
     $data = getRequestBody();
 
     // Verificar se é uma ação especial
@@ -228,7 +234,12 @@ function handlePost($db, $userData) {
     }
 
     $installer = $data['installer'] ?? $userData['username'];
-    
+
+    // Força a cidade do técnico no cadastro
+    if ($isTechnician && !empty($userCity)) {
+        $data['city'] = $userCity;
+    }
+
     // Sanitiza nome
     $name = Validator::sanitizeString($data['name'], ['maxLength' => 150]);
 

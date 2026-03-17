@@ -19,14 +19,16 @@ try {
     // Busca cidade do técnico/user para filtro
     $cityFilter = '';
     $cityParam = [];
-    if ($userData['role'] === 'tecnico' || $userData['role'] === 'user') {
+    $isTechnician = ($userData['role'] === 'tecnico' || $userData['role'] === 'user');
+    if ($isTechnician) {
         $cityStmt = $db->prepare("SELECT city FROM users WHERE id = ?");
         $cityStmt->execute([$userData['user_id']]);
-        $userCity = $cityStmt->fetch()['city'] ?? null;
-        if ($userCity) {
+        $userCity = trim($cityStmt->fetch()['city'] ?? '');
+        if (!empty($userCity)) {
             $cityFilter = " AND LOWER(TRIM(city)) = LOWER(TRIM(?))";
             $cityParam = [$userCity];
         }
+        // Se não tem cidade, vê todos os clientes (sem filtro)
     }
 
     // Total de clientes

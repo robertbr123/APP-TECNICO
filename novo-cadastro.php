@@ -262,9 +262,27 @@ var selectedPhotos = {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
+        // Preenche a cidade do técnico automaticamente (se tem cidade configurada, trava o campo)
+        var cityInput = document.getElementById('field-city');
+        var technicianHasCity = false;
+        try {
+            var userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+            if (userData.role !== 'admin' && userData.city && userData.city.trim() !== '') {
+                technicianHasCity = true;
+                if (cityInput) {
+                    cityInput.value = userData.city;
+                    cityInput.readOnly = true;
+                    cityInput.classList.add('bg-gray-100', 'dark:bg-gray-700', 'cursor-not-allowed');
+                    cityInput.title = 'Cidade definida pela sua conta de técnico';
+                }
+            }
+            // Se técnico NÃO tem cidade, o campo fica livre para ele escolher
+        } catch (e) {
+            console.error('Erro ao preencher cidade do técnico:', e);
+        }
+
         // CEP: Preencher cidade e UF automaticamente
         var cepInput = document.getElementById('field-cep');
-        var cityInput = document.getElementById('field-city');
         var stateInput = document.getElementById('field-state');
         if (cepInput) {
             cepInput.addEventListener('blur', function() {
@@ -274,7 +292,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         .then(function(response) { return response.json(); })
                         .then(function(data) {
                             if (!data.erro) {
-                                if (cityInput) cityInput.value = data.localidade || '';
+                                // Só preenche cidade se o técnico não tem cidade fixa
+                                if (cityInput && !technicianHasCity) cityInput.value = data.localidade || '';
                                 if (stateInput) stateInput.value = data.uf || '';
                                 var bairroInput = document.getElementById('field-neighborhood');
                                 if (bairroInput && data.bairro) bairroInput.value = data.bairro;
@@ -562,8 +581,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 cep: document.getElementById('field-cep')?.value?.trim() || '',
                 state: document.getElementById('field-state')?.value || '',
                 city: (function() {
+                    // Se técnico tem cidade configurada, usa da conta (não confia no campo)
+                    try {
+                        var ud = JSON.parse(localStorage.getItem('user_data') || '{}');
+                        if (ud.role !== 'admin' && ud.city && ud.city.trim() !== '') return ud.city;
+                    } catch(e) {}
+                    // Senão, usa o que o técnico digitou no campo
                     var val = document.getElementById('field-city')?.value?.trim() || '';
-                    // Remove sufixo ' - UF' se houver
                     return val.replace(/\s*-\s*[A-Z]{2}$/, '');
                 })(),
                 neighborhood: document.getElementById('field-neighborhood')?.value?.trim() || '',

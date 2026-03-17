@@ -91,10 +91,10 @@ try {
     $prevMonthStart = date('Y-m-01', strtotime('-1 month'));
     $prevMonthEnd = date('Y-m-t', strtotime('-1 month'));
 
-    // Filtro: tecnico ve apenas seus cadastros, admin ve todos
+    // Filtro: tecnico/user ve apenas seus cadastros, admin ve todos
     $installerFilter = '';
     $installerParam = [];
-    if ($role === 'tecnico') {
+    if ($role === 'tecnico' || $role === 'user') {
         $installerFilter = ' AND installer = ?';
         $installerParam = [$username];
     }
@@ -171,7 +171,7 @@ try {
     // Ranking entre tecnicos (baseado em cadastros do mes)
     $ranking = 0;
     $totalTechnicians = 0;
-    if ($role === 'tecnico') {
+    if ($role === 'tecnico' || $role === 'user') {
         $stmt = $db->prepare("
             SELECT installer, COUNT(*) as total
             FROM clients

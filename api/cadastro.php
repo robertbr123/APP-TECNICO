@@ -60,26 +60,49 @@ $method = $_SERVER['REQUEST_METHOD'];
 try {
     $db = Database::getInstance()->getConnection();
 
+    // Busca cidade do técnico para filtro
+    $userCity = null;
+    $isTechnician = ($userData && ($userData['role'] === 'tecnico' || $userData['role'] === 'user'));
+    if ($isTechnician) {
+        try {
+            $cityStmt = $db->prepare("SELECT city FROM users WHERE id = ?");
+            $cityStmt->execute([$userData['user_id']]);
+            $userCity = trim($cityStmt->fetch()['city'] ?? '');
+            // Se cidade vazia, não filtra (técnico vê todos e escolhe cidade)
+            if (empty($userCity)) {
+                $userCity = null;
+            }
+        } catch (Exception $e) {
+            Logger::logException($e, ['context' => 'buscar cidade usuario']);
+        }
+    }
+
     if ($method === 'GET') {
         // ===== LISTAGEM COM PAGINAÇÃO =====
         $search = $_GET['search'] ?? null;
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? min(100, max(1, (int)$_GET['limit'])) : 20;
         $offset = ($page - 1) * $limit;
-        
+
         // Monta a query base
         $sql = "SELECT * FROM clients";
         $countSql = "SELECT COUNT(*) as total FROM clients";
         $params = [];
         $whereConditions = [];
-        
+
+        // Filtro de cidade para técnicos (só aplica se tem cidade configurada)
+        if ($isTechnician && $userCity) {
+            $whereConditions[] = "LOWER(TRIM(city)) = LOWER(TRIM(?))";
+            $params[] = $userCity;
+        }
+
         // Filtro de busca
         if ($search) {
             $searchTerm = "%$search%";
             $whereConditions[] = "(name LIKE ? OR cpf LIKE ? OR phone LIKE ? OR city LIKE ?)";
-            $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm];
+            array_push($params, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
         }
-        
+
         // Aplica where se houver condições
         if (!empty($whereConditions)) {
             $whereClause = " WHERE " . implode(' AND ', $whereConditions);
@@ -183,6 +206,11 @@ try {
             ], 409);
         }
         
+        // Força a cidade do técnico no cadastro (técnico só cadastra na sua cidade)
+        if ($isTechnician && !empty($userCity)) {
+            $data['city'] = $userCity;
+        }
+
         // Prepara dados
         $installer = $userData ? $userData['username'] : 'app';
         $planId = (int)($data['planId'] ?? 6);
