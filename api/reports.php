@@ -71,6 +71,9 @@ try {
         case 'technicians_list':
             handleTechniciansListReport($db);
             break;
+        case 'cadastro_completo':
+            handleCadastroCompletoReport($db, $cityFilter, $cityParam, $dateFrom, $dateTo);
+            break;
         default:
             jsonResponse(['success' => false, 'message' => 'Tipo de relatório inválido'], 400);
     }
@@ -533,6 +536,82 @@ function handleTechniciansListReport($db) {
     ");
     $stmt->execute();
     jsonResponse(['success' => true, 'data' => $stmt->fetchAll()]);
+}
+
+function handleCadastroCompletoReport($db, $cityFilter, $cityParam, $dateFrom, $dateTo) {
+    // Detecta colunas disponíveis
+    $availableCols = [];
+    try {
+        $colStmt = $db->query("SHOW COLUMNS FROM clients");
+        $availableCols = array_column($colStmt->fetchAll(), 'Field');
+    } catch (Exception $e) {}
+
+    // Monta select dinâmico baseado nas colunas existentes
+    $nameCol    = in_array('name', $availableCols)       ? "c.name"       : "''";
+    $cpfCol     = in_array('cpf', $availableCols)        ? "c.cpf"        : "''";
+    $birthCol   = in_array('birthDate', $availableCols)  ? "DATE_FORMAT(c.birthDate, '%d/%m/%Y')" : "''";
+    $phoneCol   = in_array('phone', $availableCols)      ? "c.phone"      : "''";
+    $addressCol = in_array('address', $availableCols)    ? "c.address"    : "''";
+    $numberCol  = in_array('number', $availableCols)     ? "c.number"     : "''";
+    $complCol   = in_array('complement', $availableCols) ? "c.complement" : "''";
+    $cityCol    = in_array('city', $availableCols)       ? "c.city"       : "''";
+    $pppoeCol   = in_array('pppoe', $availableCols)      ? "c.pppoe"      : "''";
+    $passCol    = in_array('password', $availableCols)   ? "c.password"   : "''";
+
+    // Plano: preferência ao JOIN com plans, fallback para coluna plan ou planId
+    $planoSelect = "COALESCE(p.name, c.plan, c.planId)";
+    if (!in_array('planId', $availableCols) && !in_array('plan', $availableCols)) {
+        $planoSelect = "''";
+    } elseif (!in_array('planId', $availableCols)) {
+        $planoSelect = "c.plan";
+    }
+
+    $sql = "SELECT
+                $nameCol    AS nome,
+                $cpfCol     AS cpf,
+                $birthCol   AS data_nasc,
+                $phoneCol   AS telefone,
+                $addressCol AS endereco,
+                $numberCol  AS numero,
+                $complCol   AS complemento,
+                $cityCol    AS cidade,
+                $pppoeCol   AS pppoe,
+                $passCol    AS senha,
+                $planoSelect AS plano,
+                DATE_FORMAT(c.created_at, '%d/%m/%Y') AS data_cadastro
+            FROM clients c
+            LEFT JOIN plans p ON p.id = c.planId
+            WHERE DATE(c.created_at) BETWEEN ? AND ?" . $cityFilter . "
+            ORDER BY c.created_at ASC";
+
+    $stmt = $db->prepare($sql);
+    $stmt->execute(array_merge([$dateFrom, $dateTo], $cityParam));
+    $data = $stmt->fetchAll();
+
+    jsonResponse([
+        'success' => true,
+        'message' => 'Relatório gerado com sucesso',
+        'data' => $data,
+        'summary' => [
+            'total_period' => count($data),
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo
+        ],
+        'columns' => [
+            ['key' => 'nome',         'label' => 'Nome'],
+            ['key' => 'cpf',          'label' => 'CPF'],
+            ['key' => 'data_nasc',    'label' => 'Nascimento'],
+            ['key' => 'telefone',     'label' => 'Telefone'],
+            ['key' => 'endereco',     'label' => 'Endereço'],
+            ['key' => 'numero',       'label' => 'Nº'],
+            ['key' => 'complemento',  'label' => 'Compl.'],
+            ['key' => 'cidade',       'label' => 'Cidade'],
+            ['key' => 'pppoe',        'label' => 'PPPoE'],
+            ['key' => 'senha',        'label' => 'Senha'],
+            ['key' => 'plano',        'label' => 'Plano'],
+            ['key' => 'data_cadastro','label' => 'Cadastro']
+        ]
+    ]);
 }
 
 function handleWorkOrdersReport($db, $userData, $dateFrom, $dateTo) {

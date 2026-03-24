@@ -95,7 +95,8 @@
             inventory: 'Relatório de Estoque',
             work_orders: 'Relatório de Ordens de Serviço',
             checklists: 'Relatório de Checklists',
-            ranking: 'Ranking de Técnicos'
+            ranking: 'Ranking de Técnicos',
+            cadastro_completo: 'Ficha de Cadastro Completa'
         };
 
         // Header

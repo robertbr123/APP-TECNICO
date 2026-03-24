@@ -73,6 +73,27 @@
         </div>
     </div>
 
+    <!-- Ficha Completa de Cadastro -->
+    <div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm">
+        <div class="flex items-center gap-4">
+            <div class="size-12 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
+                <span class="material-symbols-outlined text-white text-[24px]">contact_page</span>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-[15px] font-bold text-gray-900 dark:text-white">Ficha de Cadastro Completa</h3>
+                <p class="text-[13px] text-gray-500 dark:text-gray-400">Nome, CPF, nasc., endereço, PPPoE, senha, plano</p>
+            </div>
+        </div>
+        <div class="flex gap-2 mt-3">
+            <button onclick="generateReport('cadastro_completo', 'csv')" class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-xl text-xs font-bold active:scale-95 transition-transform">
+                <span class="material-symbols-outlined text-base">table_chart</span> CSV
+            </button>
+            <button onclick="generateReport('cadastro_completo', 'pdf')" class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl text-xs font-bold active:scale-95 transition-transform">
+                <span class="material-symbols-outlined text-base">picture_as_pdf</span> PDF
+            </button>
+        </div>
+    </div>
+
     <!-- Checklists Report -->
     <div class="bg-white dark:bg-card-dark rounded-ios-xl p-4 shadow-sm">
         <div class="flex items-center gap-4">
