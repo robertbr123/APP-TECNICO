@@ -558,14 +558,6 @@ function handleCadastroCompletoReport($db, $cityFilter, $cityParam, $dateFrom, $
     $pppoeCol   = in_array('pppoe', $availableCols)      ? "c.pppoe"      : "''";
     $passCol    = in_array('password', $availableCols)   ? "c.password"   : "''";
 
-    // Plano: preferência ao JOIN com plans, fallback para coluna plan ou planId
-    $planoSelect = "COALESCE(p.name, c.plan, c.planId)";
-    if (!in_array('planId', $availableCols) && !in_array('plan', $availableCols)) {
-        $planoSelect = "''";
-    } elseif (!in_array('planId', $availableCols)) {
-        $planoSelect = "c.plan";
-    }
-
     $sql = "SELECT
                 $nameCol    AS nome,
                 $cpfCol     AS cpf,
@@ -577,10 +569,8 @@ function handleCadastroCompletoReport($db, $cityFilter, $cityParam, $dateFrom, $
                 $cityCol    AS cidade,
                 $pppoeCol   AS pppoe,
                 $passCol    AS senha,
-                $planoSelect AS plano,
                 DATE_FORMAT(c.created_at, '%d/%m/%Y') AS data_cadastro
             FROM clients c
-            LEFT JOIN plans p ON p.id = c.planId
             WHERE DATE(c.created_at) BETWEEN ? AND ?" . $cityFilter . "
             ORDER BY c.created_at ASC";
 
@@ -608,7 +598,6 @@ function handleCadastroCompletoReport($db, $cityFilter, $cityParam, $dateFrom, $
             ['key' => 'cidade',       'label' => 'Cidade'],
             ['key' => 'pppoe',        'label' => 'PPPoE'],
             ['key' => 'senha',        'label' => 'Senha'],
-            ['key' => 'plano',        'label' => 'Plano'],
             ['key' => 'data_cadastro','label' => 'Cadastro']
         ]
     ]);
