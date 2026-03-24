@@ -553,10 +553,10 @@ function handleCadastroCompletoReport($db, $cityFilter, $cityParam, $dateFrom, $
     $phoneCol   = in_array('phone', $availableCols)      ? "c.phone"      : "''";
     $addressCol = in_array('address', $availableCols)    ? "c.address"    : "''";
     $numberCol  = in_array('number', $availableCols)     ? "c.number"     : "''";
-    $complCol   = in_array('complement', $availableCols) ? "c.complement" : "''";
-    $cityCol    = in_array('city', $availableCols)       ? "c.city"       : "''";
-    $pppoeCol   = in_array('pppoe', $availableCols)      ? "c.pppoe"      : "''";
-    $passCol    = in_array('password', $availableCols)   ? "c.password"   : "''";
+    $cityCol    = in_array('city', $availableCols)        ? "c.city"        : "''";
+    $pppoeCol   = in_array('pppoe', $availableCols)      ? "c.pppoe"       : "''";
+    $passCol    = in_array('password', $availableCols)   ? "c.password"    : "''";
+    $obsCol     = in_array('observation', $availableCols) ? "c.observation" : "''";
 
     $sql = "SELECT
                 $nameCol    AS nome,
@@ -565,10 +565,10 @@ function handleCadastroCompletoReport($db, $cityFilter, $cityParam, $dateFrom, $
                 $phoneCol   AS telefone,
                 $addressCol AS endereco,
                 $numberCol  AS numero,
-                $complCol   AS complemento,
                 $cityCol    AS cidade,
                 $pppoeCol   AS pppoe,
                 $passCol    AS senha,
+                $obsCol     AS observacao,
                 DATE_FORMAT(c.created_at, '%d/%m/%Y') AS data_cadastro
             FROM clients c
             WHERE DATE(c.created_at) BETWEEN ? AND ?" . $cityFilter . "
@@ -594,10 +594,10 @@ function handleCadastroCompletoReport($db, $cityFilter, $cityParam, $dateFrom, $
             ['key' => 'telefone',     'label' => 'Telefone'],
             ['key' => 'endereco',     'label' => 'Endereço'],
             ['key' => 'numero',       'label' => 'Nº'],
-            ['key' => 'complemento',  'label' => 'Compl.'],
             ['key' => 'cidade',       'label' => 'Cidade'],
             ['key' => 'pppoe',        'label' => 'PPPoE'],
             ['key' => 'senha',        'label' => 'Senha'],
+            ['key' => 'observacao',   'label' => 'Observação'],
             ['key' => 'data_cadastro','label' => 'Cadastro']
         ]
     ]);
